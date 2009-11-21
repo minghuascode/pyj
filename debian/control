@@ -9,7 +9,7 @@ Homepage: http://pyj.be
 
 Package: pyjamas-ui
 Architecture: all
-Depends: ${python:Depends}, ${misc:Depends}
+Depends: ${misc:Depends}
 Description: Python Pyjamas Web Widget Set library
  Pyjamas is a stand-alone Python to Javascript compiler, an AJAX
  framework / library and a Desktop-like Widget set.
@@ -99,7 +99,7 @@ Description: Python web widget set
 
 Package: pyjamas-canvas
 Architecture: all
-Depends: ${python:Depends}, ${misc:Depends}, pyjamas-ui
+Depends: ${misc:Depends}, pyjamas-ui
 Recommends: pyjamas-desktop
 Description: Pyjamas Python port of GWTCanvas SVG Library
  Pyjamas is a stand-alone Python to Javascript compiler, an AJAX
@@ -119,7 +119,7 @@ Description: Pyjamas Python port of GWTCanvas SVG Library
 
 Package: pyjamas-gmap
 Architecture: all
-Depends: ${python:Depends}, ${misc:Depends}, pyjamas-ui
+Depends: ${misc:Depends}, pyjamas-ui
 Description: Pyjamas Google Maps (v3) Wrapper Library
  Pyjamas is a stand-alone Python to Javascript compiler, an AJAX
  framework / library and a Desktop-like Widget set.
@@ -141,7 +141,7 @@ Description: Pyjamas Google Maps (v3) Wrapper Library
 
 Package: pyjamas-gchart
 Architecture: all
-Depends: ${python:Depends}, ${misc:Depends}, pyjamas-ui
+Depends: ${misc:Depends}, pyjamas-ui
 Recommends: pyjamas-desktop, pyjamas-canvas
 Description: Pyjamas Python port of GWT GChart Charting and Graph Widget Library
  Pyjamas is a stand-alone Python to Javascript compiler, an AJAX

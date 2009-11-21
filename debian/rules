@@ -56,9 +56,6 @@ override_dh_auto_install:
 override_dh_install:
 	dh_install --fail-missing
 
-override_dh_pysupport:
-	dh_pysupport /usr/share/pyjamas
-
 override_dh_installdocs:
 	# use symlinks for the doc dirs of packages that depend on pyjamas-ui
 	dh_installdocs -ppyjamas-ui -ppyjamas-pyjs -ppyjamas-desktop -ppyjamas-doc
