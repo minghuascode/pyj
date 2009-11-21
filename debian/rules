@@ -49,14 +49,17 @@ override_dh_auto_install:
 	mv debian/tmp/usr/share/pyjamas/library/pyjamas/ui \
 		debian/pyjamas-ui/usr/share/pyjamas/library/pyjamas
 
+	# gmap
+	mv debian/tmp/usr/share/pyjamas/library/pyjamas/gmaps \
+		debian/pyjamas-gmap/usr/share/pyjamas/library/pyjamas
+
 override_dh_pysupport:
-	dh_pysupport
-	dh_pysupport -ppyjamas-ui /usr/share/pyjamas
+	dh_pysupport /usr/share/pyjamas
 
 override_dh_installdocs:
 	# use symlinks for the doc dirs of packages that depend on pyjamas-ui
 	dh_installdocs -ppyjamas-ui -ppyjamas-pyjs -ppyjamas-desktop -ppyjamas-doc
-	for p in pyjamas pyjamas-canvas pyjamas-gchart; do \
+	for p in pyjamas pyjamas-canvas pyjamas-gchart pyjamas-gmap; do \
 		install -d debian/$$p/usr/share/doc ; \
 		ln -s pyjamas-ui debian/$$p/usr/share/doc/$$p ; \
 	done
