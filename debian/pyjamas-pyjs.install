@@ -1,4 +1,4 @@
 usr/share/pyjamas
-usr/lib/python*/site-packages/pyjs
-usr/lib/python*/site-packages/Pyjamas-*.egg-info
+usr/lib/python*/*-packages/pyjs
+usr/lib/python*/*-packages/Pyjamas-*.egg-info
 bin/pyjsbuild usr/bin
