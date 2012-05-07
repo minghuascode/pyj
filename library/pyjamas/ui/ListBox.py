@@ -25,7 +25,7 @@ class ListBox(FocusWidget, ChangeHandler):
     _props = [("visible", "Visible Count", "VisibleItemCount", None),
              ("name", "Name", "Name", None),
              ("selectedIndex", "Selected Index", "SelectedIndex", None),
-             ("multiple", "Multiple Select", "MultiplSelect", None),
+             ("multiple", "Multiple Select", "MultipleSelect", None),
             ]
 
     def __init__(self, **kwargs):
