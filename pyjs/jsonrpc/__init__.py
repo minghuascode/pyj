@@ -36,7 +36,7 @@ class JSONRPCServiceBase:
         msgid, method, params = data["id"], data["method"], data["params"]
         if method in self.methods:
             try:
-                result =self.methods[method](*params)
+                result = self.methods[method](*params)
                 return self.response(msgid, result)
             except BaseException:
                 etype, eval, etb = sys.exc_info()
