@@ -47,6 +47,7 @@ from pyjamas import Factory
 from pyjamas.ui import Event
 from ButtonBase import ButtonBase
 from pyjamas.ui import Focus
+from pyjamas.ui.Image import Image
 from UIObject import UIObject
 
 
@@ -150,7 +151,11 @@ class CustomButton (ButtonBase):
     UP_DISABLED   = DISABLED_ATTRIBUTE        # 4 ID for upDisabled face.
     DOWN_DISABLED = DOWN | DISABLED_ATTRIBUTE # 5 ID for downDisabled face.
 
-
+    _props = [("upImageText", "Up Image Text", "UpImageText", None),
+              ("downImageText", "Down Image Text", "DownImageText", None),
+              ("upImageUrl", "Up Image Url", "UpImageUrl", Image),
+              ("downImageUrl", "Down Image Url", "DownImageUrl", Image),
+            ]
 
     """ Calling possibilities:
     def __init__(self, upImage):
@@ -245,6 +250,10 @@ class CustomButton (ButtonBase):
                         | Event.KEYEVENTS)
         if listener is not None:
             self.addClickListener(listener)
+
+    @classmethod
+    def _getProps(self):
+        return ButtonBase._getProps() + self._props
 
     def updateButtonFace(self):
         if self.curFace is not None and \
