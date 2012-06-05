@@ -106,6 +106,8 @@ class Builder(object):
             wprops = {}
             if props.has_key("common"):
                 wprops.update(props['common'])
+            if props.has_key("layout"):
+                wprops.update(props['layout'])
             if props.has_key("widget"):
                 wprops.update(props['widget'])
             for n in kls._getProps():
