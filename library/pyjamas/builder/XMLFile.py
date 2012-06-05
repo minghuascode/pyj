@@ -38,6 +38,7 @@ class XMLFile(object):
         raise XMLFileError("Line %s: %s" % (self.lineno, msg))
 
     def parseValue(self, v, unpackStr=False):
+        print "parseValue", v
         if v == "":
             # Quick return
             return v
@@ -62,12 +63,14 @@ class XMLFile(object):
             if v[0] == v[-1]:
                 if unpackStr and v[0] in ["'", '"']:
                     return v[1:-1]
-            elif v[0] == '(' and v[-1] == ')':
+            elif (v[0] == '(' and v[-1] == ')') or \
+                 (v[0] == '[' and v[-1] == ']'):
                 values = []
                 try:
                     for value in v[1:-1].split(','):
                         value = self.parseValue(value.strip(), True)
                         values.append(value)
+                    print "parseValue tuple", values
                     return tuple(values)
                 except:
                     pass

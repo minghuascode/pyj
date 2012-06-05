@@ -7,6 +7,7 @@ from pyjamas import ui
 from pyjamas.ui.MultiListener import MultiListener
 from pyjamas.HTTPRequest import HTTPRequest
 from pyjamas.ui.Tooltip import TooltipListener
+from pyjamas.ui.CSS import StyleSheetCssFile
 
 
 # All event listeners with a tuple that comprises of the listener add 
@@ -43,9 +44,21 @@ class BuilderState(object):
 
 class Builder(object):
 
-    def __init__(self, text=None):
+    def __init__(self, text=None, addcss=False):
         self.builder_text = None
+        self.css = None
         self.setText(text)
+
+        if not addcss:
+            return
+        if not self.properties:
+            return
+        cssfile = self.properties.get('cssfile', None)
+        if not cssfile:
+            return
+        self.css = StyleSheetCssFile(cssfile)
+        print "setting CSS stylesheet", cssfile
+
 
     def setText(self, text):
         if text is None:
@@ -56,6 +69,9 @@ class Builder(object):
             self.properties = None
             self.components = None
             self.builder_text = None
+            if self.css:
+                self.css.remove()
+                self.css = None
             return
 
         text = str(text) # XMLFile only accepts str not unicode!
@@ -69,6 +85,7 @@ class Builder(object):
         self.widget_order = {}
         self.widgets_by_class = {}
         self.properties, self.components = XMLFile(text).parse()
+
 
     def createInstance(self, instancename,
                        eventTarget=None, targetItem=None, index=None):
