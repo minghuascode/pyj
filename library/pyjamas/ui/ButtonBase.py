@@ -25,7 +25,7 @@ class ButtonBase(FocusWidget, InnerHTML, InnerText):
 
     def _setWeirdProps(self, props, builderstate):
         if props.has_key("label"):
-            props['text'] = props['label']
+            props['text'] = str(props['label'])
             del props['label']
         if not props.has_key("text"):
             return
