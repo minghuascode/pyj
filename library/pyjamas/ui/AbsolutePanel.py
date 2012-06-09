@@ -42,8 +42,12 @@ class AbsolutePanel(ComplexPanel):
             DOM.setStyleAttribute(h, "position", "static")
         else:
             DOM.setStyleAttribute(h, "position", "absolute")
-            DOM.setStyleAttribute(h, "left", "%dpx" % left)
-            DOM.setStyleAttribute(h, "top", "%dpx" % top)
+            if not isinstance(left, basestring):
+                left = "%dpx" % left
+            DOM.setStyleAttribute(h, "left", left)
+            if not isinstance(top, basestring):
+                left = "%dpx" % top
+            DOM.setStyleAttribute(h, "top", top)
 
     def getWidgetLeft(self, widget):
         self.checkWidgetParent(widget)
