@@ -8,6 +8,7 @@
 """
 
 import sys
+import traceback
 from HTTPRequest import HTTPRequest
 
 try:
@@ -180,7 +181,7 @@ class JSONResponseTextHandler(object):
             error = dict(
                          code=-32700,
                          message="Parse error while decoding response",
-                         data=None,
+                         data=traceback.format_exc(),
                         )
             self.request.handler.onRemoteError(0, error, self.request)
             return
