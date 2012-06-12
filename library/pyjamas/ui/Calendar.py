@@ -306,13 +306,11 @@ class Calendar(FocusPanel):
             selectedDay = int(text)
         except ValueError, e:
             return
-        # well if anyone is listening to the listener, fire that event
+        # fire event to all listeners
         for listener in self.selectedDateListeners:
             if hasattr(listener, "onDateSelected"):
-                listener.onDateSelected(self.currentYear, self.currentMonth,
-                                        selectedDay)
-            else:
-                listener(self.currentYear, self.currentMonth, selectedDay)
+                listener = listener.onDateSelected
+            listener(self.currentYear, self.currentMonth, selectedDay)
         self.setVisible(False)
 
     def onPreviousYear(self, event):
