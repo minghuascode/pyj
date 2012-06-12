@@ -33,6 +33,12 @@ class Calendar(FocusPanel):
     cancel = 'Cancel'
 
     def __init__(self, **kwargs):
+        self.backyear = kwargs.pop('BackyearSymbol', '<<')
+        self.backmonth = kwargs.pop('BackmonthSymbol', '<')
+        self.fwdyear = kwargs.pop('FwdyearSymbol', '>>')
+        self.fwdmonth = kwargs.pop('FwdmonthSymbol', '>')
+        self.addbuttons = kwargs.pop('AddButtons', True)
+
         FocusPanel.__init__(self, **kwargs)
         yr, mth, day = time.strftime("%Y-%m-%d").split("-")
         self.todayYear = int(yr)
@@ -141,7 +147,7 @@ class Calendar(FocusPanel):
             # what about the title panel?
             #
             txt = "<b>"
-            txt += self.getMonthsOfYear()[month-1] + " " + str(year)
+            txt += self.getMonthsOfYear()[month-1] + "&nbsp;" + str(year)
             txt += "</b>"
             self.titlePanel.setWidget(HTML(txt))
             self.setVisible(True)
@@ -164,17 +170,14 @@ class Calendar(FocusPanel):
         tp.addStyleName("calendar-top-panel")
         tp.setSpacing(5)
 
-        h1 = Hyperlink('<<')
-        h1.addClickListener(getattr(self, 'onPreviousYear'))
-        h2 = Hyperlink('<')
-        h2.addClickListener(getattr(self, 'onPreviousMonth'))
-        h4 = Hyperlink('>')
-        h4.addClickListener(getattr(self, 'onNextMonth'))
-        h5 = Hyperlink('>>')
-        h5.addClickListener(getattr(self, 'onNextYear'))
-
-        tp.add(h1)
-        tp.add(h2)
+        if self.backyear:
+            h1 = Hyperlink(self.backyear, StyleName="calendar-arrows")
+            h1.addClickListener(getattr(self, 'onPreviousYear'))
+            tp.add(h1)
+        if self.backmonth:
+            h2 = Hyperlink(self.backmonth, StyleName="calendar-arrows")
+            h2.addClickListener(getattr(self, 'onPreviousMonth'))
+            tp.add(h2)
 
         # titlePanel can be changed, whenever we draw, so keep the reference
         txt = "<b>"
@@ -185,8 +188,16 @@ class Calendar(FocusPanel):
         self.titlePanel.setStyleName("calendar-center")
 
         tp.add(self.titlePanel)
-        tp.add(h4)
-        tp.add(h5)
+
+        if self.fwdmonth:
+            h4 = Hyperlink(self.fwdmonth, StyleName="calendar-arrows")
+            h4.addClickListener(getattr(self, 'onNextMonth'))
+            tp.add(h4)
+        if self.fwdyear:
+            h5 = Hyperlink(self.fwdyear, StyleName="calendar-arrows")
+            h5.addClickListener(getattr(self, 'onNextYear'))
+            tp.add(h5)
+
         tvp = VerticalPanel()
         tvp.setSpacing(10)
         tvp.add(tp)
@@ -200,33 +211,35 @@ class Calendar(FocusPanel):
         self.middlePanel.setWidget(grid)
         self.vp.add(self.middlePanel)
         self.defaultGrid = grid
-        #
-        # some links & handlers
-        #
-        bh1 = Hyperlink(self.yesterday)
-        bh1.addClickListener(getattr(self, 'onYesterday'))
-        bh2 = Hyperlink(self.today)
-        bh2.addClickListener(getattr(self, 'onToday'))
-        bh3 = Hyperlink(self.tomorrow)
-        bh3.addClickListener(getattr(self, 'onTomorrow'))
-        bh4 = Hyperlink(self.cancel)
-        bh4.addClickListener(getattr(self, 'onCancel'))
-        #
-        # add code to test another way of doing the layout
-        #
-        b = HorizontalPanel()
-        b.add(bh1)
-        b.add(bh2)
-        b.add(bh3)
-        b.addStyleName("calendar-shortcuts")
-        self.vp.add(b)
-        b2 = SimplePanel()
-        b2.add(bh4)
-        b2.addStyleName("calendar-cancel")
-        self.vp.add(b2)
+
+        if self.addbuttons:
+            #
+            # some links & handlers
+            #
+            bh1 = Hyperlink(self.yesterday)
+            bh1.addClickListener(getattr(self, 'onYesterday'))
+            bh2 = Hyperlink(self.today)
+            bh2.addClickListener(getattr(self, 'onToday'))
+            bh3 = Hyperlink(self.tomorrow)
+            bh3.addClickListener(getattr(self, 'onTomorrow'))
+            bh4 = Hyperlink(self.cancel)
+            bh4.addClickListener(getattr(self, 'onCancel'))
+
+            #
+            # add code to test another way of doing the layout
+            #
+            b = HorizontalPanel()
+            b.add(bh1)
+            b.add(bh2)
+            b.add(bh3)
+            b.addStyleName("calendar-shortcuts")
+            self.vp.add(b)
+            b2 = SimplePanel()
+            b2.add(bh4)
+            b2.addStyleName("calendar-cancel")
+            self.vp.add(b2)
 
         self.setVisible(True)
-        return
 
     def drawGrid(self, month, year):
         # draw the grid in the middle of the calendar
