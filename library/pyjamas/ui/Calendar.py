@@ -24,7 +24,7 @@ import time
 from datetime import datetime
 
 class Calendar(FocusPanel):
-    monthsOfYear = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+    monthsOfYear = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
     today = 'Today'
@@ -52,9 +52,6 @@ class Calendar(FocusPanel):
         self.selectedDateListeners = []
 
         self.defaultGrid = None # used later
-
-        return
-
 
     def setDate(self,_date):
         """ _date - object of datetime.date class """
@@ -107,9 +104,8 @@ class Calendar(FocusPanel):
         self.setVisible(True)
 
     def drawCurrent(self):
-        yr, mth, day = self.currentYear, self.currentMonth, self.currentDay 
+        yr, mth, day = self.currentYear, self.currentMonth, self.currentDay
         self.draw(int(mth), int(yr))
-
 
     def draw(self, month , year):
         tod = time.localtime()
@@ -119,7 +115,7 @@ class Calendar(FocusPanel):
         # where widget in created on last day of month and
         # page left till next day
         hasChangeMonth = False
-        if yy <> self.todayYear or mm <> self.todayMonth:
+        if yy != self.todayYear or mm != self.todayMonth:
             hasChangeMonth = True
             self.todayYear = yy
             self.todayMonth = mm
@@ -277,7 +273,7 @@ class Calendar(FocusPanel):
         day = 1
         col = startPos
         while day <= daysInMonth:
-            if pos % 7 == 0 and day <> 1:
+            if pos % 7 == 0 and day != 1:
                 row += 1
             col = pos % 7
             grid.setText(row, col, str(day))
@@ -313,12 +309,11 @@ class Calendar(FocusPanel):
         # well if anyone is listening to the listener, fire that event
         for listener in self.selectedDateListeners:
             if hasattr(listener, "onDateSelected"):
-                listener.onDateSelected(self.currentYear, self.currentMonth, 
+                listener.onDateSelected(self.currentYear, self.currentMonth,
                                         selectedDay)
             else:
                 listener(self.currentYear, self.currentMonth, selectedDay)
         self.setVisible(False)
-
 
     def onPreviousYear(self, event):
         self.drawPreviousYear()
