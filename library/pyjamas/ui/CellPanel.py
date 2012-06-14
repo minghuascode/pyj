@@ -30,6 +30,19 @@ class CellPanel(ComplexPanel):
             ("padding", "Padding", "Padding", None)
              ]
 
+    elem_props = [
+           ("height", "Cell Height", "CellHeight", str, None),
+           ("width", "Cell Width", "CellWidth", str, None),
+           ("halign", "Cell Horizontal Alignment",
+                      "CellHorizontalAlignment", None, "left"),
+           ("valign", "Cell Vertical Alignment",
+                      "CellVerticalAlignment", None, "top"),
+                 ]
+    
+    def _getElementProps(self):
+        return ComplexPanel._getElementProps() + self.elem_props
+    
+
     def __init__(self, **kwargs):
 
         kwargs['Spacing'] = kwargs.get('Spacing', 0)

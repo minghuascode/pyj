@@ -41,18 +41,6 @@ class DockPanel(CellPanel):
     SOUTH = "south"
     WEST = "west"
 
-    elem_props = [
-           ("height", "Cell Height", "CellHeight", str, None),
-           ("width", "Cell Width", "CellWidth", str, None),
-           ("halign", "Cell Horizontal Alignment",
-                      "CellHorizontalAlignment", None, "left"),
-           ("valign", "Cell Vertical Alignment",
-                      "CellVerticalAlignment", None, "top"),
-                 ]
-
-    def _getElementProps(self):
-        return CellPanel._getElementProps() + self.elem_props
-
     def __init__(self, **kwargs):
 
         self.center = None
