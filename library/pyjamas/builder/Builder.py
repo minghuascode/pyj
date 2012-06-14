@@ -37,10 +37,12 @@ eventListeners = dict(
     onTreeItemSelected = ("addTreeListener", "sender"),
         )
 
+
 class BuilderState(object):
     def __init__(self, builder, eventTarget):
         self.builder = builder
         self.eventTarget = eventTarget
+
 
 class Builder(object):
 
@@ -58,7 +60,6 @@ class Builder(object):
             return
         self.css = StyleSheetCssFile(cssfile)
         print "setting CSS stylesheet", cssfile
-
 
     def setText(self, text):
         if text is None:
@@ -140,27 +141,29 @@ class Builder(object):
             #if parentInstance is not None:
             #    context = parentInstance.getIndexedChild(comp['index'])
             #    context.add(item.componentInstance)
-            for (index, child) in enumerate(childs):
+            print "element full props", props.get('elements', None)
+            for (i, child) in enumerate(childs):
                 if not child[0].has_key("type") or child[0]["type"] is None:
                     continue
                 childitem = addItem(child[0], child[1], child[2], item,
                                     eventTarget)
                 if childitem is None:
                     continue
-                print "childitem", childitem
-                item.addIndexedItem(child[0]["index"], childitem)
+                index = child[0]["index"]
+                print "childitem", index, childitem
+                item.addIndexedItem(index, childitem)
                 if not "elements" in props:
                     props["elements"] = {}
                 if not index in props["elements"]:
                     props["elements"][index] = {}
 
-                elemprops = props['elements'][index]
-                print "elemprops", childitem, item, elemprops
-                item.setElementProperties(childitem, elemprops)
-
                 # add child (by name) to item
                 cname = child[0]["id"] 
                 setattr(item, cname, childitem)
+
+                elemprops = props['elements'][index]
+                print "elemprops", childitem, item, index, elemprops
+                item.setElementProperties(childitem, elemprops)
 
             # make the event target the recipient of all events
             if eventTarget is not None and props.has_key("events"):

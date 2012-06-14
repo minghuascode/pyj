@@ -19,6 +19,7 @@ from pyjamas.ui import Applier
 class CellFormatter(Applier):
 
     _elem_props = [
+        ("visible", "Visible", "Visible", None, True),
         ("wordwrap", "Word Wrap", "WordWrap", None, True),
         ("stylename", "Style Name", "StyleName", None, ""),
         ("height", "Height", "Height", None, None),

@@ -30,12 +30,31 @@ from pyjamas.ui.RowFormatter import RowFormatter
 
 widgethash = {}
 
+def _getargs(parent, args):
+    row, col = parent.getIndex(args[0])
+    return row, col, args[1]
+
 class HTMLTable(Panel):
 
     _props = [ ("border", "Border width", "BorderWidth", int),
               ("spacing", "Spacing", "CellSpacing", None),
               ("padding", "Padding", "CellPadding", None)
              ]
+
+    elem_props = [
+           ("visible", "Cell Visible", "CellVisible", None, True),
+           ("wordwrap", "Cell Word wrap", "CellWordWrap", None, True),
+           ("stylename", "Cell Style", "CellStyleName", None, ""),
+           ("height", "Cell Height", "CellHeight", str, None),
+           ("width", "Cell Width", "CellWidth", str, None),
+           ("halign", "Cell Horizontal Alignment",
+                      "CellHorizontalAlignment", None, "left"),
+           ("valign", "Cell Vertical Alignment",
+                      "CellVerticalAlignment", None, "top"),
+                 ]
+
+    def _getElementProps(self):
+        return Panel._getElementProps() + self.elem_props
 
     def __init__(self, **kwargs):
         if not kwargs.has_key('CellFormatter'):
@@ -382,6 +401,36 @@ class HTMLTable(Panel):
 
     def setRowFormatter(self, rowFormatter):
         self.rowFormatter = rowFormatter
+
+    def setCellVisible(self, context, val):
+        row, col = self.getIndex(context)
+        print "setCellVisible", self, context, row, col, val
+        self.getCellFormatter().setVisible(row, col, val)
+
+    def setCellWidth(self, context, val):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().setWidth(row, col, val)
+
+    def setCellHeight(self, context, val):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().setHeight(row, col, val)
+
+    def setCellWordWrap(self, context, val):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().setWordWrap(row, col, val)
+
+    def setCellStyleName(self, context, val):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().setStyleName(row, col, val)
+
+    def setCellVerticalAlignment(self, context, val):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().setVerticalAlignment(row, col, val)
+
+    def setCellHorizontalAlignment(self, context, val):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().setHorizontalAlignment(row, col, val)
+
 
 Factory.registerClass('pyjamas.ui.HTMLTable', 'HTMLTable', HTMLTable)
 
