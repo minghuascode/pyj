@@ -129,8 +129,8 @@ class Applier(object):
     def setElementProperties(self, context, elemProps):
         args = {}
         for p in self._getElementProps():
-            if elemProps.has_key(p):
-                val = elemProps[p]
+            if elemProps.has_key(p[ELPROP_NAME]):
+                val = elemProps[p[ELPROP_NAME]]
                 convert_to_type = p[ELPROP_TYPE]
                 if convert_to_type:
                      val = convert_to_type(val) if val else None
