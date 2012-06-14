@@ -16,6 +16,19 @@
 
 import re
 
+# horrible hack to allow utf-8 strings, identified by quotes
+# can't use unicode (not supported by browsers)
+def utf8decode(s):
+    res = ''
+    while s:
+        if len(s) >= 4 and s[:2] == '\\x':
+            res += '%c' % int(s[2:4], 16)
+            s = s[4:]
+        else:
+            res += s[0]
+            s = s[1:]
+    return res
+
 class XMLFileError(RuntimeError):
     pass
 
@@ -74,6 +87,11 @@ class XMLFile(object):
                     return tuple(values)
                 except:
                     pass
+            if len(v) >= 2:
+                if v[0] == "'" and v[-1] == "'":
+                    return utf8decode(v[1:-1])
+                if v[:2] == 'u"' and v[-1] == '"':
+                    return utf8decode(v[1:-1])
             if len(v) > 2:
                 if v[:2] == "u'" and v[-1] == "'":
                     return v[2:-1]
