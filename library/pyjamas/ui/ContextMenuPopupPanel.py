@@ -34,8 +34,11 @@ class ContextMenuPopupPanel(PopupPanel):
             target = DOM.eventGetTarget(event)
             parentMenuElement = self.item.getElement()
             if DOM.isOrHasChild(parentMenuElement, target):
-                if self.item.onBrowserEvent(event):
+                if self.item.findItem(target):
                     self.hide()
+                    DOM.eventCancelBubble(event, True)
+                    DOM.eventStopPropagation(event)
+
                 return True
 
         return PopupPanel.onEventPreview(self, event)
