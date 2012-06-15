@@ -429,6 +429,7 @@ class HTMLTable(Panel):
 
     def setCellHorizontalAlignment(self, context, val):
         row, col = self.getIndex(context)
+        print "setHorizontalAlignment", self, context, row, col, val
         self.getCellFormatter().setHorizontalAlignment(row, col, val)
 
 
