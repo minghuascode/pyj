@@ -38,6 +38,8 @@ class Calendar(FocusPanel):
         self.fwdyear = kwargs.pop('FwdyearSymbol', '>>')
         self.fwdmonth = kwargs.pop('FwdmonthSymbol', '>')
         self.addbuttons = kwargs.pop('AddButtons', True)
+        self.mindate = kwargs.pop('MinDate', None) # (yr, mnth, day)
+        self.maxdate = kwargs.pop('MaxDate', None) # (yr, mnth, day)
 
         FocusPanel.__init__(self, **kwargs)
         yr, mth, day = time.strftime("%Y-%m-%d").split("-")
@@ -76,6 +78,30 @@ class Calendar(FocusPanel):
             return True
         else:
             return False
+
+    def _indaterange(self, year, mnth, day=None):
+
+        if self.mindate is not None:
+            if year < self.mindate[0]:
+                return False
+            if year == self.mindate[0]:
+                if mnth < self.mindate[1]:
+                    return False
+                if day is not None:
+                    if mnth == self.mindate[1] and day < self.mindate[2]:
+                        return False
+
+        if self.maxdate is not None:
+            if year > self.maxdate[0]:
+                return False
+            if year == self.maxdate[0]:
+                if mnth > self.maxdate[1]:
+                    return False
+                if day is not None:
+                    if mnth == self.mindate[1] and day > self.mindate[2]:
+                        return False
+
+        return True
 
     def getDaysInMonth(self, mth, year):
         days = 0
@@ -166,14 +192,18 @@ class Calendar(FocusPanel):
         tp.addStyleName("calendar-top-panel")
         tp.setSpacing(5)
 
+        self.h1 = None
+        self.h2 = None
+        self.h4 = None
+        self.h5 = None
         if self.backyear:
-            h1 = Hyperlink(self.backyear, StyleName="calendar-arrows")
-            h1.addClickListener(getattr(self, 'onPreviousYear'))
-            tp.add(h1)
+            self.h1 = Hyperlink(self.backyear, StyleName="calendar-arrows")
+            self.h1.addClickListener(getattr(self, 'onPreviousYear'))
+            tp.add(self.h1)
         if self.backmonth:
-            h2 = Hyperlink(self.backmonth, StyleName="calendar-arrows")
-            h2.addClickListener(getattr(self, 'onPreviousMonth'))
-            tp.add(h2)
+            self.h2 = Hyperlink(self.backmonth, StyleName="calendar-arrows")
+            self.h2.addClickListener(getattr(self, 'onPreviousMonth'))
+            tp.add(self.h2)
 
         # titlePanel can be changed, whenever we draw, so keep the reference
         txt = "<b>"
@@ -186,13 +216,13 @@ class Calendar(FocusPanel):
         tp.add(self.titlePanel)
 
         if self.fwdmonth:
-            h4 = Hyperlink(self.fwdmonth, StyleName="calendar-arrows")
-            h4.addClickListener(getattr(self, 'onNextMonth'))
-            tp.add(h4)
+            self.h4 = Hyperlink(self.fwdmonth, StyleName="calendar-arrows")
+            self.h4.addClickListener(getattr(self, 'onNextMonth'))
+            tp.add(self.h4)
         if self.fwdyear:
-            h5 = Hyperlink(self.fwdyear, StyleName="calendar-arrows")
-            h5.addClickListener(getattr(self, 'onNextYear'))
-            tp.add(h5)
+            self.h5 = Hyperlink(self.fwdyear, StyleName="calendar-arrows")
+            self.h5.addClickListener(getattr(self, 'onNextYear'))
+            tp.add(self.h5)
 
         tvp = VerticalPanel()
         tvp.setSpacing(10)
@@ -240,6 +270,21 @@ class Calendar(FocusPanel):
     def drawGrid(self, month, year):
         # draw the grid in the middle of the calendar
 
+        if self.backyear:
+            ok = self._indaterange(self.currentYear-1, self.currentMonth)
+            self.h1.setVisible(ok)
+        if self.backmonth:
+            py, pm = self._previousMonth()
+            ok = self._indaterange(py, pm)
+            self.h2.setVisible(ok)
+        if self.fwdmonth:
+            ny, nm = self._nextMonth()
+            ok = self._indaterange(ny, nm)
+            self.h4.setVisible(ok)
+        if self.fwdyear:
+            ok = self._indaterange(self.currentYear+1, self.currentMonth)
+            self.h5.setVisible(ok)
+
         daysInMonth = self.getDaysInMonth(month, year)
         # first day of the month & year
         secs = time.mktime((year, month, 1, 0, 0, 0, 0, 0, -1))
@@ -264,7 +309,7 @@ class Calendar(FocusPanel):
         day =0
         pos = 0
         while pos < startPos:
-            grid.setText(1, pos , " ")
+            grid.setHTML(1, pos , "&nbsp;")
             grid.cellFormatter.setStyleAttr(1, pos, "background", "#f3f3f3")
             grid.cellFormatter.addStyleName(1, pos, "calendar-blank-cell")
             pos += 1
@@ -276,7 +321,11 @@ class Calendar(FocusPanel):
             if pos % 7 == 0 and day != 1:
                 row += 1
             col = pos % 7
-            grid.setText(row, col, str(day))
+            if not self._indaterange(self.currentYear, self.currentMonth, day):
+                day += 1
+                pos += 1
+                continue
+            grid.setHTML(row, col, str(day))
             if self.currentYear == self.todayYear and \
                self.currentMonth == self.todayMonth and day == self.todayDay:
                 grid.cellFormatter.addStyleName(row, col, "calendar-cell-today")
@@ -289,7 +338,7 @@ class Calendar(FocusPanel):
         #
         col += 1
         while col < 7:
-            grid.setText(row, col, " ")
+            grid.setHTML(row, col, "&nbsp;")
             grid.cellFormatter.setStyleAttr(row, col, "background", "#f3f3f3")
             grid.cellFormatter.addStyleName(row, col, "calendar-blank-cell")
             col += 1
@@ -362,20 +411,30 @@ class Calendar(FocusPanel):
         self.currentYear = year
         self.draw(self.currentMonth, self.currentYear)
 
-    def drawPreviousMonth(self):
+    def _previousMonth(self, y=None, m=None):
+        if y is None:
+            y = self.currentYear
+        if m is None:
+            m = self.currentMonth
         if int(self.currentMonth) == 1:
-            self.currentMonth = 12
-            self.currentYear = int(self.currentYear) - 1
-        else:
-            self.currentMonth = int(self.currentMonth) - 1
+            return (int(self.currentYear) - 1, 12)
+        return int(self.currentYear), int(self.currentMonth) - 1
+
+    def drawPreviousMonth(self):
+        self.currentYear, self.currentMonth = self._previousMonth()
         self.draw(self.currentMonth, self.currentYear)
 
-    def drawNextMonth(self):
+    def _nextMonth(self, y=None, m=None):
+        if y is None:
+            y = self.currentYear
+        if m is None:
+            m = self.currentMonth
         if int(self.currentMonth) == 12:
-            self.currentMonth = 1
-            self.currentYear = int(self.currentYear) + 1
-        else:
-            self.currentMonth = int(self.currentMonth) + 1
+            return (int(self.currentYear) + 1, 1)
+        return int(self.currentYear), int(self.currentMonth) +1
+
+    def drawNextMonth(self):
+        self.currentYear, self.currentMonth = self._nextMonth()
         self.draw(self.currentMonth, self.currentYear)
 
     def drawPreviousYear(self):
