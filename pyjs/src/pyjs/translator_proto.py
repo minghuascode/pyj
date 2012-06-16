@@ -726,7 +726,8 @@ class TranslationError(Exception):
         self.node = node
         self.module_name = module_name
         self.lineno = lineno
-        Exception.__init__(self, "%s line %s:\n%s\n%s" % (module_name, lineno, msg, node))
+        Exception.__init__(self, "%s line %s:\n%s\n%s" % \
+                                 (module_name, lineno, msg, node))
 
     def __str__(self):
         return self.args[0]
@@ -767,8 +768,16 @@ class Translator(object):
         'InlineCmp': [('inline_cmp', True)],
         'noInlineGetItem': [('inline_getitem', False)],
         'InlineGetItem': [('inline_getitem', True)],
-        'noInlineCode': [('inline_bool', False),('inline_len', False),('inline_eq', False), ('inline_cmp', False), ('inline_getitem', False)],
-        'InlineCode': [('inline_bool', True),('inline_len', True),('inline_eq', True), ('inline_cmp', True), ('inline_getitem', True)],
+        'noInlineCode': [('inline_bool', False),
+                         ('inline_len', False),
+                         ('inline_eq', False), 
+                         ('inline_cmp', False), 
+                         ('inline_getitem', False)],
+        'InlineCode': [('inline_bool', True),
+                         ('inline_len', True),
+                         ('inline_eq', True), 
+                         ('inline_cmp', True), 
+                         ('inline_getitem', True)],
         'noOperatorFuncs': [('operator_funcs', False)],
         'OperatorFuncs': [('operator_funcs', True)],
         'noNumberClasses': [('number_classes', False)],
