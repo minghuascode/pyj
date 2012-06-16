@@ -34,6 +34,18 @@ from pyjamas.ui import Event
 class SplitPanelSplitter(SimplePanel, MouseHandler):
     """ a splitter is just a SimplePanel which can receive mouse events """
 
+    elem_props = SimplePanel.elem_props + [
+           ("height", "Cell Height", "CellHeight", str, None),
+           ("width", "Cell Width", "CellWidth", str, None),
+           ("halign", "Cell Horizontal Alignment",
+                      "CellHorizontalAlignment", None, "left"),
+           ("valign", "Cell Vertical Alignment",
+                      "CellVerticalAlignment", None, "top"),
+                 ]
+
+    def _getElementProps(self):
+        return self.elem_props
+
     def __init__(self, splitPanel, **kwargs):
         # keep a ref to our parent panel for event callback
         self._splitpanel = splitPanel

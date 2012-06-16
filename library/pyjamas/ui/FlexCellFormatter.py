@@ -17,6 +17,15 @@ from pyjamas import DOM
 from pyjamas.ui.CellFormatter import CellFormatter
 
 class FlexCellFormatter(CellFormatter):
+
+    _elem_props = [
+           ("rowspan", "Cell Row Span", "CellRowspan", None, ""),
+           ("colspan", "Cell Column Span", "CellColspan", None, ""),
+                 ]
+
+    def _getElementProps(self):
+        return CellFormatter._getElementProps() + self._elem_props
+
     def __init__(self, outer, **kwargs):
         CellFormatter.__init__(self, outer, **kwargs)
 

@@ -19,6 +19,8 @@ from pyjamas.ui.Widget import Widget
 
 class PanelBase(object):
 
+    elem_props = []
+
     def clear(self):
         """ use this method, due to list changing as it's being iterated.
             also, it's possible to use this method even
@@ -85,6 +87,7 @@ class PanelBase(object):
 
 
 class Panel(PanelBase, Widget):
+   
     def __init__(self, **kwargs):
         self.children = []
         PanelBase.__init__(self)

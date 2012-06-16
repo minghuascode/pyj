@@ -402,6 +402,36 @@ class HTMLTable(Panel):
     def setRowFormatter(self, rowFormatter):
         self.rowFormatter = rowFormatter
 
+    def getCellVisible(self, context):
+        row, col = self.getIndex(context)
+        print "getCellVisible", self, context, row, col
+        self.getCellFormatter().getVisible(row, col)
+
+    def getCellWidth(self, context):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().getWidth(row, col)
+
+    def getCellHeight(self, context):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().getHeight(row, col)
+
+    def getCellWordWrap(self, context):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().getWordWrap(row, col)
+
+    def getCellStyleName(self, context):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().getStyleName(row, col)
+
+    def getCellVerticalAlignment(self, context):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().getVerticalAlignment(row, col)
+
+    def getCellHorizontalAlignment(self, context):
+        row, col = self.getIndex(context)
+        print "getHorizontalAlignment", self, context, row, col
+        self.getCellFormatter().getHorizontalAlignment(row, col)
+
     def setCellVisible(self, context, val):
         row, col = self.getIndex(context)
         print "setCellVisible", self, context, row, col, val

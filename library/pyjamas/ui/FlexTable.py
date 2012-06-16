@@ -29,6 +29,14 @@ class FlexTable(HTMLTable):
             kwargs['CellFormatter'] = FlexCellFormatter(self)
         HTMLTable.__init__(self, **kwargs)
 
+    elem_props = HTMLTable.elem_props + [
+           ("rowspan", "Cell Row Span", "CellRowSpan", int, None),
+           ("colspan", "Cell Column Span", "CellColSpan", int, None),
+                 ]
+
+    def _getElementProps(self):
+        return self.elem_props
+
     def addCell(self, row):
         self.insertCell(row, self.getCellCount(row))
 
@@ -67,6 +75,23 @@ class FlexTable(HTMLTable):
         for i in range(num):
             cell = doc().createElement("td")
             rowElem.appendChild(cell)
+
+    def getCellColSpan(self, context):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().getColSpan(row, col)
+
+    def setCellColSpan(self, context, val):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().setColSpan(row, col, val)
+
+    def getCellRowSpan(self, context):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().getRowSpan(row, col)
+
+    def setCellRowSpan(self, context, val):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().setRowSpan(row, col, val)
+
 
 Factory.registerClass('pyjamas.ui.FlexTable', 'FlexTable', FlexTable)
 
