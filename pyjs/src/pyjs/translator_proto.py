@@ -681,8 +681,9 @@ def escapejs(value):
 
 def uescapejs(value):
     """
-    Hex encodes unicode characters for use in JavaScript unicode strings, with surrounding quotes.
-    We benefit from the fact that for the BSP, javascript and python have the same escape sequences.
+    Hex encodes unicode characters for use in JavaScript unicode strings,
+    with surrounding quotes.  We benefit from the fact that for the BSP,
+    javascript and python have the same escape sequences.
     """
     data = repr(value)
     return data.lstrip("u")
