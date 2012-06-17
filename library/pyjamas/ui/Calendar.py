@@ -11,6 +11,7 @@ from pyjamas.ui.PopupPanel import  PopupPanel
 from pyjamas.ui.Grid import Grid
 from pyjamas.ui.Composite import Composite
 from pyjamas.ui.Label import Label
+from pyjamas.ui.Button import Button
 from pyjamas.ui.Hyperlink import Hyperlink
 from pyjamas.ui.HyperlinkImage import HyperlinkImage
 from pyjamas.ui.HTML import HTML
@@ -22,6 +23,8 @@ from pyjamas import DOM
 
 import time
 from datetime import datetime
+
+BLANKCELL = "99"
 
 class Calendar(FocusPanel):
     monthsOfYear = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -40,6 +43,10 @@ class Calendar(FocusPanel):
         self.addbuttons = kwargs.pop('AddButtons', True)
         self.mindate = kwargs.pop('MinDate', None) # (yr, mnth, day)
         self.maxdate = kwargs.pop('MaxDate', None) # (yr, mnth, day)
+        if kwargs.pop('ArrowButtons', False):
+            self.bkls = Button
+        else:
+            self.bkls = Hyperlink
 
         FocusPanel.__init__(self, **kwargs)
         yr, mth, day = time.strftime("%Y-%m-%d").split("-")
@@ -188,7 +195,7 @@ class Calendar(FocusPanel):
         mth = int(month)
         yr = int(year)
 
-        tp = HorizontalPanel()
+        tp = HorizontalPanel(Width="100%")
         tp.addStyleName("calendar-top-panel")
         tp.setSpacing(5)
 
@@ -197,13 +204,15 @@ class Calendar(FocusPanel):
         self.h4 = None
         self.h5 = None
         if self.backyear:
-            self.h1 = Hyperlink(self.backyear, StyleName="calendar-arrows")
+            self.h1 = self.bkls(self.backyear, StyleName="calendar-arrows")
             self.h1.addClickListener(getattr(self, 'onPreviousYear'))
             tp.add(self.h1)
+            tp.setCellHorizontalAlignment(self.h1, "left")
         if self.backmonth:
-            self.h2 = Hyperlink(self.backmonth, StyleName="calendar-arrows")
+            self.h2 = self.bkls(self.backmonth, StyleName="calendar-arrows")
             self.h2.addClickListener(getattr(self, 'onPreviousMonth'))
             tp.add(self.h2)
+            tp.setCellHorizontalAlignment(self.h2, "left")
 
         # titlePanel can be changed, whenever we draw, so keep the reference
         txt = "<b>"
@@ -214,15 +223,19 @@ class Calendar(FocusPanel):
         self.titlePanel.setStyleName("calendar-center")
 
         tp.add(self.titlePanel)
+        tp.setCellHorizontalAlignment(self.titlePanel, "center")
+        tp.setCellWidth(self.titlePanel, "100%")
 
         if self.fwdmonth:
-            self.h4 = Hyperlink(self.fwdmonth, StyleName="calendar-arrows")
+            self.h4 = self.bkls(self.fwdmonth, StyleName="calendar-arrows")
             self.h4.addClickListener(getattr(self, 'onNextMonth'))
             tp.add(self.h4)
+            tp.setCellHorizontalAlignment(self.h4, "right")
         if self.fwdyear:
-            self.h5 = Hyperlink(self.fwdyear, StyleName="calendar-arrows")
+            self.h5 = self.bkls(self.fwdyear, StyleName="calendar-arrows")
             self.h5.addClickListener(getattr(self, 'onNextYear'))
             tp.add(self.h5)
+            tp.setCellHorizontalAlignment(self.h5, "right")
 
         tvp = VerticalPanel()
         tvp.setSpacing(10)
@@ -272,18 +285,18 @@ class Calendar(FocusPanel):
 
         if self.backyear:
             ok = self._indaterange(self.currentYear-1, self.currentMonth)
-            self.h1.setVisible(ok)
+            self.h1.setEnabled(ok)
         if self.backmonth:
             py, pm = self._previousMonth()
             ok = self._indaterange(py, pm)
-            self.h2.setVisible(ok)
+            self.h2.setEnabled(ok)
         if self.fwdmonth:
             ny, nm = self._nextMonth()
             ok = self._indaterange(ny, nm)
-            self.h4.setVisible(ok)
+            self.h4.setEnabled(ok)
         if self.fwdyear:
             ok = self._indaterange(self.currentYear+1, self.currentMonth)
-            self.h5.setVisible(ok)
+            self.h5.setEnabled(ok)
 
         daysInMonth = self.getDaysInMonth(month, year)
         # first day of the month & year
@@ -297,21 +310,23 @@ class Calendar(FocusPanel):
         grid.setWidth("100%")
         grid.addTableListener(self)
         self.middlePanel.setWidget(grid)
+        cf = grid.getCellFormatter()
         #
         # put some content into the grid cells
         #
         for i in range(7):
             grid.setText(0, i, self.getDaysOfWeek()[i])
-            grid.cellFormatter.addStyleName(0, i, "calendar-header")
+            cf.addStyleName(0, i, "calendar-header")
         #
         # draw cells which are empty first
         #
         day =0
         pos = 0
         while pos < startPos:
-            grid.setHTML(1, pos , "&nbsp;")
-            grid.cellFormatter.setStyleAttr(1, pos, "background", "#f3f3f3")
-            grid.cellFormatter.addStyleName(1, pos, "calendar-blank-cell")
+            grid.setHTML(1, pos , BLANKCELL)
+            cf.setStyleAttr(1, pos, "background", "#f3f3f3")
+            cf.setStyleAttr(1, pos, "color", "#f3f3f3")
+            cf.setStyleName(1, pos, "calendar-blank-cell")
             pos += 1
         # now for days of the month
         row = 1
@@ -322,15 +337,19 @@ class Calendar(FocusPanel):
                 row += 1
             col = pos % 7
             if not self._indaterange(self.currentYear, self.currentMonth, day):
+                grid.setHTML(row, col, BLANKCELL)
+                cf.setStyleAttr(row, col, "background", "#f3f3f3")
+                cf.setStyleAttr(row, col, "color", "#f3f3f3")
+                cf.setStyleName(row, col, "calendar-blank-cell")
                 day += 1
                 pos += 1
                 continue
             grid.setHTML(row, col, str(day))
             if self.currentYear == self.todayYear and \
                self.currentMonth == self.todayMonth and day == self.todayDay:
-                grid.cellFormatter.addStyleName(row, col, "calendar-cell-today")
+                cf.setStyleName(row, col, "calendar-cell-today")
             else:
-                grid.cellFormatter.addStyleName(row, col, "calendar-day-cell")
+                cf.setStyleName(row, col, "calendar-day-cell")
             day += 1
             pos += 1
         #
@@ -338,9 +357,10 @@ class Calendar(FocusPanel):
         #
         col += 1
         while col < 7:
-            grid.setHTML(row, col, "&nbsp;")
-            grid.cellFormatter.setStyleAttr(row, col, "background", "#f3f3f3")
-            grid.cellFormatter.addStyleName(row, col, "calendar-blank-cell")
+            grid.setHTML(row, col, BLANKCELL)
+            cf.setStyleAttr(row, col, "background", "#f3f3f3")
+            cf.setStyleAttr(row, col, "color", "#f3f3f3")
+            cf.setStyleName(row, col, "calendar-blank-cell")
             col += 1
 
         return grid
@@ -349,7 +369,7 @@ class Calendar(FocusPanel):
         if row == 0:
             return
         text = grid.getText(row, col).strip()
-        if text == "":
+        if text == BLANKCELL:
             return
         try:
             selectedDay = int(text)
