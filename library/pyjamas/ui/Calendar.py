@@ -30,6 +30,7 @@ class Calendar(FocusPanel):
     monthsOfYear = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+    daysOfWeek3 = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
     today = 'Today'
     tomorrow = 'Tomorrow'
     yesterday = 'Yesterday'
@@ -43,6 +44,7 @@ class Calendar(FocusPanel):
         self.addbuttons = kwargs.pop('AddButtons', True)
         self.mindate = kwargs.pop('MinDate', None) # (yr, mnth, day)
         self.maxdate = kwargs.pop('MaxDate', None) # (yr, mnth, day)
+        self.weekdaylength = kwargs.pop('WeekdayLength', 1) 
         if kwargs.pop('ArrowButtons', False):
             self.bkls = Button
         else:
@@ -72,7 +74,9 @@ class Calendar(FocusPanel):
         return self.monthsOfYear
 
     def getDaysOfWeek(self):
-        return self.daysOfWeek
+        if self.weekdaylength == 1:
+            return self.daysOfWeek
+        return self.daysOfWeek3
 
     def addSelectedDateListener(self, listener):
         self.selectedDateListeners.append(listener)
@@ -187,7 +191,8 @@ class Calendar(FocusPanel):
         # should be called only once when we draw the calendar for
         # the first time
         self.vp = VerticalPanel()
-        self.vp.setSpacing(2)
+        self.vp.setSpacing(0)
+        self.vp.setPadding(0)
         self.vp.addStyleName("calendarbox calendar-module calendar")
         self.setWidget(self.vp)
         self.setVisible(False)
@@ -197,7 +202,8 @@ class Calendar(FocusPanel):
 
         tp = HorizontalPanel(Width="100%")
         tp.addStyleName("calendar-top-panel")
-        tp.setSpacing(5)
+        tp.setSpacing(0)
+        tp.setPadding(0)
 
         self.h1 = None
         self.h2 = None
@@ -231,14 +237,16 @@ class Calendar(FocusPanel):
             self.h4.addClickListener(getattr(self, 'onNextMonth'))
             tp.add(self.h4)
             tp.setCellHorizontalAlignment(self.h4, "right")
+            tp.setCellWidth(self.h4, "100%")
+            self.h4.setWidth("100%")
         if self.fwdyear:
             self.h5 = self.bkls(self.fwdyear, StyleName="calendar-arrows")
             self.h5.addClickListener(getattr(self, 'onNextYear'))
             tp.add(self.h5)
             tp.setCellHorizontalAlignment(self.h5, "right")
 
-        tvp = VerticalPanel()
-        tvp.setSpacing(10)
+        tvp = VerticalPanel(Width="100%")
+        tvp.setSpacing(2)
         tvp.add(tp)
 
         self.vp.add(tvp)
@@ -306,7 +314,8 @@ class Calendar(FocusPanel):
         startPos = (struct.tm_wday + 1) % 7
         slots = startPos + daysInMonth - 1
         rows = int(slots/7) + 1
-        grid = Grid(rows+1, 7) # extra row for the days in the week
+        grid = Grid(rows+1, 7, # extra row for the days in the week
+                    StyleName="calendar-grid") 
         grid.setWidth("100%")
         grid.addTableListener(self)
         self.middlePanel.setWidget(grid)
@@ -324,8 +333,6 @@ class Calendar(FocusPanel):
         pos = 0
         while pos < startPos:
             grid.setHTML(1, pos , BLANKCELL)
-            cf.setStyleAttr(1, pos, "background", "#f3f3f3")
-            cf.setStyleAttr(1, pos, "color", "#f3f3f3")
             cf.setStyleName(1, pos, "calendar-blank-cell")
             pos += 1
         # now for days of the month
@@ -338,8 +345,6 @@ class Calendar(FocusPanel):
             col = pos % 7
             if not self._indaterange(self.currentYear, self.currentMonth, day):
                 grid.setHTML(row, col, BLANKCELL)
-                cf.setStyleAttr(row, col, "background", "#f3f3f3")
-                cf.setStyleAttr(row, col, "color", "#f3f3f3")
                 cf.setStyleName(row, col, "calendar-blank-cell")
                 day += 1
                 pos += 1
@@ -358,8 +363,6 @@ class Calendar(FocusPanel):
         col += 1
         while col < 7:
             grid.setHTML(row, col, BLANKCELL)
-            cf.setStyleAttr(row, col, "background", "#f3f3f3")
-            cf.setStyleAttr(row, col, "color", "#f3f3f3")
             cf.setStyleName(row, col, "calendar-blank-cell")
             col += 1
 
