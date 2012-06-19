@@ -185,8 +185,6 @@ class Calendar(FocusPanel):
             self.titlePanel.setWidget(HTML(txt))
             self.setVisible(True)
 
-        return
-
     def drawFull(self, month, year):
         # should be called only once when we draw the calendar for
         # the first time
