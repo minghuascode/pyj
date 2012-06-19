@@ -200,6 +200,7 @@ class UIObject(Applier):
                isinstance(element, basestring):
                 add = style
                 style = element
+                element = self.element
             elif add is None:
                 add = True
             setStyleName(element, style, add)
