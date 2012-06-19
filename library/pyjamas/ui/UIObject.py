@@ -184,14 +184,24 @@ class UIObject(Applier):
         self.removeStyleName(self.getStylePrimaryName()+"-"+styleSuffix)
 
     # also callable as: setStyleName(self, style)
-    def setStyleName(self, element, style=None, add=True):
-        """When called with a single argument, this replaces all the CSS
-           classes associated with this UIObject's element with the given
-           parameter.  Otherwise, this is assumed to be a worker function
-           for addStyleName and removeStyleName.
+    def setStyleName(self, element, style=None, add=None):
+        """* When called with a single argument, this replaces all the CSS
+             classes associated with this UIObject's element with the given
+             parameter.
+           * When called with 2 arguments and the 1st is a string and the
+             2nd is a boolean, it is used to add or remove a style from the
+             widget.
+           * Otherwise, this is assumed to be a worker function
+             for addStyleName and removeStyleName.
         """
         # emulate setStyleName(self, style)
         if style is not None:
+            if add is None and isinstance(style, bool) and \
+               isinstance(element, basestring):
+                add = style
+                style = element
+            elif add is None:
+                add = True
             setStyleName(element, style, add)
             return
         style = element
