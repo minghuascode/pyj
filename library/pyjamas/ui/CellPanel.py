@@ -31,6 +31,7 @@ class CellPanel(ComplexPanel):
              ]
 
     elem_props = [
+           ("wordwrap", "Word Wrap", "CellWordWrap", None, True),
            ("height", "Cell Height", "CellHeight", str, None),
            ("width", "Cell Width", "CellWidth", str, None),
            ("halign", "Cell Horizontal Alignment",
@@ -42,7 +43,6 @@ class CellPanel(ComplexPanel):
     def _getElementProps(self):
         return ComplexPanel._getElementProps() + self.elem_props
     
-
     def __init__(self, **kwargs):
 
         kwargs['Spacing'] = kwargs.get('Spacing', 0)
@@ -169,6 +169,16 @@ class CellPanel(ComplexPanel):
 
     def getVerticalAlignment(self):
         return self.vertAlign
+
+    def setCellWordWrap(self, widget, wrap):
+        td = DOM.getParent(widget.getElement())
+        wrap = (not wrap) and "nowrap" or ""
+        print "setCellWordWrap", self, widget, td, wrap
+        DOM.setStyleAttribute(td, "whiteSpace", wrap)
+
+    def getCellWordWrap(self, widget):
+        td = DOM.getParent(widget.getElement())
+        return DOM.getStyleAttribute(td, "whiteSpace") == "nowrap"
 
 
 Factory.registerClass('pyjamas.ui.CellPanel', 'CellPanel', CellPanel)
