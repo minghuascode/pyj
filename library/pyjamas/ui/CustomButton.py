@@ -313,7 +313,7 @@ class CustomButton (ButtonBase):
 
     def onBrowserEvent(self, event):
         # Should not act on button if disabled.
-        if not self.isEnabled():
+        if not self.getEnabled():
             # This can happen when events are bubbled up from
             # non-disabled children
             return
@@ -403,7 +403,7 @@ class CustomButton (ButtonBase):
 
     def setEnabled(self, enabled):
         """Sets whether this button is enabled."""
-        if self.isEnabled() == enabled:
+        if self.getEnabled() == enabled:
             return
         self.toggleDisabled()
         ButtonBase.setEnabled(self, enabled)
@@ -586,7 +586,7 @@ class CustomButton (ButtonBase):
         self.setCurrentFaceElement(newFace.getFace());
         self.addStyleDependentName(self.curFace.getName())
 
-        if self.isEnabled:
+        if self.getEnabled():
             self.setAriaPressed(newFace)
         #self.updateButtonFace() # TODO: should we comment out?
         self.style_name = self.getStyleName()

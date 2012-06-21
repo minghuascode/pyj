@@ -69,6 +69,10 @@ class FocusMixin:
         setTabIndex(self.getElement(), index)
 
     def isEnabled(self):
+        print "warning: this function is deprecated, please use getEnabled"
+        return self.getReadonly()
+
+    def getEnabled(self):
         try:
             return not DOM.getBooleanAttribute(self.getElement(), "disabled")
         except TypeError:
@@ -80,6 +84,10 @@ class FocusMixin:
         DOM.setBooleanAttribute(self.getElement(), "disabled", not enabled)
 
     def isReadonly(self):
+        print "warning: this function is deprecated, please use getReadonly"
+        return self.getReadonly()
+
+    def getReadonly(self):
         try:
             return not DOM.getBooleanAttribute(self.getElement(), "readOnly")
         except TypeError:

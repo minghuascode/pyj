@@ -97,6 +97,7 @@ class CheckBox(ButtonBase):
     def isEnabled(self):
         """ XXX this function is deprecated: use getEnabled
         """
+        print "XXX this function is deprecated: use getEnabled"
         return self.getEnabled()
 
     def getEnabled(self):
