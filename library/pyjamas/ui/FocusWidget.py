@@ -27,7 +27,7 @@ class FocusWidget(Widget, FocusHandler, KeyboardHandler,
                           FocusMixin):
 
     _props = [("readonly", "Read only", "Readonly", False),
-            ]
+            ] + Widget._props
 
     def __init__(self, element, **kwargs):
         self.setElement(element)
@@ -38,7 +38,7 @@ class FocusWidget(Widget, FocusHandler, KeyboardHandler,
         MouseHandler.__init__(self)
 
     def getProps(self):
-        return Widget.getProps(self) + self._props
+        return self._props
 
 # TODO: sort out Element **kwargs, see Factory.createWidgetOnElement
 #Factory.registerClass('pyjamas.ui.FocusWidget', 'FocusWidget', FocusWidget)
