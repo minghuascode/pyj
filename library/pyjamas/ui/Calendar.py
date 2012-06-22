@@ -29,8 +29,8 @@ BLANKCELL = "99"
 class Calendar(FocusPanel):
     monthsOfYear = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-    daysOfWeek3 = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    daysOfWeek = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+    daysOfWeek3 = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     today = 'Today'
     tomorrow = 'Tomorrow'
     yesterday = 'Yesterday'
@@ -45,6 +45,7 @@ class Calendar(FocusPanel):
         self.mindate = kwargs.pop('MinDate', None) # (yr, mnth, day)
         self.maxdate = kwargs.pop('MaxDate', None) # (yr, mnth, day)
         self.weekdaylength = kwargs.pop('WeekdayLength', 1) 
+        self.dayoffset = kwargs.pop('DayOffset', 1) # 1 returns Mon, 0 for Sun
         if kwargs.pop('ArrowButtons', False):
             self.bkls = Button
         else:
@@ -81,8 +82,11 @@ class Calendar(FocusPanel):
 
     def getDaysOfWeek(self):
         if self.weekdaylength == 1:
-            return self.daysOfWeek
-        return self.daysOfWeek3
+            dow = self.daysOfWeek
+        else:
+            dow = self.daysOfWeek3
+        return dow[-self.dayoffset:] + \
+               dow[:-self.dayoffset]
 
     def addSelectedDateListener(self, listener):
         self.selectedDateListeners.append(listener)
@@ -322,7 +326,7 @@ class Calendar(FocusPanel):
         secs = time.mktime((year, month, 1, 0, 0, 0, 0, 0, -1))
         struct = time.localtime(secs)
         # 0 - sunday for our needs instead 0 = monday in tm_wday
-        startPos = (struct.tm_wday + 1) % 7
+        startPos = (struct.tm_wday + self.dayoffset) % 7
         slots = startPos + daysInMonth - 1
         rows = int(slots/7) + 1
         grid = Grid(rows+1, 7, # extra row for the days in the week
