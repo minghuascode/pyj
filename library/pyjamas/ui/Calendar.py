@@ -290,25 +290,32 @@ class Calendar(FocusPanel):
             b2.addStyleName("calendar-cancel")
             self.vp.add(b2)
 
+        self.checkLinks(mth, yr)
         self.setVisible(True)
+
+    def checkLinks(self, month, year):
+
+        if self.backyear:
+            ok = self._indaterange(year-1, month)
+            self.h1.setEnabled(ok)
+        if self.backmonth:
+            py, pm = self._previousMonth(year, month)
+            ok = self._indaterange(py, pm)
+            print "prevmonth", month, year, py, pm, ok
+            self.h2.setEnabled(ok)
+        if self.fwdmonth:
+            ny, nm = self._nextMonth(year, month)
+            ok = self._indaterange(ny, nm)
+            print "nextmonth", month, year, ny, nm, ok
+            self.h4.setEnabled(ok)
+        if self.fwdyear:
+            ok = self._indaterange(year+1, month)
+            self.h5.setEnabled(ok)
 
     def drawGrid(self, month, year):
         # draw the grid in the middle of the calendar
 
-        if self.backyear:
-            ok = self._indaterange(self.currentYear-1, self.currentMonth)
-            self.h1.setEnabled(ok)
-        if self.backmonth:
-            py, pm = self._previousMonth()
-            ok = self._indaterange(py, pm)
-            self.h2.setEnabled(ok)
-        if self.fwdmonth:
-            ny, nm = self._nextMonth()
-            ok = self._indaterange(ny, nm)
-            self.h4.setEnabled(ok)
-        if self.fwdyear:
-            ok = self._indaterange(self.currentYear+1, self.currentMonth)
-            self.h5.setEnabled(ok)
+        self.checkLinks(month, year)
 
         daysInMonth = self.getDaysInMonth(month, year)
         # first day of the month & year
@@ -450,6 +457,7 @@ class Calendar(FocusPanel):
     def drawPreviousMonth(self):
         self.currentYear, self.currentMonth = self._previousMonth()
         self.draw(self.currentMonth, self.currentYear)
+        self.checkLinks(self.currentMonth, self.currentYear)
 
     def _nextMonth(self, y=None, m=None):
         if y is None:
@@ -463,6 +471,7 @@ class Calendar(FocusPanel):
     def drawNextMonth(self):
         self.currentYear, self.currentMonth = self._nextMonth()
         self.draw(self.currentMonth, self.currentYear)
+        self.checkLinks(self.currentMonth, self.currentYear)
 
     def drawPreviousYear(self):
         self.currentYear = int(self.currentYear) - 1
