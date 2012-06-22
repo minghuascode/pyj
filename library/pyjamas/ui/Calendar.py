@@ -51,24 +51,30 @@ class Calendar(FocusPanel):
             self.bkls = Hyperlink
 
         FocusPanel.__init__(self, **kwargs)
-        yr, mth, day = time.strftime("%Y-%m-%d").split("-")
-        self.todayYear = int(yr)
-        self.todayMonth = int(mth)  # change to offset 0 as per javascript
-        self.todayDay = int(day)
 
-        self.currentMonth = self.todayMonth
-        self.currentYear = self.todayYear
-        self.currentDay = self.todayDay
+        self.setDate()
 
+        self.todayYear = self.currentYear
+        self.todayMonth = self.currentMonth
+        self.todayDay = self.currentDay
         self.selectedDateListeners = []
-
         self.defaultGrid = None # used later
 
-    def setDate(self,_date):
+    def setDate(self, _date=None, m=None, d=None):
         """ _date - object of datetime.date class """
-        self.currentMonth = _date.month
-        self.currentYear = _date.year
-        self.currentDay = _date.day
+        if m is None and d is None:
+            if _date is None:
+                y, m, d = time.strftime("%Y-%m-%d").split("-")
+            else:
+                m = _date.month
+                y = _date.year
+                d = _date.day
+        else:
+            y = _date
+
+        self.currentYear = int(y)
+        self.currentMonth = int(m)
+        self.currentDay = int(d)
 
     def getMonthsOfYear(self):
         return self.monthsOfYear
@@ -109,7 +115,7 @@ class Calendar(FocusPanel):
                 if mnth > self.maxdate[1]:
                     return False
                 if day is not None:
-                    if mnth == self.mindate[1] and day > self.mindate[2]:
+                    if mnth == self.maxdate[1] and day > self.maxdate[2]:
                         return False
 
         return True
@@ -327,7 +333,7 @@ class Calendar(FocusPanel):
         #
         # draw cells which are empty first
         #
-        day =0
+        day = 0
         pos = 0
         while pos < startPos:
             grid.setHTML(1, pos , BLANKCELL)
