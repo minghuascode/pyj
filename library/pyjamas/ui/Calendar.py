@@ -325,7 +325,6 @@ class Calendar(FocusPanel):
         # first day of the month & year
         secs = time.mktime((year, month, 1, 0, 0, 0, 0, 0, -1))
         struct = time.localtime(secs)
-        # 0 - sunday for our needs instead 0 = monday in tm_wday
         startPos = (struct.tm_wday + self.dayoffset) % 7
         slots = startPos + daysInMonth - 1
         rows = int(slots/7) + 1

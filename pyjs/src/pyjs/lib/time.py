@@ -246,7 +246,8 @@ var _DATE_FORMAT_REGXES = {
     'd': new RegExp('^[0-9]{1,2}'),
     'm': new RegExp('^[0-9]{1,2}'),
     'H': new RegExp('^[0-9]{1,2}'),
-    'M': new RegExp('^[0-9]{1,2}')
+    'M': new RegExp('^[0-9]{1,2}'),
+    'S': new RegExp('^[0-9]{1,2}')
 }
 
 /*
@@ -321,6 +322,12 @@ function strptime(datestring, format) {
             return null;
         }
         date.setMinutes(parsed.M);
+    }
+    if (typeof parsed.S != "undefined") {
+        if (parsed.S < 0 || parsed.S > 59) {
+            return null;
+        }
+        date.setSeconds(parsed.S);
     }
     return date;
 };
