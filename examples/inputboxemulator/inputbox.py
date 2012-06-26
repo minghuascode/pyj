@@ -27,6 +27,7 @@ if __name__ == '__main__':
     pyjd.setup("./public/inputbox.html")
     app = InputBox(MatchPattern="^[0-9,A-Z,:]*$")
     app.setMaxLength(20)
+    app.setText("hello")
     RootPanel("keypad").add(app)
 
     pyjd.run()

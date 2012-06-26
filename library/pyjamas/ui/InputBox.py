@@ -34,7 +34,7 @@ class InputBox(FocusPanel):
 
     _props = [ ("maxLength", "Max Length", "MaxLength", int),
                ("text", "Text", "Text", None),
-               ("matchPattern", "Match Pattern", "matchPattern", None),
+               ("matchPattern", "Match Pattern", "MatchPattern", None),
              ]
 
     @classmethod
@@ -59,7 +59,7 @@ class InputBox(FocusPanel):
         self.addKeyboardListener(self)
         self.addFocusListener(self)
 
-        self.word_selected_pos = None
+        self.word_selected_pos = 0
         self.ctimer = Timer(notify=self.cursorFlash)
         self.focusset = False
         self.cstate = False
@@ -87,6 +87,7 @@ class InputBox(FocusPanel):
     def _highlight_cursor(self, row, col, highlight):
         """ highlights (or dehighlights) the currently selected cell
         """
+        print "_highlight", row, col, highlight
         self.cf.setStyleName(row, col, "inputbox-square-word-cursor", highlight)
 
     def resize(self, width, height):
@@ -108,30 +109,31 @@ class InputBox(FocusPanel):
             return
 
         val = chr(keycode)
+        done = False
 
-        # check up/down/left/right cursor keys
-        # the basic rule is: if in same plane, go that way, else "flip"
-        # and then, obviously on the next press, the cursor will move
-        # when the key is pressed in that same plane
         if keycode == KeyboardListener.KEY_DELETE:
             self.shift_letters_back()
-            return
+            done = True
         elif keycode == KeyboardListener.KEY_BACKSPACE:
             if not self.nasty_hack():
-                if self.move_cursor(-1):
+                if self.moveCursor(-1):
                     self.shift_letters_back()
-            return
+            done = True
         elif keycode == KeyboardListener.KEY_LEFT:
-            self.move_cursor(-1)
-            return
+            self.moveCursor(-1)
+            done = True
         elif keycode == KeyboardListener.KEY_RIGHT:
-            self.move_cursor(1)
-            return
+            self.moveCursor(1)
+            done = True
 
         print "onKeyDown", keycode, val, self.rexp.match(val)
 
-        if self.rexp.match(val):
-            self.press_letter(val)
+        if not done:
+            if self.rexp.match(val):
+                self.press_letter(val)
+
+        for listener in self._keypressListeners:
+            listener.onKeyPressed(sender, keycode, modifiers)
 
     def press_letter(self, val):
 
@@ -143,13 +145,8 @@ class InputBox(FocusPanel):
         row = 0
         col = self.word_selected_pos
 
-        # remove error highlighting, update value, move cursor (if possible)
-        self.cf.removeStyleName(row, col, "inputbox-square-word-error")
         self.set_grid_value(val, row, col)
-        self.move_cursor(1)
-
-        for listener in self._keypressListeners:
-            listener.onKeyPressed(val)
+        self.moveCursor(1)
 
     def nasty_hack(self):
         """ breaking of backspace/delete rules for the final character
@@ -182,7 +179,30 @@ class InputBox(FocusPanel):
             col += 1
         self.set_grid_value("&nbsp;", row, col)
             
-    def move_cursor(self, dirn):
+    def setCursorPos(self, col):
+
+        x2 = self.tp.getColumnCount()
+
+        col = min(x2, col)
+        col = max(col, 0)
+
+        if self.get_char(0) is None or self.get_char(0) == '&nbsp;':
+            col = 0
+
+        while (self.get_char(col-1) is None or \
+              self.get_char(col-1) == '&nbsp;') and col > 1:
+            col -= 1
+
+        self.highlight_cursor(False)
+        self.word_selected_pos = col
+        self.highlight_cursor(self.focusset)
+
+        return True
+
+    def getCursorPos(self):
+        return self.word_selected_pos
+
+    def moveCursor(self, dirn):
 
         x2 = self.tp.getColumnCount()
 
@@ -195,20 +215,7 @@ class InputBox(FocusPanel):
         if dirn == -1 and 0 == col+1:
             return False
 
-        if dirn == 1 and x2 != col:
-            c = self.get_char(col)
-            if c is None or c == '&nbsp;':
-                return False
-
-        self.highlight_cursor(False)
-
-        col += dirn
-        if col < x2 and col >= 0:
-            self.word_selected_pos = col
-
-        self.highlight_cursor(True)
-
-        return True
+        return self.setCursorPos(col+dirn)
 
     def onKeyUp(self, sender, keycode, modifiers):
         evt = DOM.eventGetCurrentEvent()
@@ -228,21 +235,6 @@ class InputBox(FocusPanel):
         col = self.word_selected_pos
         self._highlight_cursor(row, col, highlight)
 
-    def select_char(self, col):
-
-        # de-highlight cursor
-        self.highlight_cursor(False)
-
-        if self.get_char(0) is None or self.get_char(0) == '&nbsp;':
-            col = 0
-
-        while (self.get_char(col-1) is None or \
-              self.get_char(col-1) == '&nbsp;') and col > 1:
-            col -= 1
-
-        self.word_selected_pos = col
-        self.highlight_cursor(True)
-
     def getMaxLength(self):
         return self.tp.getColumnCount()
 
@@ -256,7 +248,7 @@ class InputBox(FocusPanel):
             self.set_grid_value("&nbsp;", 0, i)
 
     def onCellClicked(self, listener, row, col, direction=None):
-        self.select_char(col)
+        self.setCursorPos(col)
 
     def cursorFlash(self, timr):
         if not self.focusset:
@@ -265,10 +257,12 @@ class InputBox(FocusPanel):
         self.cstate = not self.cstate
 
     def onFocus(self, sender):
+        print "onFocus", sender
         self.focusset = True
         self.ctimer.scheduleRepeating(800)
 
     def onLostFocus(self, sender):
+        print "onLostFocus", sender
         self.focusset = False
         self.ctimer.cancel()
         self.highlight_cursor(False)
@@ -292,7 +286,7 @@ class InputBox(FocusPanel):
             self.setMaxLength(len(txt))
         for (i, c) in enumerate(txt):
             self.set_grid_value(c, 0, i)
-        self.select_char(min(self.getMaxLength()-1, len(txt)))
+        self.setCursorPos(min(self.getMaxLength()-1, len(txt)))
 
 Factory.registerClass('pyjamas.ui.InputBox', 'InputBox', InputBox)
 
