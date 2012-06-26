@@ -26,6 +26,7 @@ from pyjamas.ui import HasAlignment
 from pyjamas.ui import KeyboardListener
 from pyjamas.Timer import Timer
 from pyjamas import DOM
+from pyjamas import Factory
 
 import re
 
