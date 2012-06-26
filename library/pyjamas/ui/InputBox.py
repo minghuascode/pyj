@@ -292,3 +292,7 @@ class InputBox(FocusPanel):
         for (i, c) in enumerate(txt):
             self.set_grid_value(c, 0, i)
 
+
+Factory.registerClass('pyjamas.ui.InputBox', 'InputBox', InputBox)
+
+

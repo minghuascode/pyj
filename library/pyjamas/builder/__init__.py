@@ -48,6 +48,7 @@ from pyjamas.ui.Hyperlink import Hyperlink
 from pyjamas.ui.Image import Image 
 from pyjamas.ui.InnerHTML import InnerHTML 
 from pyjamas.ui.InnerText import InnerText 
+from pyjamas.ui.InputBox import InputBox 
 from pyjamas.ui.InputControl import InputControl 
 #from pyjamas.ui.Justification import Justification 
 from pyjamas.ui.Label import Label 
