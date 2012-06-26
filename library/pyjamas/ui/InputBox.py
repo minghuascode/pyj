@@ -52,8 +52,8 @@ class InputBox(FocusPanel):
         kwargs['MatchPattern'] = kwargs.pop('MatchPattern', '')
         gs = kwargs.pop('StyleName', 'inputbox')
         self.tp = Grid(StyleName=gs)
-        FocusPanel.__init__(self, Widget=self.tp, **kwargs)
         self.cf = self.tp.getCellFormatter()
+        FocusPanel.__init__(self, Widget=self.tp, **kwargs)
 
         self.addTableListener(self)
         self.addKeyboardListener(self)
@@ -228,7 +228,7 @@ class InputBox(FocusPanel):
         col = self.word_selected_pos
         self._highlight_cursor(row, col, highlight)
 
-    def select_word(self, col):
+    def select_char(self, col):
 
         # de-highlight cursor
         self.highlight_cursor(False)
@@ -256,7 +256,7 @@ class InputBox(FocusPanel):
             self.set_grid_value("&nbsp;", 0, i)
 
     def onCellClicked(self, listener, row, col, direction=None):
-        self.select_word(col)
+        self.select_char(col)
 
     def cursorFlash(self, timr):
         if not self.focusset:
@@ -281,7 +281,7 @@ class InputBox(FocusPanel):
         txt = ''
         for i in range(self.tp.getColumnCount()):
             c = self.get_char(i)
-            if c is None or c == '&nbsp':
+            if c is None or c == '&nbsp;':
                 break
             txt += c
         return txt
@@ -292,7 +292,7 @@ class InputBox(FocusPanel):
             self.setMaxLength(len(txt))
         for (i, c) in enumerate(txt):
             self.set_grid_value(c, 0, i)
-
+        self.select_char(min(self.getMaxLength()-1, len(txt)))
 
 Factory.registerClass('pyjamas.ui.InputBox', 'InputBox', InputBox)
 
