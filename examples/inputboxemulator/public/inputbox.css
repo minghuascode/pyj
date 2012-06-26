@@ -1,0 +1,35 @@
+body, html {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+    font-size: 11px;
+    margin: 0px;
+    padding: 0px;
+    font-family: Arial,Sans-Serif;
+    /*overflow: hidden;*/
+}
+
+
+.inputbox-square {
+  width: 14px;
+  height: 20px;
+}
+
+.inputbox-square-word-select {
+  background-color: #80ff80;
+}
+
+.inputbox-square-word-cursor {
+  background-color: #60c060;
+}
+
+.inputbox {
+ padding: 0px;
+ margin: 0px;
+ border-collapse: collapse;
+ border-spacing: 0px;
+ border: 0px;
+}
+
