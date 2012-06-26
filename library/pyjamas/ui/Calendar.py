@@ -297,7 +297,11 @@ class Calendar(FocusPanel):
         self.checkLinks(mth, yr)
         self.setVisible(True)
 
-    def checkLinks(self, month, year):
+    def checkLinks(self, month=None, year=None):
+        if month is None:
+            month = self.currentMonth
+        if year is None:
+            year = self.currentYear
 
         if self.backyear:
             ok = self._indaterange(year-1, month)
