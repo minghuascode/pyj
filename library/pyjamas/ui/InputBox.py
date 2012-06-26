@@ -25,6 +25,7 @@ from pyjamas.ui.FocusPanel import FocusPanel
 from pyjamas.ui import HasAlignment
 from pyjamas.ui import KeyboardListener
 from pyjamas.Timer import Timer
+from pyjamas import DOM
 
 import re
 
@@ -98,6 +99,9 @@ class InputBox(FocusPanel):
                                     HasAlignment.ALIGN_MIDDLE)
 
     def onKeyDown(self, sender, keycode, modifiers):
+
+        evt = DOM.eventGetCurrentEvent()
+        DOM.eventPreventDefault(evt)
 
         if self.word_selected_pos is None:
             return
@@ -206,10 +210,13 @@ class InputBox(FocusPanel):
         return True
 
     def onKeyUp(self, sender, keycode, modifiers):
-        pass
+        evt = DOM.eventGetCurrentEvent()
+        DOM.eventCancelBubble(evt, True)
+        DOM.eventPreventDefault(evt)
 
     def onKeyPress(self, sender, keycode, modifiers):
-        pass
+        evt = DOM.eventGetCurrentEvent()
+        DOM.eventPreventDefault(evt)
 
     def highlight_cursor(self, highlight):
         """ highlights (or dehighlights) the currently selected cell
