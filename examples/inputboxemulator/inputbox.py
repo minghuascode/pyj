@@ -26,7 +26,7 @@ from pyjamas.ui.InputBox import InputBox
 if __name__ == '__main__':
     pyjd.setup("./public/inputbox.html")
     app = InputBox(MatchPattern="^[0-9,A-Z,:]*$")
-    app.setLength(20)
+    app.setMaxLength(20)
     RootPanel("keypad").add(app)
 
     pyjd.run()

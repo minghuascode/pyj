@@ -30,15 +30,27 @@ import re
 
 class InputBox(FocusPanel):
 
+    _props = [ ("maxLength", "Max Length", "MaxLength", int),
+               ("text", "Text", "Text", None),
+               ("matchPattern", "Match Pattern", "matchPattern", None),
+             ]
+
+    @classmethod
+    def _getProps(self):
+        return FocusPanel._getProps() + self._props
+
     def __init__(self, **kwargs):
-        """ match pattern examples: '^[0-9]*$' is for digits only
+        """ setMatchPattern - defaults to '' to match everything
+            match pattern examples: '^[0-9]*$' is for digits only
                                     '^[0-9,A-Z]*$' is for digits and uppercase
+            setMaxLength
+            setText
         """
 
-        self.rexp = re.compile(kwargs.pop('MatchPattern', '*'))
-
-        self.tp = Grid(StyleName='inputbox')
-        FocusPanel.__init__(self, Widget=self.tp)
+        kwargs['MatchPattern'] = kwargs.pop('MatchPattern', '')
+        gs = kwargs.pop('StyleName', 'inputbox')
+        self.tp = Grid(StyleName=gs)
+        FocusPanel.__init__(self, Widget=self.tp, **kwargs)
         self.cf = self.tp.getCellFormatter()
 
         self.addTableListener(self)
@@ -57,6 +69,12 @@ class InputBox(FocusPanel):
     def removeKeypressListener(self, listener):
         self._keypressListeners.remove(listener)
 
+    def getMatchPattern(self):
+        return self.mp
+
+    def setMatchPattern(self, mp):
+        self.mp = mp
+        self.rexp = re.compile(self.mp)
 
     def addDblTableListener(self, listener):
         self.tp.addDblTableListener(listener)
@@ -92,11 +110,12 @@ class InputBox(FocusPanel):
         # when the key is pressed in that same plane
         if keycode == KeyboardListener.KEY_DELETE:
             self.shift_letters_back()
+            return
         elif keycode == KeyboardListener.KEY_BACKSPACE:
-            #if not self.nasty_hack():
-            if self.move_cursor(-1):
-                self.shift_letters_back()
-
+            if not self.nasty_hack():
+                if self.move_cursor(-1):
+                    self.shift_letters_back()
+            return
         elif keycode == KeyboardListener.KEY_LEFT:
             self.move_cursor(-1)
             return
@@ -171,6 +190,11 @@ class InputBox(FocusPanel):
         if dirn == -1 and 0 == col+1:
             return False
 
+        if dirn == 1 and x2 != col:
+            c = self.get_char(col)
+            if c is None or c == '&nbsp;':
+                return False
+
         self.highlight_cursor(False)
 
         col += dirn
@@ -211,12 +235,16 @@ class InputBox(FocusPanel):
         self.word_selected_pos = col
         self.highlight_cursor(True)
 
-    def setLength(self, x):
-        self.tp.resize(1, x)
-        self.clear()
+    def getMaxLength(self):
+        return self.tp.getColumnCount()
 
-    def clear(self):
-        for i in range(self.tp.getColumnCount()):
+    def setMaxLength(self, x):
+        l = self.tp.getColumnCount()
+        self.tp.resize(1, x)
+        self.clear(l)
+
+    def clear(self, fromrange=0):
+        for i in range(fromrange, self.tp.getColumnCount()):
             self.set_grid_value("&nbsp;", 0, i)
 
     def onCellClicked(self, listener, row, col, direction=None):
@@ -252,6 +280,8 @@ class InputBox(FocusPanel):
 
     def setText(self, txt):
         self.clear()
+        if len(txt) > self.getMaxLength(): # hm... cheat...
+            self.setMaxLength(len(txt))
         for (i, c) in enumerate(txt):
             self.set_grid_value(c, 0, i)
 
