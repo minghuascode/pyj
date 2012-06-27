@@ -151,8 +151,7 @@ class Calendar(FocusPanel):
         self.setVisible(True)
 
     def drawCurrent(self):
-        yr, mth, day = self.currentYear, self.currentMonth, self.currentDay
-        self.draw(int(mth), int(yr))
+        self.drawDate()
 
     def draw(self, month , year):
         tod = time.localtime()
@@ -447,9 +446,13 @@ class Calendar(FocusPanel):
     def onCancel(self, event):
         self.setVisible(False)
 
-    def drawDate(self, month, year):
-        self.currentMonth = month
-        self.currentYear = year
+    def drawDate(self, month=None, year=None, day=None):
+        if month is not None:
+            self.currentMonth = int(month)
+        if year is not None:
+            self.currentYear = int(year)
+        if day is not None:
+            self.currentDay = int(day)
         self.draw(self.currentMonth, self.currentYear)
 
     def _previousMonth(self, y=None, m=None):
