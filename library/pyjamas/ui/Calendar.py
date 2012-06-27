@@ -46,6 +46,7 @@ class Calendar(FocusPanel):
         self.maxdate = kwargs.pop('MaxDate', None) # (yr, mnth, day)
         self.weekdaylength = kwargs.pop('WeekdayLength', 1) 
         self.dayoffset = kwargs.pop('DayOffset', 1) # 1 returns Mon, 0 for Sun
+        self.daybuttons = kwargs.pop('DayButtons', False)
         if kwargs.pop('ArrowButtons', False):
             self.bkls = Button
         else:
@@ -349,8 +350,7 @@ class Calendar(FocusPanel):
         day = 0
         pos = 0
         while pos < startPos:
-            grid.setHTML(1, pos , BLANKCELL)
-            cf.setStyleName(1, pos, "calendar-blank-cell")
+            self._setCell(grid, 1, pos, BLANKCELL, "calendar-blank-cell")
             pos += 1
         # now for days of the month
         row = 1
@@ -361,17 +361,16 @@ class Calendar(FocusPanel):
                 row += 1
             col = pos % 7
             if not self._indaterange(self.currentYear, self.currentMonth, day):
-                grid.setHTML(row, col, BLANKCELL)
-                cf.setStyleName(row, col, "calendar-blank-cell")
+                self._setCell(grid, row, col, BLANKCELL, "calendar-blank-cell")
                 day += 1
                 pos += 1
                 continue
-            grid.setHTML(row, col, str(day))
             if self.currentYear == self.todayYear and \
                self.currentMonth == self.todayMonth and day == self.todayDay:
-                cf.setStyleName(row, col, "calendar-cell-today")
+                style = "calendar-cell-today"
             else:
-                cf.setStyleName(row, col, "calendar-day-cell")
+                style = "calendar-day-cell"
+            self._setCell(grid, row, col, str(day), style)
             day += 1
             pos += 1
         #
@@ -379,11 +378,26 @@ class Calendar(FocusPanel):
         #
         col += 1
         while col < 7:
-            grid.setHTML(row, col, BLANKCELL)
-            cf.setStyleName(row, col, "calendar-blank-cell")
+            self._setCell(grid, row, col, BLANKCELL, "calendar-blank-cell")
             col += 1
 
         return grid
+
+    def _setCell(self, grid, row, col, txt, style):
+        
+        cf = grid.getCellFormatter()
+        if self.daybuttons:
+            if txt != BLANKCELL:
+                listener = lambda x, col=col, row=row, grid=grid\
+                            : self.onCellClicked(grid, row, col)
+            else:
+                listener = None
+            b = Button(txt, listener=listener, StyleName="%s-button" % style)
+            grid.setWidget(row, col, b)
+            cf.setWidth(row, col, "100%")
+        else:
+            grid.setHTML(row, col, txt)
+            cf.setStyleName(row, col, style)
 
     def onCellClicked(self, grid, row, col):
         if row == 0:
