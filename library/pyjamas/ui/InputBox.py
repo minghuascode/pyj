@@ -31,11 +31,14 @@ from pyjamas import Factory
 
 import re
 
+EMPTY = ""
+
 class InputBox(FocusPanel):
 
     _props = [ ("maxLength", "Max Length", "MaxLength", int),
                ("text", "Text", "Text", None),
                ("matchPattern", "Match Pattern", "MatchPattern", None),
+               ("cursorStyle", "Cursor Style", "CursorStyle", None),
              ]
 
     @classmethod
@@ -48,14 +51,20 @@ class InputBox(FocusPanel):
                                     '^[0-9,A-Z]*$' is for digits and uppercase
             setMaxLength
             setText
-        """
+OB        """
 
         kwargs['MatchPattern'] = kwargs.pop('MatchPattern', '')
+        cs = kwargs.pop('CursorStyle', "inputbox-cursor")
         gs = kwargs.pop('StyleName', 'gwt-inputbox')
+
         ap = AbsolutePanel(StyleName="inputbox")
-        self.tp = Grid(StyleName=gs, Width="100%", Height="100%")
+        self.tp = Grid(StyleName=gs, Width="100%", Height="100%",
+                       CellPadding=0, CellSpacing=0)
+        self.cursor = HTML(StyleName=cs)
         ap.add(self.tp)
+        ap.add(self.cursor, 0, 0)
         self.cf = self.tp.getCellFormatter()
+
         FocusPanel.__init__(self, Widget=ap, **kwargs)
 
         self.addTableListener(self)
@@ -87,18 +96,44 @@ class InputBox(FocusPanel):
     def addTableListener(self, listener):
         self.tp.addTableListener(listener)
 
-    def _highlight_cursor(self, row, col, highlight):
+    def _move_cursor(self, col):
+        """ moves the css-styled cursor
+        """
+        #old style (useful for insert mode - don't delete this line for now!)
+        #self.cf.setStyleName(0, col, "inputbox-square-word-cursor", highlight)
+
+        el = self.cf.getRawElement(0, col+1)
+        w = self.getWidget()
+        px = self.tp.getAbsoluteLeft()
+        py = self.tp.getAbsoluteTop()
+        width = DOM.getOffsetWidth(el)
+        px = DOM.getAbsoluteLeft(el) -  px
+        py = DOM.getAbsoluteTop(el) - py 
+        w.setWidgetPosition(self.cursor, px, py)
+
+    def _highlight_cursor(self, col, highlight):
         """ highlights (or dehighlights) the currently selected cell
         """
-        print "_highlight", row, col, highlight
-        self.cf.setStyleName(row, col, "inputbox-square-word-cursor", highlight)
+        #old style (useful for insert mode - don't delete this line for now!)
+        #self.cf.setStyleName(0, col, "inputbox-square-word-cursor", highlight)
+
+        print "_highlight", col, highlight
+        self._move_cursor(col)
+        self.cursor.setStyleName("inputbox-square-word-cursor", highlight)
 
     def set_grid_value(self, v, y, x):
 
-        v = v or '&nbsp;'
-        self.tp.setWidget(y, x, HTML(v, StyleName="inputbox-square"))
+        if v:
+            w = ""
+        else:
+            w = "0px"
+        v = v or EMPTY
+        s = HTML(v, StyleName="inputbox-square")
+        self.tp.setWidget(y, x, s)
         self.cf.setAlignment(y, x,  HasAlignment.ALIGN_LEFT,
                                     HasAlignment.ALIGN_MIDDLE)
+        self.cf.setWidth(y, x,  w)
+        s.setWidth(w)
 
     def onKeyDown(self, sender, keycode, modifiers):
 
@@ -114,7 +149,7 @@ class InputBox(FocusPanel):
         if keycode == KeyboardListener.KEY_DELETE:
             self.shift_letters_back()
             done = True
-        elif keycode == KeyboardListener.KEY_BACKSPACE:
+        elif keycode == KeyboardListener.KEY_BACKEMPTY:
             if not self.nasty_hack():
                 if self.moveCursor(-1):
                     self.shift_letters_back()
@@ -145,6 +180,7 @@ class InputBox(FocusPanel):
         row = 0
         col = self.word_selected_pos
 
+        self.highlight_cursor(False)
         self.set_grid_value(val, row, col)
         self.moveCursor(1)
 
@@ -156,10 +192,10 @@ class InputBox(FocusPanel):
         col = self.word_selected_pos
 
         txt = self.get_char(col)
-        if txt is None or txt == "&nbsp;":
+        if txt is None or txt == EMPTY:
             return False
 
-        self.set_grid_value("&nbsp;", row, col)
+        self.set_grid_value(EMPTY, row, col)
         return True
 
     def shift_letters_back(self):
@@ -169,6 +205,8 @@ class InputBox(FocusPanel):
             _then_ does letter-moving.
         """
 
+        self.highlight_cursor(False)
+
         row = 0
         col = self.word_selected_pos
         x2 = self.tp.getColumnCount()-2
@@ -177,7 +215,7 @@ class InputBox(FocusPanel):
             txt = self.get_char(col+1)
             self.set_grid_value(txt, row, col)
             col += 1
-        self.set_grid_value("&nbsp;", row, col)
+        self.set_grid_value(EMPTY, row, col)
             
     def setCursorPos(self, col):
 
@@ -186,13 +224,14 @@ class InputBox(FocusPanel):
         col = min(x2, col)
         col = max(col, 0)
 
-        if self.get_char(0) is None or self.get_char(0) == '&nbsp;':
+        if self.get_char(0) is None or self.get_char(0) == EMPTY:
             col = 0
 
         while (self.get_char(col-1) is None or \
-              self.get_char(col-1) == '&nbsp;') and col > 1:
+              self.get_char(col-1) == EMPTY) and col > 1:
             col -= 1
 
+        self._move_cursor(col)
         self.highlight_cursor(False)
         self.word_selected_pos = col
         self.highlight_cursor(self.focusset)
@@ -231,9 +270,8 @@ class InputBox(FocusPanel):
         """
         if self.word_selected_pos is None:
             return
-        row = 0
         col = self.word_selected_pos
-        self._highlight_cursor(row, col, highlight)
+        self._highlight_cursor(col, highlight)
 
     def getMaxLength(self):
         return self.tp.getColumnCount()-1
@@ -245,7 +283,7 @@ class InputBox(FocusPanel):
 
     def clear(self, fromrange=0):
         for i in range(fromrange, self.tp.getColumnCount()):
-            self.set_grid_value("&nbsp;", 0, i)
+            self.set_grid_value(EMPTY, 0, i)
         self.cf.setWidth(0, self.tp.getColumnCount()-1, "100%")
 
     def onCellClicked(self, listener, row, col, direction=None):
@@ -276,12 +314,13 @@ class InputBox(FocusPanel):
         txt = ''
         for i in range(self.tp.getColumnCount()-1):
             c = self.get_char(i)
-            if c is None or c == '&nbsp;':
+            if c is None or c == EMPTY:
                 break
             txt += c
         return txt
 
     def setText(self, txt):
+        self.highlight_cursor(False)
         self.clear()
         txt = txt[:self.getMaxLength()]
         for (i, c) in enumerate(txt):
