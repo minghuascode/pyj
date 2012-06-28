@@ -282,8 +282,7 @@ class InputBox(FocusPanel):
 
     def setText(self, txt):
         self.clear()
-        if len(txt) > self.getMaxLength(): # hm... cheat...
-            self.setMaxLength(len(txt))
+        txt = txt[:self.getMaxLength()]
         for (i, c) in enumerate(txt):
             self.set_grid_value(c, 0, i)
         self.setCursorPos(min(self.getMaxLength()-1, len(txt)))
