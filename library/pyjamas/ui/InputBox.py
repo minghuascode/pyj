@@ -22,6 +22,7 @@ import pyjd
 from pyjamas.ui.HTML import HTML
 from pyjamas.ui.Grid import Grid
 from pyjamas.ui.FocusPanel import FocusPanel
+from pyjamas.ui.AbsolutePanel import AbsolutePanel
 from pyjamas.ui import HasAlignment
 from pyjamas.ui import KeyboardListener
 from pyjamas.Timer import Timer
@@ -50,10 +51,12 @@ class InputBox(FocusPanel):
         """
 
         kwargs['MatchPattern'] = kwargs.pop('MatchPattern', '')
-        gs = kwargs.pop('StyleName', 'inputbox')
-        self.tp = Grid(StyleName=gs)
+        gs = kwargs.pop('StyleName', 'gwt-inputbox')
+        ap = AbsolutePanel(StyleName="inputbox")
+        self.tp = Grid(StyleName=gs, Width="100%", Height="100%")
+        ap.add(self.tp)
         self.cf = self.tp.getCellFormatter()
-        FocusPanel.__init__(self, Widget=self.tp, **kwargs)
+        FocusPanel.__init__(self, Widget=ap, **kwargs)
 
         self.addTableListener(self)
         self.addKeyboardListener(self)
@@ -90,14 +93,11 @@ class InputBox(FocusPanel):
         print "_highlight", row, col, highlight
         self.cf.setStyleName(row, col, "inputbox-square-word-cursor", highlight)
 
-    def resize(self, width, height):
-        self.tp.resize(width, height)
-
     def set_grid_value(self, v, y, x):
 
         v = v or '&nbsp;'
         self.tp.setWidget(y, x, HTML(v, StyleName="inputbox-square"))
-        self.cf.setAlignment(y, x,  HasAlignment.ALIGN_CENTER,
+        self.cf.setAlignment(y, x,  HasAlignment.ALIGN_LEFT,
                                     HasAlignment.ALIGN_MIDDLE)
 
     def onKeyDown(self, sender, keycode, modifiers):
@@ -171,7 +171,7 @@ class InputBox(FocusPanel):
 
         row = 0
         col = self.word_selected_pos
-        x2 = self.tp.getColumnCount()-1
+        x2 = self.tp.getColumnCount()-2
         
         while (x2 != col):
             txt = self.get_char(col+1)
@@ -181,7 +181,7 @@ class InputBox(FocusPanel):
             
     def setCursorPos(self, col):
 
-        x2 = self.tp.getColumnCount()
+        x2 = self.tp.getColumnCount()-1
 
         col = min(x2, col)
         col = max(col, 0)
@@ -204,7 +204,7 @@ class InputBox(FocusPanel):
 
     def moveCursor(self, dirn):
 
-        x2 = self.tp.getColumnCount()
+        x2 = self.tp.getColumnCount()-1
 
         row = 0
         col = self.word_selected_pos
@@ -236,16 +236,17 @@ class InputBox(FocusPanel):
         self._highlight_cursor(row, col, highlight)
 
     def getMaxLength(self):
-        return self.tp.getColumnCount()
+        return self.tp.getColumnCount()-1
 
     def setMaxLength(self, x):
-        l = self.tp.getColumnCount()
-        self.tp.resize(1, x)
+        l = max(0, self.tp.getColumnCount()-1)
+        self.tp.resize(1, x+1)
         self.clear(l)
 
     def clear(self, fromrange=0):
         for i in range(fromrange, self.tp.getColumnCount()):
             self.set_grid_value("&nbsp;", 0, i)
+        self.cf.setWidth(0, self.tp.getColumnCount()-1, "100%")
 
     def onCellClicked(self, listener, row, col, direction=None):
         self.setCursorPos(col)
@@ -273,7 +274,7 @@ class InputBox(FocusPanel):
 
     def getText(self):
         txt = ''
-        for i in range(self.tp.getColumnCount()):
+        for i in range(self.tp.getColumnCount()-1):
             c = self.get_char(i)
             if c is None or c == '&nbsp;':
                 break
