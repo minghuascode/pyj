@@ -149,7 +149,7 @@ OB        """
         if keycode == KeyboardListener.KEY_DELETE:
             self.shift_letters_back()
             done = True
-        elif keycode == KeyboardListener.KEY_BACKEMPTY:
+        elif keycode == KeyboardListener.KEY_BACKSPACE:
             if not self.nasty_hack():
                 if self.moveCursor(-1):
                     self.shift_letters_back()
