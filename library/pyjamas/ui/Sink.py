@@ -53,14 +53,15 @@ class Sink(Composite):
         return ""
 
 class SinkInfo:
-    def __init__(self, name, desc, object_type):
+    def __init__(self, name, desc, object_type, kwargs=None):
         self.name=name
         self.description=desc
         self.object_type=object_type
         self.instance=None
+        self.kwargs = kwargs or {}
 
     def createInstance(self):
-        obj = self.object_type()
+        obj = self.object_type(**self.kwargs)
         obj.name = self.name
         return obj
 
