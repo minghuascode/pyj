@@ -141,6 +141,9 @@ class Builder(object):
             #if parentInstance is not None:
             #    context = parentInstance.getIndexedChild(comp['index'])
             #    context.add(item.componentInstance)
+            if modname == 'pyjamas.ui.TabPanel': # yuk! HACK!
+                tabs = props.get('tabs', None)
+                print "tab props", tabs
             print "element full props", props.get('elements', None)
             for (i, child) in enumerate(childs):
                 if not child[0].has_key("type") or child[0]["type"] is None:
@@ -150,6 +153,8 @@ class Builder(object):
                 if childitem is None:
                     continue
                 index = child[0]["index"]
+                if modname == 'pyjamas.ui.TabPanel': # yuk! HACK!
+                    index = (index, tabs[index])
                 print "childitem", index, childitem
                 item.addIndexedItem(index, childitem)
                 if not "elements" in props:

@@ -62,7 +62,12 @@ class TabPanel(PanelBase, Composite):
             name refers to an optional name (string) where the tab can
             be removed by name, if desired, using TabBar.remove.
         """
+        print "TabPanel add", widget, tabText, asHTML, name
         self.insert(widget, tabText, asHTML, self.getWidgetCount(), name)
+
+    def addIndexedItem(self, index, child):
+        idx, name = index
+        self.insert(child, name, False, idx, name)
 
     def addTabListener(self, listener):
         self.tabListeners.append(listener)
