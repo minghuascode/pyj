@@ -332,6 +332,7 @@ class Range:
         self.m_startPoint = None
         self.m_endPoint = None
         self.m_range = None
+        self.m_document = None
         if isinstance(arg1, RangeEndPoint):
             if arg2 and isinstance(arg2, RangeEndPoint):
                 self.setRange(arg1, arg2)
