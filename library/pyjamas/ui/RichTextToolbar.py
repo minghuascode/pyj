@@ -883,8 +883,8 @@ class EventLinkPopup(PopupPanel):
         if self.m_range.isCursor():
             # Insert into a single cursor location
             newEle = DOM.createAnchor()
-            newEle.setHref(link)
-            newEle.setInnerText(targetText)
+            newEle.href = link
+            newEle.innerText = targetText
 
             sp = self.m_range.getStartPoint()
             startNode = sp.getTextNode()
@@ -897,11 +897,11 @@ class EventLinkPopup(PopupPanel):
                 parentEle.insertBefore(newEle, startNode)
 
             else:
-                if offset < text.length():
+                if offset < len(text):
                     # Split this in two and insert the node between
                     startNode.splitText(offset)
 
-                parentEle.insertAfter(newEle, startNode)
+                DOM.insertAfter(startNode, newEle)
 
             Selection.setRange(Range(newEle))
 
