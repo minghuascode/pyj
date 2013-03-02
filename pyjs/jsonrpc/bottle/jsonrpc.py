@@ -30,5 +30,5 @@ from pyjs.jsonrpc import JSONRPCServiceBase
 class JSONRPCService(JSONRPCServiceBase):
 
     def __call__(self, extra=None):
-        return self.process(bottle.request.body)
+        return self.process(bottle.request.body.read())
 
