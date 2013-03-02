@@ -664,6 +664,18 @@ def getStyleAttribute(elem, attr):
         return getattr(elem.style, attr, None)
 
 
+def insertAfter(existing_node, new_node):
+    if existing_node.nextSibling:
+        # there is a next sibling. insert before it using the mutual
+        # parent's insertBefore() method.
+        existing_node.parentNode.insertBefore(new_node,
+                                              existing_node.nextSibling)
+    else:
+        # there is no next sibling. append to the end of the parent's
+        # node list.
+        existing_node.parentNode.appendChild(new_node)
+
+
 def insertChild(parent, toAdd, index):
     count = 0
     child = parent.firstChild
