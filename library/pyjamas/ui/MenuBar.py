@@ -51,6 +51,7 @@ class MenuBar(Widget):
                 DOM.appendChild(table, self.body)
         else:
             table = DOM.createTable()
+            DOM.setAttribute(table, "cellPadding", "0")
         self.body = DOM.createTBody()
         DOM.appendChild(table, self.body)
 
