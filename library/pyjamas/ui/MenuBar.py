@@ -27,6 +27,7 @@ from pyjamas.ui.MultiListener import MultiListener
 class MenuBar(Widget):
 
     _props = [("vertical", "Vertical", "Vertical", None),
+              ("itemsPerRow", "ItemsPerRow", "ItemsPerRow", None),
             ]
 
     def __init__(self, vertical=False, **kwargs):
@@ -40,6 +41,7 @@ class MenuBar(Widget):
         self.selectedItem = None
         self.shownChildMenu = None
         self.autoOpen = False
+        self.itemsPerRow = None
 
         if kwargs.has_key('Element'):
             table = kwargs.pop('Element')
@@ -141,7 +143,10 @@ class MenuBar(Widget):
             DOM.appendChild(self.body, tr)
         else:
             self._checkVerticalContainer()
-            tr = DOM.getChild(self.body, 0)
+            if len(self.items) == self.itemsPerRow:
+                DOM.appendChild(self.body, DOM.createTR())
+            count = DOM.getChildCount(self.body)
+            tr = DOM.getChild(self.body, count-1)
 
         DOM.appendChild(tr, item.getElement())
 
@@ -151,10 +156,15 @@ class MenuBar(Widget):
         return item
 
     def clearItems(self):
-        container = self.getItemContainerElement()
-        while DOM.getChildCount(container) > 0:
-            DOM.removeChild(container, DOM.getChild(container, 0))
+        while self.items:
+            self.removeItem(0)
         self.items = []
+
+    def setItemsPerRow(self, items):
+        self.itemsPerRow = items
+
+    def getItemsPerRow(self):
+        return self.itemsPerRow
 
     def getAutoOpen(self):
         return self.autoOpen
@@ -186,11 +196,14 @@ class MenuBar(Widget):
         self.popup = None
 
     def removeItem(self, item):
-        try:
-            idx = self.items.index(item)
-        except ValueError:
-            return
-        container = self.getItemContainerElement()
+        if isinstance(item, int):
+            idx = item
+        else:
+            try:
+                idx = self.items.index(item)
+            except ValueError:
+                return
+        container = self.getItemContainerElement(idx)
         DOM.removeChild(container, DOM.getChild(container, idx))
         del self.items[idx]
 
@@ -280,12 +293,16 @@ class MenuBar(Widget):
 
         return None
 
-    def getItemContainerElement(self):
+    def getItemContainerElement(self, item):
         if self.vertical:
             return self.body
         else:
             self._checkVerticalContainer()
-            return DOM.getChild(self.body, 0)
+            if self.itemsPerRow:
+                row = items / self.itemsPerRow
+            else:
+                row = 0
+            return DOM.getChild(self.body, row)
 
     def onHide(self):
         if self.shownChildMenu is not None:
