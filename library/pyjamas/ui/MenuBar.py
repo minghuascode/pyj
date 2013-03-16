@@ -52,6 +52,7 @@ class MenuBar(Widget):
         else:
             table = DOM.createTable()
             DOM.setAttribute(table, "cellPadding", "0")
+            DOM.setAttribute(table, "cellSpacing", "0")
         self.body = DOM.createTBody()
         DOM.appendChild(table, self.body)
 
@@ -119,7 +120,7 @@ class MenuBar(Widget):
     def getDefaultStyleName(self):
         if self.vertical:
             return "gwt-MenuBar " + "gwt-MenuBar-vertical"
-        return "gwt-MenuBar-horizontal"
+        return "gwt-MenuBar " + "gwt-MenuBar-horizontal"
 
     def setStyleName(self, StyleName, **kwargs):
         if not StyleName or StyleName == 'gwt-MenuBar':
