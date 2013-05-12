@@ -20,6 +20,23 @@ class SinkList(Composite):
         self.vp_list.add(link)
         self.sinks.append(info)
 
+    def remove(self, info):
+        if isinstance(info, str):
+            info = self.find(info)
+        name = info.getName()
+        for hl in self.vp_list:
+            if hl.getTargetHistoryToken != name:
+                continue
+            self.vp_list.remove(hl)
+            break
+
+        self.sinks.remove(info)
+
+    def clear(self):
+        while len(self.vp_list) > 0:
+            info = self.vp_list[0]
+            self.remove(info)
+
     def find(self, sinkName):
         for info in self.sinks:
             if info.getName()==sinkName:
