@@ -25,7 +25,7 @@ class SinkList(Composite):
             info = self.find(info)
         name = info.getName()
         for hl in self.vp_list:
-            if hl.getTargetHistoryToken != name:
+            if hl.getTargetHistoryToken() != name:
                 continue
             self.vp_list.remove(hl)
             break
