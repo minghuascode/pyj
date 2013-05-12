@@ -33,8 +33,8 @@ class SinkList(Composite):
         self.sinks.remove(info)
 
     def clear(self):
-        while len(self.vp_list) > 0:
-            info = self.vp_list[0]
+        while len(self.sinks) > 0:
+            info = self.sinks[0]
             self.remove(info)
 
     def find(self, sinkName):
