@@ -55,6 +55,12 @@ class ComplexPanel(Panel):
 
         return True
 
+    def replace(self, index, new_widget):
+        if not isinstance(index, int):
+            index = self.getWidgetIndex(widget)
+        self.remove(index)
+        self.insert(new_widget, index)
+
 
 Factory.registerClass('pyjamas.ui.ComplexPanel', 'ComplexPanel', ComplexPanel)
 
