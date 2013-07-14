@@ -34,7 +34,7 @@ def write_data(data, cookies):
     if not isinstance(data, list):
         data = [data]
     data = "\n".join(data)
-    response = "Content-Type: text/plain\n"
+    response = "Content-Type: application/json-rpc\n"
     if cookies:
         response += cookies+"\n"
     response += "Content-Length: %d\n\n" % len(data)
