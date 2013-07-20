@@ -11,8 +11,8 @@ if __name__ == '__main__':
     from pyjamas.ui.RootPanel import RootPanel
     from pyjamas.ui.Image import Image
     root = RootPanel()
-    image = Image('http://pyjs.org/img/pyjamas.128x128.png')
-    anchor = Anchor(Widget=image, Href='http://pyjs.org')
+    image = Image('http://pyj.be/img/pyjamas.128x128.png')
+    anchor = Anchor(Widget=image, Href='http://pyj.be')
     root.add(anchor)
 ---------------------------------------------------------
 """

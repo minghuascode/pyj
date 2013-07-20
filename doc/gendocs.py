@@ -47,7 +47,7 @@ command = ['epydoc', "-v",  "-v",
            '--html',
            '-o', 'api', 
            '--name', 'Pyjamas', 
-           '--url', 'http://pyjs.org', 
+           '--url', 'http://pyj.be', 
            ]+list(paths)
 
 def quote_shell(x):

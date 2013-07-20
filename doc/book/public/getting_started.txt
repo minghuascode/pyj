@@ -1,7 +1,7 @@
 = Dive Straight in =
 
 Not only for the impatient, but also getting right to the point, start
-by downloading the Pyjamas source code, from either http://pyjs.org
+by downloading the Pyjamas source code, from either http://pyj.be
 or http://code.google.com/p/pyjamas and, if you already have the standard
 Python 2.4 or above interpreter installed, you can begin almost immediately.
 Pyjamas is self-contained and does not even require to be "installed".
@@ -257,7 +257,7 @@ if __name__ == '__main__':
 
 The GWT (Google Web Toolkit) canvas, api is available via the pyjamas api 
 online documents.
-http://pyjs.org/api/pyjamas.Canvas.GWTCanvas.GWTCanvas-class.html
+http://pyj.be/api/pyjamas.Canvas.GWTCanvas.GWTCanvas-class.html
 
 = What we have done =
 

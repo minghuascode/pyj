@@ -162,7 +162,7 @@ class MenuCmd:
         self.dialog.setWidget(contents)
         
         html = '<p class="pyjamas">MineSweeper written in Python with ' \
-                    '<a href="http://pyjs.org" target="_blank">Pyjamas</a><p>' \
+                    '<a href="http://pyj.be" target="_blank">Pyjamas</a><p>' \
                '<p class="comments">Send comments to ' \
                     '<a href="mailto:suzan.shakya@gmail.com">' \
                         'suzan.shakya@gmail.com</a>.<p>'

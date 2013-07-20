@@ -1,4 +1,4 @@
-As part of a reorganisation of <a href="http://pyjs.org">Pyjamas</a>,
+As part of a reorganisation of <a href="http://pyj.be">Pyjamas</a>,
 best known as a python port of GWT, dynamic module loading using AJAX has
 been added.  The deployment of dynamic module loading results in over a 60%
 reduction in the amount of javascript cache file sizes, as the

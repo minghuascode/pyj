@@ -21,6 +21,6 @@ class NamedFrameDemo(SimplePanel):
         vPanel.add(frame)
         vPanel.add(HTML('<a href="http://google.com" target="myFrame">Google</a>'))
         vPanel.add(HTML('<a href="http://yahoo.com" target="myFrame">Yahoo</a>'))
-        vPanel.add(HTML('<a href="http://pyjs.org" target="myFrame">Pyjamas</a>'))
+        vPanel.add(HTML('<a href="http://pyj.be" target="myFrame">Pyjamas</a>'))
 
         self.add(vPanel)

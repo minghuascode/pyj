@@ -1,11 +1,11 @@
 Lots and lots of documentation for Pyjamas
  * Google Web Toolkit API is still relevant
- * pydoc-generated (docstrings) - http://pyjs.org/api
+ * pydoc-generated (docstrings) - http://pyj.be/api
  * Pyjamas-generated application (based on pydoc)
- * Showcase - http://pyjs.org/showcase/Showcase.html
+ * Showcase - http://pyj.be/showcase/Showcase.html
    ** includes worked examples
- * Tutorial - http://pyjs.org/controls_tutorial.html
- * Getting Started - http://pyjs.org/getting_started.html
+ * Tutorial - http://pyj.be/controls_tutorial.html
+ * Getting Started - http://pyj.be/getting_started.html
  * Wiki on http://code.google.com/p/pyjamas
  * http://lkcl.net/pyjamas-desktop/docs/output/docui.html
    ** auto-generated pyjamas app, from doc strings

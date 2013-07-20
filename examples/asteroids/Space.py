@@ -394,7 +394,7 @@ if __name__ == '__main__':
 <hr/>
 Left/Right arrows turn, Up key thrusts, Space bar fires<br/>
 <a href="http://rumsey.org/blog/?p=215">About Space Game</a> by <a href="http://rumsey.org/blog/">Ogre</a><br/>
-Written entirely in Python, using <a href="http://pyjs.org/">Pyjamas</a></br>
+Written entirely in Python, using <a href="http://pyj.be/">Pyjamas</a></br>
 Copyright &copy; 2009 Joe Rumsey
 """))
 

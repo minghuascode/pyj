@@ -13,7 +13,7 @@
 {0}
 
     <hr/>
-    <h4 id='foot'><a href="http://pyjs.org">Pyjs.org</a></h4>
+    <h4 id='foot'><a href="http://pyj.be">Pyjs.org</a></h4>
 
 </body>
 </html>

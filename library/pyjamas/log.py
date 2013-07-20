@@ -17,7 +17,7 @@ raise DeprecationWarning("""pyjamas.log has been replaced by pyjamas.logging!
   If you want to continue using pyjamas.log for now remove the raise statement
   on top of """ + __file__ + """
 
-  See the Pyjamas FAQ at http://pyjs.org#FAQ for more details on logging.""")
+  See the Pyjamas FAQ at http://pyj.be#FAQ for more details on logging.""")
 
 from pyjamas import logging
 

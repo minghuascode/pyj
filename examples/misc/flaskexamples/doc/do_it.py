@@ -42,7 +42,7 @@ with open("sed_it.sed", "w+") as sed_file:
 #.. Documentation master file to be processed using sphinx
 #
 #.. _Flask: http://flask.pocoo.org/
-#.. _Pyjamas: http://pyjs.org/
+#.. _Pyjamas: http://pyj.be/
 #.. _CORS: http://www.w3.org/TR/cors/
 #.. _HTTP access control: https://developer.mozilla.org/En/HTTP_access_control/
 #.. _XHR: http://www.w3.org/TR/XMLHttpRequest/

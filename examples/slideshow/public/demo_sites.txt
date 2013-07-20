@@ -10,7 +10,7 @@
    ** Interactive games (!)
    ** Uses PostGIS for location search (cool)
    ** PostgresQL keels over (oops)
- * http://pyjs.org/showcase/Showcase.html
+ * http://pyj.be/showcase/Showcase.html
    ** really useful
    ** contains worked examples
  * auto-generated pyjamas app from doc strings

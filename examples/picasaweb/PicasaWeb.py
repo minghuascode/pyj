@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Distributed as part of pyjamas (http://pyjs.org)
+# Distributed as part of pyjamas (http://pyj.be)
 
 import pyjd # dummy in pyjs
 from Photos import Photos
