@@ -273,7 +273,7 @@ def op_uadd(v):
             return @{{v}};
     }
     if (@{{v}}!== null) {
-        if (typeof @{{v}}['__pos__'] == 'function') return @{{v}}.__pos__();
+        if (typeof @{{v}}{^__pos__^} == 'function') return @{{v}}.__pos__();
     }
 """)
     raise TypeError("bad operand type for unary +: '%r'" % v)
@@ -287,7 +287,7 @@ def op_usub(v):
             return new @{{int}}(-@{{v}});
     }
     if (@{{v}}!== null) {
-        if (typeof @{{v}}['__neg__'] == 'function') return @{{v}}.__neg__();
+        if (typeof @{{v}}{^__neg__^} == 'function') return @{{v}}.__neg__();
     }
 """)
     raise TypeError("bad operand type for unary -: '%r'" % v)
@@ -326,11 +326,11 @@ def op_add(x, y):
             if (   !@{{y}}.__number__
                 && @{{x}}.__mro__.length > @{{y}}.__mro__.length
                 && @{{isinstance}}(@{{x}}, @{{y}})
-                && typeof @{{x}}['__add__'] == 'function')
+                && typeof @{{x}}{^__add__^} == 'function')
                 return @{{y}}.__add__(@{{x}});
-            if (typeof @{{x}}['__add__'] == 'function') return @{{x}}.__add__(@{{y}});
+            if (typeof @{{x}}{^__add__^} == 'function') return @{{x}}.__add__(@{{y}});
         }
-        if (!@{{y}}.__number__ && typeof @{{y}}['__radd__'] == 'function') return @{{y}}.__radd__(@{{x}});
+        if (!@{{y}}.__number__ && typeof @{{y}}{^__radd__^} == 'function') return @{{y}}.__radd__(@{{x}});
     }
 """)
     raise TypeError("unsupported operand type(s) for +: '%r', '%r'" % (x, y))
@@ -368,11 +368,11 @@ def op_sub(x, y):
             if (   !@{{y}}.__number__
                 && @{{x}}.__mro__.length > @{{y}}.__mro__.length
                 && @{{isinstance}}(@{{x}}, @{{y}})
-                && typeof @{{x}}['__sub__'] == 'function')
+                && typeof @{{x}}{^__sub__^} == 'function')
                 return @{{y}}.__sub__(@{{x}});
-            if (typeof @{{x}}['__sub__'] == 'function') return @{{x}}.__sub__(@{{y}});
+            if (typeof @{{x}}{^__sub__^} == 'function') return @{{x}}.__sub__(@{{y}});
         }
-        if (!@{{y}}.__number__ && typeof @{{y}}['__rsub__'] == 'function') return @{{y}}.__rsub__(@{{x}});
+        if (!@{{y}}.__number__ && typeof @{{y}}{^__rsub__^} == 'function') return @{{y}}.__rsub__(@{{x}});
     }
 """)
     raise TypeError("unsupported operand type(s) for -: '%r', '%r'" % (x, y))
@@ -406,11 +406,11 @@ def op_floordiv(x, y):
             if (   !@{{y}}.__number__
                 && @{{x}}.__mro__.length > @{{y}}.__mro__.length
                 && @{{isinstance}}(@{{x}}, @{{y}})
-                && typeof @{{x}}['__floordiv__'] == 'function')
+                && typeof @{{x}}{^__floordiv__^} == 'function')
                 return @{{y}}.__floordiv__(@{{x}});
-            if (typeof @{{x}}['__floordiv__'] == 'function') return @{{x}}.__floordiv__(@{{y}});
+            if (typeof @{{x}}{^__floordiv__^} == 'function') return @{{x}}.__floordiv__(@{{y}});
         }
-        if (!@{{y}}.__number__ && typeof @{{y}}['__rfloordiv__'] == 'function') return @{{y}}.__rfloordiv__(@{{x}});
+        if (!@{{y}}.__number__ && typeof @{{y}}{^__rfloordiv__^} == 'function') return @{{y}}.__rfloordiv__(@{{x}});
     }
 """)
     raise TypeError("unsupported operand type(s) for //: '%r', '%r'" % (x, y))
@@ -444,11 +444,11 @@ def op_div(x, y):
             if (   !@{{y}}.__number__
                 && @{{x}}.__mro__.length > @{{y}}.__mro__.length
                 && @{{isinstance}}(@{{x}}, @{{y}})
-                && typeof @{{x}}['__div__'] == 'function')
+                && typeof @{{x}}{^__div__^} == 'function')
                 return @{{y}}.__div__(@{{x}});
-            if (typeof @{{x}}['__div__'] == 'function') return @{{x}}.__div__(@{{y}});
+            if (typeof @{{x}}{^__div__^} == 'function') return @{{x}}.__div__(@{{y}});
         }
-        if (!@{{y}}.__number__ && typeof @{{y}}['__rdiv__'] == 'function') return @{{y}}.__rdiv__(@{{x}});
+        if (!@{{y}}.__number__ && typeof @{{y}}{^__rdiv__^} == 'function') return @{{y}}.__rdiv__(@{{x}});
     }
 """)
     raise TypeError("unsupported operand type(s) for /: '%r', '%r'" % (x, y))
@@ -479,11 +479,11 @@ def op_truediv(x, y):
             if (   !@{{y}}.__number__
                 && @{{x}}.__mro__.length > @{{y}}.__mro__.length
                 && @{{isinstance}}(@{{x}}, @{{y}})
-                && typeof @{{x}}['__truediv__'] == 'function')
+                && typeof @{{x}}{^__truediv__^} == 'function')
                 return @{{y}}.__truediv__(@{{x}});
-            if (typeof @{{x}}['__truediv__'] == 'function') return @{{x}}.__truediv__(@{{y}});
+            if (typeof @{{x}}{^__truediv__^} == 'function') return @{{x}}.__truediv__(@{{y}});
         }
-        if (!@{{y}}.__number__ && typeof @{{y}}['__rtruediv__'] == 'function') return @{{y}}.__rtruediv__(@{{x}});
+        if (!@{{y}}.__number__ && typeof @{{y}}{^__rtruediv__^} == 'function') return @{{y}}.__rtruediv__(@{{x}});
     }
 """)
     raise TypeError("unsupported operand type(s) for /: '%r', '%r'" % (x, y))
@@ -513,11 +513,11 @@ def op_mul(x, y):
             if (   !@{{y}}.__number__
                 && @{{x}}.__mro__.length > @{{y}}.__mro__.length
                 && @{{isinstance}}(@{{x}}, @{{y}})
-                && typeof @{{x}}['__mul__'] == 'function')
+                && typeof @{{x}}{^__mul__^} == 'function')
                 return @{{y}}.__mul__(@{{x}});
-            if (typeof @{{x}}['__mul__'] == 'function') return @{{x}}.__mul__(@{{y}});
+            if (typeof @{{x}}{^__mul__^} == 'function') return @{{x}}.__mul__(@{{y}});
         }
-        if (!@{{y}}.__number__ && typeof @{{y}}['__rmul__'] == 'function') return @{{y}}.__rmul__(@{{x}});
+        if (!@{{y}}.__number__ && typeof @{{y}}{^__rmul__^} == 'function') return @{{y}}.__rmul__(@{{x}});
     }
 """)
     raise TypeError("unsupported operand type(s) for *: '%r', '%r'" % (x, y))
@@ -558,11 +558,11 @@ def op_mod(x, y):
             if (   !@{{y}}.__number__
                 && @{{x}}.__mro__.length > @{{y}}.__mro__.length
                 && @{{isinstance}}(@{{x}}, @{{y}})
-                && typeof @{{x}}['__mod__'] == 'function')
+                && typeof @{{x}}{^__mod__^} == 'function')
                 return @{{y}}.__mod__(@{{x}});
-            if (typeof @{{x}}['__mod__'] == 'function') return @{{x}}.__mod__(@{{y}});
+            if (typeof @{{x}}{^__mod__^} == 'function') return @{{x}}.__mod__(@{{y}});
         }
-        if (!@{{y}}.__number__ && typeof @{{y}}['__rmod__'] == 'function') return @{{y}}.__rmod__(@{{x}});
+        if (!@{{y}}.__number__ && typeof @{{y}}{^__rmod__^} == 'function') return @{{y}}.__rmod__(@{{x}});
     }
 """)
     raise TypeError("unsupported operand type(s) for %: '%r', '%r'" % (x, y))
@@ -595,11 +595,11 @@ def op_pow(x, y):
             if (   !@{{y}}.__number__
                 && @{{x}}.__mro__.length > @{{y}}.__mro__.length
                 && @{{isinstance}}(@{{x}}, @{{y}})
-                && typeof @{{x}}['__pow__'] == 'function')
+                && typeof @{{x}}{^__pow__^} == 'function')
                 return @{{y}}.__pow__(@{{x}});
-            if (typeof @{{x}}['__pow__'] == 'function') return @{{x}}.__pow__(@{{y}});
+            if (typeof @{{x}}{^__pow__^} == 'function') return @{{x}}.__pow__(@{{y}});
         }
-        if (!@{{y}}.__number__ && typeof @{{y}}['__rpow__'] == 'function') return @{{y}}.__rpow__(@{{x}});
+        if (!@{{y}}.__number__ && typeof @{{y}}{^__rpow__^} == 'function') return @{{y}}.__rpow__(@{{x}});
     }
 """)
     raise TypeError("unsupported operand type(s) for %: '%r', '%r'" % (x, y))
@@ -607,7 +607,7 @@ def op_pow(x, y):
 def op_invert(v):
     JS("""
     if (@{{v}} !== null) {
-        if (typeof @{{v}}['__invert__'] == 'function') return @{{v}}.__invert__();
+        if (typeof @{{v}}{^__invert__^} == 'function') return @{{v}}.__invert__();
     }
 """)
     raise TypeError("bad operand type for unary -: '%r'" % v)
@@ -625,11 +625,11 @@ def op_bitshiftleft(x, y):
             case 0x0404:
                 return @{{x}}.__lshift(@{{y}}.valueOf());
         }
-        if (typeof @{{x}}['__lshift__'] == 'function') {
+        if (typeof @{{x}}{^__lshift__^} == 'function') {
             var v = @{{x}}.__lshift__(@{{y}});
             if (v !== @{{NotImplemented}}) return v;
         }
-        if (typeof @{{y}}['__rlshift__'] != 'undefined') return @{{y}}.__rlshift__(@{{x}});
+        if (typeof @{{y}}{^__rlshift__^} != 'undefined') return @{{y}}.__rlshift__(@{{x}});
     }
 """)
     raise TypeError("unsupported operand type(s) for <<: '%r', '%r'" % (x, y))
@@ -647,11 +647,11 @@ def op_bitshiftright(x, y):
             case 0x0404:
                 return @{{x}}.__rshift(@{{y}}.valueOf());
         }
-        if (typeof @{{x}}['__rshift__'] == 'function') {
+        if (typeof @{{x}}{^__rshift__^} == 'function') {
             var v = @{{x}}.__rshift__(@{{y}});
             if (v !== @{{NotImplemented}}) return v;
         }
-        if (typeof @{{y}}['__rrshift__'] != 'undefined') return @{{y}}.__rrshift__(@{{x}});
+        if (typeof @{{y}}{^__rrshift__^} != 'undefined') return @{{y}}.__rrshift__(@{{x}});
     }
 """)
     raise TypeError("unsupported operand type(s) for >>: '%r', '%r'" % (x, y))
@@ -669,11 +669,11 @@ def op_bitand2(x, y):
             case 0x0404:
                 return @{{x}}.__and(@{{y}});
         }
-        if (typeof @{{x}}['__and__'] == 'function') {
+        if (typeof @{{x}}{^__and__^} == 'function') {
             var v = @{{x}}.__and__(@{{y}});
             if (v !== @{{NotImplemented}}) return v;
         }
-        if (typeof @{{y}}['__rand__'] != 'undefined') return @{{y}}.__rand__(@{{x}});
+        if (typeof @{{y}}{^__rand__^} != 'undefined') return @{{y}}.__rand__(@{{x}});
     }
 """)
     raise TypeError("unsupported operand type(s) for &: '%r', '%r'" % (x, y))
@@ -684,13 +684,13 @@ op_bitand = JS("""function (args) {
         var res, r;
         res = args[0];
         for (i = 1; i < args.length; i++) {
-            if (typeof res['__and__'] == 'function') {
+            if (typeof res{^__and__^} == 'function') {
                 r = res;
                 res = res.__and__(args[i]);
-                if (res === @{{NotImplemented}} && typeof args[i]['__rand__'] == 'function') {
+                if (res === @{{NotImplemented}} && typeof args[i]{^__rand__^} == 'function') {
                     res = args[i].__rand__(r);
                 }
-            } else if (typeof args[i]['__rand__'] == 'function') {
+            } else if (typeof args[i]{^__rand__^} == 'function') {
                 res = args[i].__rand__(res);
             } else {
                 res = null;
@@ -724,11 +724,11 @@ def op_bitxor2(x, y):
             case 0x0404:
                 return @{{x}}.__xor(@{{y}});
         }
-        if (typeof @{{x}}['__xor__'] == 'function') {
+        if (typeof @{{x}}{^__xor__^} == 'function') {
             var v = @{{x}}.__xor__(@{{y}});
             if (v !== @{{NotImplemented}}) return v;
         }
-        if (typeof @{{y}}['__rxor__'] != 'undefined') return @{{y}}.__rxor__(@{{x}});
+        if (typeof @{{y}}{^__rxor__^} != 'undefined') return @{{y}}.__rxor__(@{{x}});
     }
 """)
     raise TypeError("unsupported operand type(s) for ^: '%r', '%r'" % (x, y))
@@ -739,13 +739,13 @@ op_bitxor = JS("""function (args) {
         var res, r;
         res = args[0];
         for (i = 1; i < args.length; i++) {
-            if (typeof res['__xor__'] == 'function') {
+            if (typeof res{^__xor__^} == 'function') {
                 r = res;
                 res = res.__xor__(args[i]);
-                if (res === @{{NotImplemented}} && typeof args[i]['__rxor__'] == 'function') {
+                if (res === @{{NotImplemented}} && typeof args[i]{^__rxor__^} == 'function') {
                     res = args[i].__rxor__(r);
                 }
-            } else if (typeof args[i]['__rxor__'] == 'function') {
+            } else if (typeof args[i]{^__rxor__^} == 'function') {
                 res = args[i].__rxor__(res);
             } else {
                 res = null;
@@ -779,11 +779,11 @@ def op_bitor2(x, y):
             case 0x0404:
                 return @{{x}}.__or(@{{y}});
         }
-        if (typeof @{{x}}['__or__'] == 'function') {
+        if (typeof @{{x}}{^__or__^} == 'function') {
             var v = @{{x}}.__or__(@{{y}});
             if (v !== @{{NotImplemented}}) return v;
         }
-        if (typeof @{{y}}['__ror__'] != 'undefined') {
+        if (typeof @{{y}}{^__ror__^} != 'undefined') {
             return @{{y}}.__ror__(@{{x}});
         }
     }
@@ -796,13 +796,13 @@ op_bitor = JS("""function (args) {
         var res, r;
         res = args[0];
         for (i = 1; i < args.length; i++) {
-            if (typeof res['__or__'] == 'function') {
+            if (typeof res{^__or__^} == 'function') {
                 r = res;
                 res = res.__or__(args[i]);
-                if (res === @{{NotImplemented}} && typeof args[i]['__ror__'] == 'function') {
+                if (res === @{{NotImplemented}} && typeof args[i]{^__ror__^} == 'function') {
                     res = args[i].__ror__(r);
                 }
-            } else if (typeof args[i]['__ror__'] == 'function') {
+            } else if (typeof args[i]{^__ror__^} == 'function') {
                 res = args[i].__ror__(res);
             } else {
                 res = null;
@@ -991,7 +991,7 @@ def __dynamic_load__(importName):
 
 def __import_all__(path, context, namespace, module_name=None, get_base=True):
     module = ___import___(path, context, module_name, get_base)
-    if JS("""typeof @{{module}}['__all__'] == 'undefined'"""):
+    if JS("""typeof @{{module}}{^__all__^} == 'undefined'"""):
         for name in dir(module):
             if not name.startswith('_'):
                 JS("""@{{namespace}}[@{{name}}] = @{{module}}[@{{name}}];""")
@@ -1172,19 +1172,19 @@ String.prototype.count = function(sub, start, end) {
 }
 
 String.prototype.format = function() {
-    var args = $p['tuple']($pyjs_array_slice.call(arguments,0,arguments.length-1));
+    var args = $p{^tuple^}($pyjs_array_slice.call(arguments,0,arguments.length-1));
 
     var kw = arguments.length >= 1 ? arguments[arguments.length-1] : arguments[arguments.length];
     if (typeof kw != 'object' || kw.__name__ != 'dict' || typeof kw.$pyjs_is_kwarg == 'undefined') {
         if (typeof kw != 'undefined') args.__array.push(kw);
         kw = arguments[arguments.length+1];
     } else {
-        delete kw['$pyjs_is_kwarg'];
+        delete kw{^$pyjs_is_kwarg^};
     }
     if (typeof kw == 'undefined') {
-        kw = $p['__empty_dict']();
+        kw = $p{^__empty_dict^}();
     }
-    return $p['_string_format'](this, args, kw);
+    return $p{^_string_format^}(this, args, kw);
 }
 String.prototype.format.__args__ = ['args', ['kw']];
 
@@ -1899,8 +1899,8 @@ Number.prototype.__pow__ = function (y, z) {
 def float_int(value, radix=None):
     JS("""
     var v;
-    if (typeof @{{value}}['__int__'] != 'undefined') {
-        return @{{value}}['__int__']();
+    if (typeof @{{value}}{^__int__^} != 'undefined') {
+        return @{{value}}{^__int__^}();
     }
     if (@{{value}}.__number__) {
         if (@{{radix}} !== null) {
@@ -1983,14 +1983,14 @@ var $radix_regex = [
 
 (function(){
     /* XXX do not convert to @{{int}} - this is correct */
-    var $int = pyjslib['int'] = function (value, radix) {
+    var $int = pyjslib{^int^} = function (value, radix) {
         var v, i;
         if (typeof radix == 'undefined' || radix === null) {
             if (typeof value == 'undefined') {
                 throw @{{TypeError}}("int() takes at least 1 argument");
             }
-            if (typeof value['__int__'] != 'undefined') {
-                return value['__int__']();
+            if (typeof value{^__int__^} != 'undefined') {
+                return value{^__int__^}();
             }
             switch (value.__number__) {
                 case 0x01:
@@ -2030,7 +2030,7 @@ var $radix_regex = [
             this.__v = v;
             return this;
         }
-        return new pyjslib['long'](v);
+        return new pyjslib{^long^}(v);
     };
     $int.__init__ = function () {};
     $int.__number__ = 0x02;
@@ -2850,7 +2850,7 @@ JS("""
 
 
     /* XXX do not convert to @{{long}} - this is correct */
-    var $long = pyjslib['long'] = function(value, radix) {
+    var $long = pyjslib{^long^} = function(value, radix) {
         var v, i;
         if (!radix || radix.valueOf() == 0) {
             if (typeof value == 'undefined') {
@@ -5436,8 +5436,8 @@ class set(object):
         """)
         return None
 
-JS("@{{set}}['__str__'] = @{{set}}['__repr__'];")
-JS("@{{set}}['toString'] = @{{set}}['__repr__'];")
+JS("@{{set}}{^__str__^} = @{{set}}{^__repr__^};")
+JS("@{{set}}{^toString^} = @{{set}}{^__repr__^};")
 
 class frozenset(set):
     def __init__(self, _data=None):
@@ -5475,8 +5475,8 @@ class frozenset(set):
     def symmetric_difference_update(self, other):
         raise AttributeError('frozenset is immutable')
 
-JS("@{{frozenset}}['__str__'] = @{{frozenset}}['__repr__'];")
-JS("@{{frozenset}}['toString'] = @{{frozenset}}['__repr__'];")
+JS("@{{frozenset}}{^__str__^} = @{{frozenset}}{^__repr__^};")
+JS("@{{frozenset}}{^toString^} = @{{frozenset}}{^__repr__^};")
 
 
 class property(object):
@@ -5622,7 +5622,7 @@ def xrange(start, stop = None, step = 1):
             return "'" + this.toString() + "'";
         }
     };
-    @{{!x}}['__str__'] = @{{!x}}.toString;
+    @{{!x}}{^__str__^} = @{{!x}}.toString;
     return @{{!x}};
     """)
     
@@ -5962,7 +5962,7 @@ def __getattr_check(attr, attr_left, attr_right, attrstr,
                                  typeof v == 'function');
                 if (descriptors) {
                     pyjs_testval = pyjs_testval ||
-                            (typeof v['__get__'] == 'function');
+                            (typeof v{^__get__^} == 'function');
                 }
                 pyjs__testval = (pyjs__testval ?
                     @{{getattr}}(vl, attr_right):
@@ -6326,9 +6326,9 @@ class complex:
         else:
             raise TypeError("unsupported operand type(s) for +: '%r', '%r'" % (self, b))
         
-JS("@{{complex}}['__radd__'] = @{{complex}}['__add__'];")
-JS("@{{complex}}['__str__'] = @{{complex}}['__repr__'];")
-JS("@{{complex}}['toString'] = @{{complex}}['__repr__'];")
+JS("@{{complex}}{^__radd__^} = @{{complex}}{^__add__^};")
+JS("@{{complex}}{^__str__^} = @{{complex}}{^__repr__^};")
+JS("@{{complex}}{^toString^} = @{{complex}}{^__repr__^};")
 
 JS("@{{next_hash_id}} = 0;")
 
@@ -6932,11 +6932,11 @@ def divmod(x, y):
             if (   !@{{y}}.__number__
                 && @{{x}}.__mro__.length > @{{y}}.__mro__.length
                 && @{{isinstance}}(@{{x}}, @{{y}})
-                && typeof @{{x}}['__divmod__'] == 'function')
+                && typeof @{{x}}{^__divmod__^} == 'function')
                 return @{{y}}.__divmod__(@{{x}});
-            if (typeof @{{x}}['__divmod__'] == 'function') return @{{x}}.__divmod__(@{{y}});
+            if (typeof @{{x}}{^__divmod__^} == 'function') return @{{x}}.__divmod__(@{{y}});
         }
-        if (!@{{y}}.__number__ && typeof @{{y}}['__rdivmod__'] == 'function') return @{{y}}.__rdivmod__(@{{x}});
+        if (!@{{y}}.__number__ && typeof @{{y}}{^__rdivmod__^} == 'function') return @{{y}}.__rdivmod__(@{{x}});
     }
 """)
     raise TypeError("unsupported operand type(s) for divmod(): '%r', '%r'" % (x, y))
