@@ -87,7 +87,7 @@ if __name__ == '__main__':
         version = "0.7",
         description = "Pyjamas Widget API for Web applications, in Python",
         long_description = open('README', 'rt').read(),
-        url = "http://pyjs.org",
+        url = "http://pyj.be",
         author = "The Pyjamas Project",
         author_email = "lkcl@lkcl.net",
         keywords = keyw,
