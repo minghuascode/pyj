@@ -15,35 +15,32 @@
 from pyjamas import DOM
 from pyjamas import Factory
 
-from CellPanel import CellPanel
+from pyjamas.ui.CellPanel import CellPanel
 from pyjamas.ui import HasHorizontalAlignment
 from pyjamas.ui import HasVerticalAlignment
 
 class VerticalPanel(CellPanel):
 
-    def add(self, widget):
-        self.insert(widget, self.getWidgetCount())
+    def insert(self, widget, container, beforeIndex=None):
+        """ has two modes of operation:
+            widget, beforeIndex
+            widget, container, beforeIndex.
+            if beforeIndex argument is not given, the 1st mode is assumed.
+            this technique is less costly than using *args.
+        """
+        if widget.getParent() == self:
+            return
 
-    def getHorizontalAlignment(self):
-        return self.horzAlign
+        if beforeIndex is None:
+            beforeIndex = container
+            container = self.getBody()
 
-    def getVerticalAlignment(self):
-        return self.vertAlign
-
-    def setWidget(self, index, widget):
-        """Replace the widget at the given index with a new one"""
-        existing = self.getWidget(index)
-        if existing:
-            self.remove(existing)
-        self.insert(widget, index)
-
-    def insert(self, widget, beforeIndex):
         widget.removeFromParent()
 
         tr = DOM.createTR()
         td = DOM.createTD()
 
-        DOM.insertChild(self.getBody(), tr, beforeIndex)
+        DOM.insertChild(container, tr, beforeIndex)
         DOM.appendChild(tr, td)
 
         CellPanel.insert(self, widget, td, beforeIndex)
@@ -65,11 +62,6 @@ class VerticalPanel(CellPanel):
         CellPanel.remove(self, widget)
         return True
 
-    def setHorizontalAlignment(self, align):
-        self.horzAlign = align
-
-    def setVerticalAlignment(self, align):
-        self.vertAlign = align
 
 Factory.registerClass('pyjamas.ui.VerticalPanel', 'VerticalPanel', VerticalPanel)
 

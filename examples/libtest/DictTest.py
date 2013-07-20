@@ -43,10 +43,10 @@ class DictTest(UnitTest):
     def testTupleKeys(self):
         d = {}
         d[1] = 1
-        #d[1,] = 2
         d[(2,)] = 3
         d[(1,1)] = 4
         d[1,2] = 5
+
         v = {(1, 2): 5, 1: 1, (1, 1): 4, (2,): 3}
         self.assertTrue(d == v, "%r == %r" % (d, v))
 
@@ -54,7 +54,7 @@ class DictTest(UnitTest):
         d[1] = 1
         d[1,] = 2
         v = {1: 1, (1,): 2}
-        self.assertTrue(d == v, "%r == %r bug #273" % (d, v))
+        self.assertEqual(d, v, "%r == %r bug #273" % (d, v))
 
     def testObjectKeys(self):
         f1 = Foo()
@@ -135,8 +135,15 @@ class DictTest(UnitTest):
 
     def testEnumerate(self):
         d = {1: [1,2,3], 2: {'a': 1, 'b': 2, 'c': 3}}
-        a = 0
+        sum_i = 0
+        sum_k = 0
         for i, k in enumerate(d):
+            sum_i += i
+            sum_k += k
+        self.assertEqual(sum_i, 1)
+        self.assertEqual(sum_k, 3)
+        a = 0
+        for i, k in enumerate(sorted(d)):
             self.assertEqual(i+1, k)
             a += k
         self.assertEqual(a, 3)
@@ -200,4 +207,45 @@ class DictTest(UnitTest):
         self.assertEqual(d1.fromkeys(d1, None), d2)
         self.assertEqual(d1.fromkeys(d1, 1), d1)
         self.assertEqual(dict.fromkeys('ab'), d2)
+
+    def testIteritems(self):
+        d1 = {1:2,3:4}
+        a,b = 0,0
+        for x,y in d1.iteritems():
+            a += x
+            b += y
+        self.assertEqual((a,b),(4,6))
+        
+        class DICT(dict): pass
+          
+        
+        d2 = DICT({1:2,3:4})
+        a,b = 0,0
+        for x,y in d2.iteritems():
+            a += x
+            b += y
+        self.assertEqual((a,b),(4,6))
+        
+        d3 = dict()
+        a,b = 0,0
+        for x,y in d3.iteritems():
+            a += x
+            b += y
+        self.assertEqual((a,b),(0,0))
+        
+    def testUpdate(self):
+        d1 = {1:2,3:4}
+        d1.update({3:5,7:9})
+        self.assertEqual(d1[3],5)
+        try:
+            d1.update(((3,6),(9,12)))
+            self.assertEqual(d1[3],6)
+        except TypeError:
+            self.fail("Couldn't dict.update(...) with a tuple of pairs.")
+
+    def testOverrideDict(self):
+        dict = 1
+        self.assertEqual(dict, 1)
+        x = dict
+        self.assertEqual(x, 1)
 

@@ -84,7 +84,7 @@ class PlatformParser:
 
     def generatePlatformFilename(self, file_name):
         (module_name, extension) = os.path.splitext(os.path.basename(file_name))
-        platform_file_name = module_name + self.platform + extension
+        platform_file_name = module_name + "." + self.platform + extension
 
         return os.path.join(os.path.dirname(file_name), self.platform_dir, platform_file_name)
 
@@ -107,12 +107,23 @@ def merge(module_name, tree1, tree2):
     for child in tree2.node:
         if isinstance(child, ast.Function):
             replaceFunction(tree1, child.name, child)
+        elif isinstance(child, ast.Assign):
+            replaceAssign(tree1, child.nodes[0].name, child)
         elif isinstance(child, ast.Class):
             replaceClassMethods(tree1, child.name, child)
         else:
             raise TranslationError(
                 "Do not know how to merge %s" % child, child, module_name)
     return tree1
+
+def replaceAssign(tree, assign_name, assign_node):
+    # find assign to replace
+    for child in tree.node:
+        if isinstance(child, ast.Assign) and child.nodes[0].name == assign_name:
+            copyAssign(child, assign_node)
+            return
+    raise TranslationError(
+        "assign not found: " + assign_name, assign_node, None)
 
 def replaceFunction(tree, function_name, function_node):
     # find function to replace

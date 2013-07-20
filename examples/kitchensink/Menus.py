@@ -1,4 +1,4 @@
-from Sink import Sink, SinkInfo
+from pyjamas.ui.Sink import Sink, SinkInfo
 from pyjamas.ui.MenuBar import MenuBar
 from pyjamas.ui.MenuItem import MenuItem
 from pyjamas import Window

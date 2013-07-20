@@ -9,11 +9,13 @@ Flash embedding Panel
 
 from pyjamas import DOM
 from pyjamas.ui.Panel import Panel
-from pyjamas import log
 from __pyjamas__ import wnd
-import sys
-if sys.platform in ['mozilla', 'ie6', 'opera', 'oldmoz', 'safari']:
+import pyjd
+if not pyjd.is_desktop:
     from __javascript__ import Array, Object, eval
+
+#from pyjamas import logging
+#log = logging.getAppendLogger(__name__, logging.DEBUG, logging.PLAIN_FORMAT)
 
 def browser():
     return 'w3c'
@@ -23,7 +25,6 @@ class FlashPanel(Panel):
     def __init__(self, **kwargs):
         element = DOM.createDiv()
         self.setElement(element)
-        Panel.__init__(self, **kwargs)
         
         self.object_id = 'FlashObject'
         """ id of the object-tag. Default: FlashObject """
@@ -49,7 +50,9 @@ class FlashPanel(Panel):
         """ The flashmovie bgcolor parameter. Default: #FFFFFF (white)"""
         self.flashvars = ''
         self.browser = browser()
-        #log.writebr('FlashPanel loaded on %s' % self.browser)
+        #log.debug('FlashPanel loaded on %s' % self.browser)
+
+        Panel.__init__(self, **kwargs)
         
     def onLoad(self):
         DOM.setInnerHTML(self.element, self.__getFlashHTML())
@@ -199,19 +202,19 @@ class FlashPanel(Panel):
         self.flashvars = flashvars
         
     def __getFlashHTML(self):
-        object = 'id="'+self.object_id+'"'
+        obj = 'id="'+self.object_id+'"'
         if self.object_width:
-            object += ' width="'+self.object_width+'"'
+            obj += ' width="'+self.object_width+'"'
         if self.object_height:
-            object += ' height="'+self.object_height+'"'
+            obj += ' height="'+self.object_height+'"'
         if self.object_class:
-            object += ' class="'+self.object_class+'"'
+            obj += ' class="'+self.object_class+'"'
         if self.browser == 'ie':
-            object += ' classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"'
+            obj += ' classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"'
         else:
-            object += ' type="application/x-shockwave-flash"' 
-            object += ' data="'+self.flash_url+'"'
-        html =  ['<object %s>' % object]
+            obj += ' type="application/x-shockwave-flash"' 
+            obj += ' data="'+self.flash_url+'"'
+        html =  ['<object %s>' % obj]
         if self.flash_url:
             html.append('<param name="movie" value="'+self.flash_url+'" />')
         if self.quality:

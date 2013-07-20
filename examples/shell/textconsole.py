@@ -1,8 +1,10 @@
 from pyjamas.ui.AbsolutePanel import AbsolutePanel
 from pyjamas.ui.Label import Label
 from pyjamas import DOM
-from pyjamas import log
+from pyjamas import logging
 import math
+
+log = logging.getAppendLogger(__name__, logging.DEBUG, logging.PLAIN_FORMAT)
 
 class TextWindow(AbsolutePanel):
 
@@ -45,7 +47,7 @@ class TextWindow(AbsolutePanel):
 
         ratio = self.fontsize / self.fontheight 
         DOM.setStyleAttribute(self.getElement(), 'fontSizeAdjust', str(ratio))
-        #log.writebr(str(ratio))
+        #log.debug(str(ratio))
 
     def setHeight(self, height):
 
@@ -53,7 +55,7 @@ class TextWindow(AbsolutePanel):
         AbsolutePanel.setHeight(self, "%dpx" % (self.rows*self.fontheight))
 
         DOM.setStyleAttribute(self.getElement(), 'fontSize', "%dpx" % self.fontheight)
-        #log.writebr(str(self.fontheight))
+        #log.debug(str(self.fontheight))
 
     def setText(self, x, y, string):
 

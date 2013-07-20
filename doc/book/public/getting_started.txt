@@ -241,6 +241,24 @@ def greet(sender):
     RootPanel().add(HTML("No of times not in Kansas: %d" % x))
 }}
 
+Another adventurous and simple application, is make a canvas and draw a
+rectangle on it. Try this:- (remembering to built it)
+{{
+from pyjamas.ui.RootPanel import RootPanel
+from pyjamas.Canvas import Color
+from pyjamas.Canvas.GWTCanvas import GWTCanvas as Canvas
+
+if __name__ == '__main__':
+    canvas = Canvas(400,400)
+    canvas.rect(165, 25, 100, 100)
+    canvas.stroke()
+    RootPanel().add(canvas)
+}}
+
+The GWT (Google Web Toolkit) canvas, api is available via the pyjamas api 
+online documents.
+http://pyjs.org/api/pyjamas.Canvas.GWTCanvas.GWTCanvas-class.html
+
 = What we have done =
 
 To recap what's been achieved, in this section, we have:
@@ -252,7 +270,7 @@ To recap what's been achieved, in this section, we have:
  * Changed the layout from vertical to horizontal
  * Added some eye-burning colour using a CSS Stylesheet.
  * Learned in a few minutes that Pyjamas apps are dead-easy.
- * Discovered that we're definitely not in Kansas.
+ * Discovered that we're definitely not in Kansas, but have a canvas.
 
 So we have gained the confidence that Pyjamas applications can be
 written in very few lines of code, and also now have a feel for what

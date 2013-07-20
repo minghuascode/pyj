@@ -710,6 +710,16 @@ class ArgsTest(UnitTest):
             self.assertEquals(kwa.get('y'), 6)
             self.assertEquals(kwa.get('z'), 8)
 
+    def testKwArgsNameMapping(self):
+        kwargs = dict(comment='Comment', name='Name')
+        def fn(comment=None, name=None):
+            return dict(comment=comment, name=name)
+        kwargs_out = fn(**kwargs)
+        self.assertEquals(kwargs, kwargs_out)
+        kwargs = {'comment': 'Comment', 'name': 'Name'}
+        kwargs_out = fn(**kwargs)
+        self.assertEquals(kwargs, kwargs_out)
+
     def testLookupOrder(self):
         def fn(fint = int):
             return fint(1.2);
@@ -724,6 +734,37 @@ class ArgsTest(UnitTest):
             return foo(ArgsTest, 2, 3)
         self.assertEqual(__name__, 'ArgsTest', "Argument to fn must be equal to module name")
         self.assertEqual(fn('foo'), ['foo', 2, 3])
+
+    def testGetattr(self):
+        instance = ArgsTestClass()
+        foo = instance.foo
+
+        values = foo(1, 2, 3)
+        self.assertEquals(values[0], 1)
+        self.assertEquals(values[1], 2)
+        self.assertEquals(values[2], 3)
+
+        values = foo(*(1, 2, 3))
+        self.assertEquals(values[0], 1)
+        self.assertEquals(values[1], 2)
+        self.assertEquals(values[2], 3)
+
+        try:
+            values = foo(*(1, 2), **dict(c=3))
+            self.assertEquals(values[0], 1)
+            self.assertEquals(values[1], 2)
+            self.assertEquals(values[2], 3)
+        except TypeError:
+            self.fail('foo() takes exactly 4 arguments (5 given), bug #503')
+    
+    def testArgsUnpack(self):
+        def func(a, (b, c), d):
+            return a + b + c + d
+        try:
+            self.assertEqual(func(1, (2, 3), 4), 10, 'Function args unpacking not supported, #527')
+        except:
+            self.fail('Bug #527 Function args unpacking not supported')
+
 
 def foo(a, b, c):
     return [a, b, c]

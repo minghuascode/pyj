@@ -15,10 +15,10 @@
 from pyjamas import DOM
 from pyjamas import Factory
 
-from Widget import Widget
+from pyjamas.ui.Widget import Widget
 from pyjamas.ui import Event
-from MouseListener import MouseHandler
-from ClickListener import ClickHandler
+from pyjamas.ui.MouseListener import MouseHandler
+from pyjamas.ui.ClickListener import ClickHandler
 
 prefetchImages = {}
 
@@ -56,10 +56,10 @@ class Image(Widget, MouseHandler, ClickHandler):
         type = DOM.eventGetType(event)
         if type == "load":
             for listener in self.loadListeners:
-                listener.onLoad(self)
+                listener.onImageLoad(self)
         elif type == "error":
             for listener in self.loadListeners:
-                listener.onError(self)
+                listener.onImageError(self)
 
     def prefetch(self, url):
         img = DOM.createImg()

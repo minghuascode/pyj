@@ -114,11 +114,14 @@ def _compile(pat, flags=0):
     flgs = ""
     while True:
         m = __inline_flags_re__.Exec(pat)
-        if m is None:
+        if JS("@{{m}} === null"):
+            m = None
             break
-        pat = pat.__replace(__inline_flags_re__, "")
+        pat = pat.replace(__inline_flags_re__, "")
         for m in list(m):
-            for c in m:
+            if JS("@{{m}} === null"):
+                continue
+            for c in str(m):
                 if c in ['(','?',')']:
                     pass
                 elif c == 'i':
@@ -188,6 +191,10 @@ class SRE_Match:
         # group defaults to zero (meaning the whole matched substring). Returns -1
         # if group exists but did not contribute to the match.
         if group != 0:
+            substr = self.group(group)
+            if substr:
+                idx = self.string.index(substr, self._start)
+                return idx
             raise NotImplementedError("group argument not supported")
         return self._start
 
@@ -196,13 +203,15 @@ class SRE_Match:
         # group defaults to zero (meaning the whole matched substring). Returns -1
         # if group exists but did not contribute to the match.
         if group != 0:
+            substr = self.group(group)
+            if substr:
+                idx = self.string.index(substr, self._start)
+                return idx + len(substr)
             raise NotImplementedError("group argument not supported")
         return self._end
 
     def span(self, group=0):
         # Returns the 2-tuple (m.start(group), m.end(group)).
-        if group != 0:
-            raise NotImplementedError("group argument not supported")
         return self.start(group), self.end(group)
 
     def expand(self, template):
@@ -249,9 +258,6 @@ class SRE_Pattern:
         self.match_code = code[0]
         self.search_code = code[1]
         self.findall_code = code[2]
-        self.groups = groups
-        self.groupindex = groupindex # Maps group names to group indices
-        self._indexgroup = indexgroup # Maps indices to group names
 
     def match(self, string, pos=0, endpos=None):
         # If zero or more characters at the beginning of string match this
@@ -263,9 +269,15 @@ class SRE_Pattern:
             endpos = len(string)
         if pos == 0:
             groups = self.match_code.Exec(string)
-            if groups is None:
+            if JS("@{{groups}} === null"):
                 return None
-            groups = list(groups)
+            _groups = []
+            for i in list(groups):
+                if JS("@{{i}} === null"):
+                    _groups.append(None)
+                else:
+                    _groups.append(str(i))
+            groups = _groups
         elif pos >= len(string):
             return None
         else:
@@ -275,11 +287,17 @@ class SRE_Pattern:
             # necessarily at the index where the search is to start.
             # Maybe, we should raise an error if there's a '^' in pat (not in [])
             groups = self.match_code.Exec(string[pos:])
-            if groups is None:
+            if JS("@{{groups}} === null"):
                 return None
             if groups.index != 0:
                 return None
-            groups = list(groups)
+            _groups = []
+            for i in list(groups):
+                if JS("@{{i}} === null"):
+                    _groups.append(None)
+                else:
+                    _groups.append(str(i))
+            groups = _groups
         return SRE_Match(self, string, pos, endpos, groups, pos, None, None)
 
     def search(self, string, pos=0, endpos=None):
@@ -291,17 +309,29 @@ class SRE_Pattern:
             string = string[:endpos]
         if pos == 0:
             groups = self.search_code.Exec(string)
-            if groups is None:
+            if JS("@{{groups}} === null"):
                 return None
-            groups = list(groups)
+            _groups = []
+            for i in list(groups):
+                if JS("@{{i}} === null"):
+                    _groups.append(None)
+                else:
+                    _groups.append(str(i))
+            groups = _groups
         elif pos >= len(string):
             return None
         else:
             # Strickly, we shouldn't use string[pos:]
             groups = self.search_code.Exec(string[pos:])
-            if groups is None:
+            if JS("@{{groups}} === null"):
                 return None
-            groups = list(groups)
+            _groups = []
+            for i in list(groups):
+                if JS("@{{i}} === null"):
+                    _groups.append(None)
+                else:
+                    _groups.append(str(i))
+            groups = _groups
         return SRE_Match(self, string, pos, endpos, groups[2:], pos + len(groups[1]),None, None)
 
     def findall(self, string, pos=0, endpos=None):
@@ -314,7 +344,10 @@ class SRE_Pattern:
             if m is None:
                 break
             span = m.span()
-            all.append(string[span[0]:span[1]])
+            if not m.groups():
+                all.append(string[span[0]:span[1]])
+            else:
+                all.append(tuple([group or '' for group in m.groups()]))
             pos = span[1]
         return all
         # Next line bugs in FF2

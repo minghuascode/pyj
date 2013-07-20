@@ -44,15 +44,17 @@ from SuiteDemo import SuiteDemo
 """
 class GWTCanvasDemo:
 
+    # can be overriden to use another canvas class
+    def _get_canvas(self):
+        return GWTCanvas(400,400)
 
     def onModuleLoad(self):
 
         self.layout = HorizontalPanel()
 
         # Each demo will set their own dimensions, so it doesn't matter
-        # what we initialize the canvas to.
-        canvas = GWTCanvas(400,400)
-
+        # what we initialize the canvas to. Use the overrideable.
+        canvas = self._get_canvas()
         canvas.addStyleName("gwt-canvas")
 
         self.demos = []

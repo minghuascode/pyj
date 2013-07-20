@@ -15,31 +15,31 @@
 from pyjamas import DOM
 from pyjamas import Factory
 
-from FocusWidget import FocusWidget
+from pyjamas.ui.FocusWidget import FocusWidget
+from pyjamas.ui.ChangeListener import ChangeHandler
 from pyjamas.ui import Event
 from __pyjamas__ import console
 
-class ListBox(FocusWidget):
+class ListBox(FocusWidget, ChangeHandler):
 
     _props = [("visible", "Visible Count", "VisibleItemCount", None),
              ("name", "Name", "Name", None),
              ("selectedIndex", "Selected Index", "SelectedIndex", None),
-             ("multiple", "Multiple Select", "MultiplSelect", None),
+             ("multiple", "Multiple Select", "MultipleSelect", None),
             ]
 
     def __init__(self, **kwargs):
         if not kwargs.has_key('StyleName'): kwargs['StyleName']="gwt-ListBox"
-        self.changeListeners = []
         self.INSERT_AT_END = -1
         element = kwargs.pop('Element', None) or DOM.createSelect()
         FocusWidget.__init__(self, element, **kwargs)
-        self.sinkEvents(Event.ONCHANGE)
+        ChangeHandler.__init__(self)
 
     @classmethod
     def _getProps(self):
         return FocusWidget._getProps() + self._props
 
-    def _setWeirdProps(self, props):
+    def _setWeirdProps(self, props, builderstate):
         items = {}
         for (k, v) in props.items():
             if not isinstance(k, int):
@@ -49,9 +49,6 @@ class ListBox(FocusWidget):
         items.sort()
         for (k, v) in items:
             self.addItem(*v)
-
-    def addChangeListener(self, listener):
-        self.changeListeners.append(listener)
 
     def addItem(self, item, value = None):
         self.insertItem(item, value, self.INSERT_AT_END)
@@ -98,19 +95,6 @@ class ListBox(FocusWidget):
         self.checkIndex(index)
         option = DOM.getChild(self.getElement(), index)
         return DOM.getBooleanAttribute(option, "selected")
-
-    def onBrowserEvent(self, event):
-        if DOM.eventGetType(event) == "change":
-            for listener in self.changeListeners:
-                if hasattr(listener, 'onChange'):
-                    listener.onChange(self)
-                else:
-                    listener(self)
-        else:
-            FocusWidget.onBrowserEvent(self, event)
-
-    def removeChangeListener(self, listener):
-        self.changeListeners.remove(listener)
 
     def removeItem(self, idx):
         child = DOM.getChild(self.getElement(), idx)

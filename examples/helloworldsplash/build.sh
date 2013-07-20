@@ -4,4 +4,6 @@
 
 options="$*"
 #if [ -z $options ] ; then options="-O";fi
-../../bin/pyjsbuild --print-statements -m $options Hello
+../../bin/pyjsbuild --print-statements -m $options \
+                    --bootstrap-file=bootstrap_progress.js \
+                    Hello

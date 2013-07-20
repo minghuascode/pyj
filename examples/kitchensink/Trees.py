@@ -1,4 +1,4 @@
-from Sink import Sink, SinkInfo
+from pyjamas.ui.Sink import Sink, SinkInfo
 from pyjamas.ui.Tree import Tree
 from pyjamas.ui.TreeItem import TreeItem
 

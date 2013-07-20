@@ -1,6 +1,7 @@
 """
 * Copyright 2008 Google Inc.
 * Copyright (C) 2009 Luke Kenneth Casson Leighton <lkcl@lkcl.net>
+* Copyright (C) 2011 Bob Hampton <bobh@optimizations.com>
 *
 * Licensed under the Apache License, Version 2.0 (the "License"); you may not
 * use this file except in compliance with the License. You may obtain a copy of
@@ -22,14 +23,13 @@ from pyjamas.ui.VerticalPanel import VerticalPanel
 
 from pyjamas.Canvas.Color import Color
 
-
 from SimpleCanvasDemo import SimpleCanvasDemo
 
 class GradientDemoControls (Composite):
     def __init__(self):
         layout = VerticalPanel()
         layout.add(HTML(
-        "<b style=\"color:#f00;\">Gradients currently not working correctly in IE. Contributor assistance welcome :).</b>"))
+        "<b style=\"color:#f00;\">Stroke Gradients currently not working correctly in IE. RadialGradients are not supported in VML. Contributor assistance welcome :).</b>"))
         Composite.__init__(self, layout)
     
 
@@ -64,7 +64,7 @@ class GradientDemo (SimpleCanvasDemo):
         lingrad.addColorStop(0.5, Color("#fff"))
         lingrad.addColorStop(0.5, Color("#26C000"))
         lingrad.addColorStop(1, Color("#fff"))
-        
+
         lingrad2 = self.canvas.createLinearGradient(0, 50, 0, 95)
         lingrad2.addColorStop(0.5, Color("#000"))
         lingrad2.addColorStop(1, Color("rgba(0,0,0,0)"))

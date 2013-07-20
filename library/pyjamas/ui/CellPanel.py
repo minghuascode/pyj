@@ -15,7 +15,7 @@
 from pyjamas import DOM
 from pyjamas import Factory
 
-from ComplexPanel import ComplexPanel
+from pyjamas.ui.ComplexPanel import ComplexPanel
 from pyjamas.ui import HasHorizontalAlignment
 from pyjamas.ui import HasVerticalAlignment
 
@@ -30,6 +30,19 @@ class CellPanel(ComplexPanel):
             ("padding", "Padding", "Padding", None)
              ]
 
+    elem_props = [
+           ("wordwrap", "Word Wrap", "CellWordWrap", None, True),
+           ("height", "Cell Height", "CellHeight", str, None),
+           ("width", "Cell Width", "CellWidth", str, None),
+           ("halign", "Cell Horizontal Alignment",
+                      "CellHorizontalAlignment", None, "left"),
+           ("valign", "Cell Vertical Alignment",
+                      "CellVerticalAlignment", None, "top"),
+                 ]
+    
+    def _getElementProps(self):
+        return ComplexPanel._getElementProps() + self.elem_props
+    
     def __init__(self, **kwargs):
 
         kwargs['Spacing'] = kwargs.get('Spacing', 0)
@@ -40,9 +53,13 @@ class CellPanel(ComplexPanel):
                             HasVerticalAlignment.ALIGN_TOP)
 
         element = kwargs.pop('Element', None) or DOM.createTable()
+        fc = DOM.getFirstChild(element)
+        if fc:
+            self.body = fc
+        else:
+            self.body = DOM.createTBody()
         self.table = element
         self.setElement(self.table)
-        self.body = DOM.createTBody()
         DOM.appendChild(self.table, self.body)
 
         ComplexPanel.__init__(self, **kwargs)
@@ -102,7 +119,7 @@ class CellPanel(ComplexPanel):
         if height is None:
             DOM.removeAttribute(td, "height")
         else:
-            DOM.setAttribute(td, "height", height)
+            DOM.setAttribute(td, "height", str(height))
 
     def setCellHorizontalAlignment(self, widget, align):
         td = self.getWidgetTd(widget)
@@ -125,7 +142,7 @@ class CellPanel(ComplexPanel):
         if width is None:
             DOM.removeAttribute(td, "width")
         else:
-            DOM.setAttribute(td, "width", width)
+            DOM.setAttribute(td, "width", str(width))
 
     def setSpacing(self, spacing):
         self.spacing = spacing
@@ -152,6 +169,16 @@ class CellPanel(ComplexPanel):
 
     def getVerticalAlignment(self):
         return self.vertAlign
+
+    def setCellWordWrap(self, widget, wrap):
+        td = DOM.getParent(widget.getElement())
+        wrap = (not wrap) and "nowrap" or ""
+        print "setCellWordWrap", self, widget, td, wrap
+        DOM.setStyleAttribute(td, "whiteSpace", wrap)
+
+    def getCellWordWrap(self, widget):
+        td = DOM.getParent(widget.getElement())
+        return DOM.getStyleAttribute(td, "whiteSpace") == "nowrap"
 
 
 Factory.registerClass('pyjamas.ui.CellPanel', 'CellPanel', CellPanel)

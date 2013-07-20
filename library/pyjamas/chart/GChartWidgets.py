@@ -17,12 +17,10 @@
 *
 """
 
-
 import math
 
 from pyjamas import DOM
 from pyjamas import Window
-
 
 from pyjamas.ui import Event
 from pyjamas.ui.AbsolutePanel import AbsolutePanel
@@ -47,7 +45,8 @@ from pyjamas.chart.GChartConsts import DEFAULT_BLANK_IMAGE_URL_FULLPATH
 from pyjamas.chart import GChartUtil
 from pyjamas.chart import Double
 
-from pyjamas import log
+#from pyjamas import logging
+#log = logging.getAppendLogger(__name__, logging.DEBUG, logging.PLAIN_FORMAT)
 
 """
 * This class' sole purpose is to work around a FF 2
@@ -2042,7 +2041,7 @@ class PlotPanel (AbsolutePanel):
             # remember last "tracked" mouse location
             """
             if "click" == eventId:
-                log.writebr("CLICK: event.getClientX()=" + str(DOM.eventGetClientX(event)) +
+                log.debug("CLICK: event.getClientX()=" + str(DOM.eventGetClientX(event)) +
                 " event.getClientY()=" + str(DOM.eventGetClientY(event)) +
                 " event.getTarget()==self.getElement() is " +
                 str(DOM.eventGetTarget(event) == self.getElement()) +
@@ -2050,7 +2049,7 @@ class PlotPanel (AbsolutePanel):
                 " event.getTarget()=" + str(DOM.eventGetTarget(event)))
 
             elif "mouseover" == eventId:
-                log.writebr("MOUSEOVER: event.getClientX()=" + str(DOM.eventGetClientX(event)) +
+                log.debug("MOUSEOVER: event.getClientX()=" + str(DOM.eventGetClientX(event)) +
                 " event.getClientY()=" + str(DOM.eventGetClientY(event)) +
                 " event.getCurrentTarget()="+str(DOM.eventGetCurrentTarget(event)) +
                 " event.getTarget()=" + str(DOM.eventGetTarget(event)))
@@ -2067,7 +2066,7 @@ class PlotPanel (AbsolutePanel):
 
         elif "mouseout" == eventId  and  self.chart.getHoverTouchingEnabled()  and  self.takesUsCompletelyOutsideChart(event):
             """
-            log.writebr("MOUSEOUT: event.getClientX()=" + str(DOM.eventGetClientX(event)) +
+            log.debug("MOUSEOUT: event.getClientX()=" + str(DOM.eventGetClientX(event)) +
                 " event.getClientY()=" + str(DOM.eventGetClientY(event)) +
                 " event.getCurrentTarget()="+str(DOM.eventGetCurrentTarget(event)) +
                 " event.getTarget()=" + str(DOM.eventGetTarget(event)))

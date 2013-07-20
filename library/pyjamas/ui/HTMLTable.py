@@ -12,22 +12,49 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# setWidget recoded to call _mapWidget - makes support for mshtml simpler
+# added by Phil Charlesworth 2010-09-16
+#
+# removeWidget recoded to call _unmapWidget - makes support for mshtml simpler
+# added by Phil Charlesworth 2010-09-16
+#
+
 from pyjamas import DOM
 from pyjamas import Factory
 
-from Panel import Panel
+from pyjamas.ui.Panel import Panel
 from pyjamas.ui import Event
-from CellFormatter import CellFormatter
-from RowFormatter import RowFormatter
+from pyjamas.ui.CellFormatter import CellFormatter
+from pyjamas.ui.RowFormatter import RowFormatter
 
 widgethash = {}
+
+def _getargs(parent, args):
+    row, col = parent.getIndex(args[0])
+    return row, col, args[1]
 
 class HTMLTable(Panel):
 
     _props = [ ("border", "Border width", "BorderWidth", int),
-              ("spacing", "Spacing", "Spacing", None),
-              ("padding", "Padding", "Padding", None)
+              ("spacing", "Spacing", "CellSpacing", None),
+              ("padding", "Padding", "CellPadding", None)
              ]
+
+    elem_props = [
+           ("visible", "Cell Visible", "CellVisible", None, True),
+           ("wordwrap", "Cell Word wrap", "CellWordWrap", None, True),
+           ("stylename", "Cell Style", "CellStyleName", None, ""),
+           ("height", "Cell Height", "CellHeight", str, None),
+           ("width", "Cell Width", "CellWidth", str, None),
+           ("halign", "Cell Horizontal Alignment",
+                      "CellHorizontalAlignment", None, "left"),
+           ("valign", "Cell Vertical Alignment",
+                      "CellVerticalAlignment", None, "top"),
+                 ]
+
+    def _getElementProps(self):
+        return Panel._getElementProps() + self.elem_props
 
     def __init__(self, **kwargs):
         if not kwargs.has_key('CellFormatter'):
@@ -36,6 +63,7 @@ class HTMLTable(Panel):
             kwargs['RowFormatter'] = RowFormatter(self)
 
         self.tableListeners = []
+        self.dbltableListeners = []
         self.widgetMap = {}
 
         if kwargs.has_key('Element'):
@@ -52,13 +80,16 @@ class HTMLTable(Panel):
             DOM.appendChild(self.tableElem, self.bodyElem)
         self.setElement(self.tableElem)
 
-        self.sinkEvents(Event.ONCLICK)
+        self.sinkEvents(Event.ONCLICK | Event.ONDBLCLICK)
 
         Panel.__init__(self, **kwargs)
 
     @classmethod
     def _getProps(self):
         return Panel._getProps() + self._props
+
+    def addDblTableListener(self, listener):
+        self.dbltableListeners.append(listener)
 
     def addTableListener(self, listener):
         self.tableListeners.append(listener)
@@ -69,6 +100,8 @@ class HTMLTable(Panel):
                 child = self.getWidget(row, col)
                 if child is not None:
                     self.removeWidget(child)
+                else:
+                    self.clearCell(row, col)
         # assert len(self.widgetMap) == 0
 
     def clearCell(self, row, column):
@@ -114,6 +147,7 @@ class HTMLTable(Panel):
             return None
         return self.widgetMap[key]
 
+    # next three functions are part of the standard Builder API for panels
     def getIndex(self, widget):
         """ given a widget, return its index.
         """
@@ -134,6 +168,9 @@ class HTMLTable(Panel):
             self.insertCells(row, self.getDOMCellCount(row), 1)
         self.setWidget(row, col, item)
         
+    def add(self, item, row, col):
+        self.addIndexedItem((row, col), item)
+
     def isCellPresent(self, row, column):
         # GWT uses "and", possibly a bug
         if row >= self.getRowCount() or row < 0:
@@ -145,24 +182,41 @@ class HTMLTable(Panel):
         return True
 
     def __iter__(self):
+        """ only gets widgets: does not obtain HTML or Text cells!
+        """
         return self.widgetMap.itervalues()
 
+    def _onBrowserEvent(self, event, event_type):
+
+        td = self.getEventTargetCell(event)
+        if td is None:
+            return
+        tr = DOM.getParent(td)
+        body = DOM.getParent(tr)
+        row = DOM.getChildIndex(body, tr)
+        column = DOM.getChildIndex(tr, td)
+
+        if event_type == 'dblclick':
+            lists = self.dbltableListeners
+        else:
+            lists = self.tableListeners
+
+        for listener in lists:
+            if event_type == 'click' and \
+               hasattr(listener, 'onCellClicked'):
+                listener.onCellClicked(self, row, column)
+            elif event_type == 'dblclick' and \
+               hasattr(listener, 'onCellDoubleClicked'):
+                listener.onCellDoubleClicked(self, row, column)
+            else:
+                listener(self)
+
     def onBrowserEvent(self, event):
-        if DOM.eventGetType(event) == "click":
-            td = self.getEventTargetCell(event)
-            if not td:
-                return
+        event_type = DOM.eventGetType(event)
+        if event_type != "dblclick" and event_type != "click":
+            return 
 
-            tr = DOM.getParent(td)
-            body = DOM.getParent(tr)
-            row = DOM.getChildIndex(body, tr)
-            column = DOM.getChildIndex(tr, td)
-
-            for listener in self.tableListeners:
-                if hasattr(listener, 'onCellClicked'):
-                    listener.onCellClicked(self, row, column)
-                else:
-                    listener(self)
+        self._onBrowserEvent(event, event_type)
 
     def remove(self, widget):
         if widget.getParent() != self:
@@ -171,11 +225,17 @@ class HTMLTable(Panel):
         self.removeWidget(widget)
         return True
 
+    def removeDblClickTableListener(self, listener):
+        self.dbltableListeners.remove(listener)
+
     def removeTableListener(self, listener):
         self.tableListeners.remove(listener)
 
     def setBorderWidth(self, width):
-        DOM.setAttribute(self.tableElem, "border", str(width))
+        if width is None:
+            DOM.removeAttribute(self.tableElem, "border")
+        else:
+            DOM.setAttribute(self.tableElem, "border", str(width))
 
     def setCellPadding(self, padding):
         DOM.setAttribute(self.tableElem, "cellPadding", str(padding))
@@ -202,11 +262,14 @@ class HTMLTable(Panel):
 
         widget.removeFromParent()
         td = self.cleanCell(row, column)
+        self._mapWidget(widget)
+        self.adopt(widget, td)
+
+    def _mapWidget(self, widget):
         widget_hash = widget
         element = widget.getElement()
         widgethash[element] = widget_hash
         self.widgetMap[widget_hash] = widget
-        self.adopt(widget, td)
 
     def cleanCell(self, row, column):
         td = self.cellFormatter.getRawElement(row, column)
@@ -226,11 +289,14 @@ class HTMLTable(Panel):
 
     def removeWidget(self, widget):
         self.disown(widget)
+        self._unmapWidget(widget)
+        return True
+
+    def _unmapWidget(self, widget):
         element = widget.getElement()
         del self.widgetMap[self.computeKeyForElement(element)]
         del widgethash[element]
-        return True
-
+    
     def checkCellBounds(self, row, column):
         self.checkRowBounds(row)
         #if column<0: raise IndexError, "Column " + column + " must be non-negative: " + column
@@ -269,7 +335,8 @@ class HTMLTable(Panel):
     def getEventTargetCell(self, event):
         td = DOM.eventGetTarget(event)
         while td is not None:
-            if DOM.getAttribute(td, "tagName").lower() == "td":
+            tagName = DOM.getAttribute(td, "tagName")
+            if tagName is not None and tagName.lower() == "td":
                 tr = DOM.getParent(td)
                 body = DOM.getParent(tr)
                 if DOM.compare(body, self.bodyElem):
@@ -334,6 +401,67 @@ class HTMLTable(Panel):
 
     def setRowFormatter(self, rowFormatter):
         self.rowFormatter = rowFormatter
+
+    def getCellVisible(self, context):
+        row, col = self.getIndex(context)
+        print "getCellVisible", self, context, row, col
+        self.getCellFormatter().getVisible(row, col)
+
+    def getCellWidth(self, context):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().getWidth(row, col)
+
+    def getCellHeight(self, context):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().getHeight(row, col)
+
+    def getCellWordWrap(self, context):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().getWordWrap(row, col)
+
+    def getCellStyleName(self, context):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().getStyleName(row, col)
+
+    def getCellVerticalAlignment(self, context):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().getVerticalAlignment(row, col)
+
+    def getCellHorizontalAlignment(self, context):
+        row, col = self.getIndex(context)
+        print "getHorizontalAlignment", self, context, row, col
+        self.getCellFormatter().getHorizontalAlignment(row, col)
+
+    def setCellVisible(self, context, val):
+        row, col = self.getIndex(context)
+        print "setCellVisible", self, context, row, col, val
+        self.getCellFormatter().setVisible(row, col, val)
+
+    def setCellWidth(self, context, val):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().setWidth(row, col, val)
+
+    def setCellHeight(self, context, val):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().setHeight(row, col, val)
+
+    def setCellWordWrap(self, context, val):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().setWordWrap(row, col, val)
+
+    def setCellStyleName(self, context, val):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().setStyleName(row, col, val)
+
+    def setCellVerticalAlignment(self, context, val):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().setVerticalAlignment(row, col, val)
+
+    def setCellHorizontalAlignment(self, context, val):
+        row, col = self.getIndex(context)
+        print "setHorizontalAlignment", self, context, row, col, val
+        self.getCellFormatter().setHorizontalAlignment(row, col, val)
+
 
 Factory.registerClass('pyjamas.ui.HTMLTable', 'HTMLTable', HTMLTable)
 

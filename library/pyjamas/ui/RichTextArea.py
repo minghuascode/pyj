@@ -18,94 +18,8 @@
 
 
 
-from FocusWidget import FocusWidget
-from RichTextAreaImplStandard import RichTextAreaImplStandard
-
-
-"""*
-* Font size enumeration. Represents the seven basic HTML font sizes, as
-* defined in CSS.
-"""
-class FontSize:
-
-
-    def __init__(self, number):
-        self.number = number
-
-
-    """*
-    * Gets the HTML font number associated with this font size.
-    *
-    * @return an integer from 1 to 7 inclusive
-    """
-    def getNumber(self):
-        return self.number
-
-    def __str__(self):
-        return str(self.number)
-
-
-"""*
-* Represents an XX-Small font.
-"""
-XX_SMALL = FontSize(1)
-
-"""*
-* Represents an X-Small font.
-"""
-X_SMALL = FontSize(2)
-
-"""*
-* Represents a Small font.
-"""
-SMALL = FontSize(3)
-
-"""*
-* Represents a Medium font.
-"""
-MEDIUM = FontSize(4)
-
-"""*
-* Represents a Large font.
-"""
-LARGE = FontSize(5)
-
-"""*
-* Represents an X-Large font.
-"""
-X_LARGE = FontSize(6)
-
-"""*
-* Represents an XX-Large font.
-"""
-XX_LARGE = FontSize(7)
-
-"""*
-* Justification enumeration. The three values are <code>left</code>,
-* <code>right</code>, <code>center</code>.
-"""
-class Justification:
-
-    def __init__(self, tag):
-        self.tag = tag
-  
-    def __str__(self):
-        return "Justify " + self.tag
-
-"""*
-* Center justification.
-"""
-CENTER = Justification("Center")
-
-"""*
-* Left justification.
-"""
-LEFT = Justification("Left")
-
-"""*
-* Right justification.
-"""
-RIGHT = Justification("Right")
+from pyjamas.ui.FocusWidget import FocusWidget
+from pyjamas.ui.RichTextAreaImplStandard import RichTextAreaImplStandard
 
 
 
@@ -130,7 +44,6 @@ RIGHT = Justification("Right")
 """
 class RichTextArea (FocusWidget) :
 
-
     """*
     * Creates a new, blank {@link RichTextArea} object with no stylesheet.
     """
@@ -140,6 +53,12 @@ class RichTextArea (FocusWidget) :
         FocusWidget.__init__(self, self.impl.getElement(), **kwargs)
 
 
+    def setCssStyling(self, style):
+        """ sets whether cloning is to be done of the main document's
+            CSS Style elements into the iframe of the editor
+        """
+        if style:
+            self.impl.setCssStyling()
 
     """*
     * Gets the basic rich text formatting interface.

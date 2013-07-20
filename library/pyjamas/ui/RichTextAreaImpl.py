@@ -48,7 +48,7 @@ class RichTextAreaImpl:
     
     
     def initElement(self):
-        onElementInitialized()
+        self.onElementInitialized()
     
     
     def isBasicEditingSupported(self):
@@ -82,12 +82,15 @@ class RichTextAreaImpl:
     
     
     def hookEvents(self):
-        DOM.sinkEvents(self.elem, Event.MOUSEEVENTS | Event.KEYEVENTS | Event.ONCHANGE
-        | Event.ONCLICK | Event.FOCUSEVENTS)
+        print self, "hook events"
+        DOM.sinkEvents(self.elem, Event.MOUSEEVENTS | Event.KEYEVENTS |
+                       Event.ONCHANGE | Event.ONCLICK | Event.FOCUSEVENTS)
     
     
     def onElementInitialized(self):
+        print "onElementInitialized"
         self.hookEvents()
     
-
+    def setCssStyling(self):
+        pass
 

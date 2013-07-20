@@ -14,7 +14,7 @@
 # limitations under the License.
 from pyjamas import DOM
 from pyjamas import Factory
-from PopupPanel import PopupPanel
+from pyjamas.ui.PopupPanel import PopupPanel
 
 class ContextMenuPopupPanel(PopupPanel):
     def __init__(self, item, **kwargs):
@@ -34,8 +34,11 @@ class ContextMenuPopupPanel(PopupPanel):
             target = DOM.eventGetTarget(event)
             parentMenuElement = self.item.getElement()
             if DOM.isOrHasChild(parentMenuElement, target):
-                if self.item.onBrowserEvent(event):
+                if self.item.findItem(target):
                     self.hide()
+                    DOM.eventCancelBubble(event, True)
+                    DOM.eventStopPropagation(event)
+
                 return True
 
         return PopupPanel.onEventPreview(self, event)

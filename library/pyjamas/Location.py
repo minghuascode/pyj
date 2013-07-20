@@ -1,4 +1,4 @@
-from __pyjamas__ import JS
+from __pyjamas__ import JS, unescape
 
 def makeUrlDict(urlstring):
     dict = {}
@@ -64,20 +64,16 @@ class Location:
         return self.location.protocol
         
     def getSearch(self):
-        return ""+self.location.search
+        return self.location.search or ""
     
     def getSearchDict(self):
-        if isinstance(self.location, str):
-            return {}
-        if not self.searchDict:
-            self.searchDict = {}
+        if self.searchDict is None:
             search = self.getSearch()[1:]
             self.searchDict = makeUrlDict(search)
         return self.searchDict
 
-    def getSearchVar(self, key):
-        searchDict = self.getSearchDict()
-        return searchDict.get(key)
+    def getSearchVar(self, key, default=None):
+        return self.getSearchDict().get(key, default)
     
     def reload(self):
         self.location.reload()

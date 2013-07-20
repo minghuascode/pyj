@@ -81,7 +81,7 @@ class Applier(object):
         for (prop, args) in kwargs.items():
             fn = getattr(self, "set%s" % prop, None)
             if not fn:
-                return
+                raise Exception("setter function for %s does not exist" % prop)
             args = kwargs[prop]
             if isinstance(args, tuple):
                 fn(*args)
@@ -97,7 +97,7 @@ class Applier(object):
         for prop in args:
             fn = getattr(self, "get%s" % prop, None)
             if not fn:
-                continue
+                raise Exception("getter function for %s does not exist" % prop)
             res[prop] = fn()
 
         return res
@@ -129,13 +129,15 @@ class Applier(object):
     def setElementProperties(self, context, elemProps):
         args = {}
         for p in self._getElementProps():
-            if elemProps.has_key(p):
-                val = elemProps[p]
+            if elemProps.has_key(p[ELPROP_NAME]):
+                val = elemProps[p[ELPROP_NAME]]
                 convert_to_type = p[ELPROP_TYPE]
                 if convert_to_type:
                      val = convert_to_type(val) if val else None
             else:
                 val = p[ELPROP_DFLT]
+                if val is None:
+                    continue
             args[p[ELPROP_FNAM]] = (context, val,)
 
         self.applyValues(**args) 

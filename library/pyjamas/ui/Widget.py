@@ -14,14 +14,17 @@
 # limitations under the License.
 from pyjamas import DOM
 from pyjamas import Factory
-from pyjamas import log
 
-from UIObject import UIObject
+from pyjamas.ui.UIObject import UIObject
 from pyjamas.ui import Event
-from ClickListener import ClickHandler
-from FocusListener import FocusHandler
-from KeyboardListener import KeyboardHandler
-from MouseListener import MouseHandler, MouseWheelHandler
+from pyjamas.ui.ClickListener import ClickHandler
+from pyjamas.ui.FocusListener import FocusHandler
+from pyjamas.ui.KeyboardListener import KeyboardHandler
+from pyjamas.ui.MouseListener import MouseHandler, MouseWheelHandler
+from pyjamas.ui.InputListener import InputHandler
+from pyjamas.ui.ChangeListener import ChangeHandler
+from pyjamas.ui.DragHandler import DragHandler
+from pyjamas.ui.DropHandler import DropHandler
 
 class Widget(UIObject):
     """
@@ -52,7 +55,7 @@ class Widget(UIObject):
 
     def setContextMenu(self, menu):
         self.contextMenu = menu
-        if menu:
+        if menu is not None:
             self.sinkEvents(Event.ONCONTEXTMENU)
         else:
             self.unsinkEvents(Event.ONCONTEXTMENU)
@@ -72,6 +75,14 @@ class Widget(UIObject):
             MouseWheelHandler.onBrowserEvent(self, event)
         if hasattr(self, "_focusListeners"):
             FocusHandler.onBrowserEvent(self, event)
+        if hasattr(self, "_dragListeners"):
+            DragHandler.onBrowserEvent(self, event)
+        if hasattr(self, "_changeListeners"):
+            ChangeHandler.onBrowserEvent(self, event)
+        if hasattr(self, "_inputListeners"):
+            InputHandler.onBrowserEvent(self, event)
+        if hasattr(self, "_dropListeners"):
+            DropHandler.onBrowserEvent(self, event)
 
         if self.contextMenu is None:
             return True

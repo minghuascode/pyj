@@ -74,25 +74,48 @@ import distutils.core
 
 if __name__ == '__main__':
 
-    print >> sys.stderr, """
+    sys.stderr.write("""
     Have you run bootstrap.py to create bin/pyjsbuild
     and bin/pyjscompile?
 
     e.g. on Unix systems:
 
         python bootstrap.py /usr/share/pyjamas /usr
-    """
+    """)
 
     setup(name = "Pyjamas",
-        version = "0.7",
+        version = "0.8.1",
         description = "Pyjamas Widget API for Web applications, in Python",
         long_description = open('README', 'rt').read(),
         url = "http://pyj.be",
         author = "The Pyjamas Project",
         author_email = "lkcl@lkcl.net",
         keywords = keyw,
-        packages=["pyjs", "pyjd"],
+        packages=["pyjs", "pyjs.jsonrpc",
+                "pyjs.jsonrpc.cgihandler",
+                "pyjs.jsonrpc.mongrel2",
+                "pyjs.jsonrpc.django",
+                "pyjs.jsonrpc.web2py",
+                "pyjs.jsonrpc.webpy",
+                "pyjs.jsonrpc.bottle",
+                "pyjs.jsonrpc.cherrypy",
+                "pyjd"],
         package_dir = {'pyjs': os.path.join('pyjs', 'src', 'pyjs'),
+                       'pyjs.jsonrpc': os.path.join('pyjs', 'jsonrpc'),
+                       'pyjs.jsonrpc.cgihandler':
+                                os.path.join('pyjs', 'jsonrpc', 'cgihandler'),
+                       'pyjs.jsonrpc.mongrel2':
+                                os.path.join('pyjs', 'jsonrpc', 'mongrel2'),
+                       'pyjs.jsonrpc.django':
+                                os.path.join('pyjs', 'jsonrpc', 'django'),
+                       'pyjs.jsonrpc.cherrypy':
+                                os.path.join('pyjs', 'jsonrpc', 'cherrypy'),
+                       'pyjs.jsonrpc.bottle':
+                                os.path.join('pyjs', 'jsonrpc', 'bottle'),
+                       'pyjs.jsonrpc.webpy':
+                                os.path.join('pyjs', 'jsonrpc', 'webpy'),
+                       'pyjs.jsonrpc.web2py':
+                                os.path.join('pyjs', 'jsonrpc', 'web2py'),
                        'pyjd': 'pyjd'},
         data_files = data_files,
         license = "Apache Software License",

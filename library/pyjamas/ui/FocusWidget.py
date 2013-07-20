@@ -15,16 +15,19 @@
 from pyjamas import DOM
 from pyjamas import Factory
 
-from Widget import Widget
-from Focus import FocusMixin
-from ClickListener import ClickHandler
-from KeyboardListener import KeyboardHandler
-from FocusListener import FocusHandler
-from MouseListener import MouseHandler
+from pyjamas.ui.Widget import Widget
+from pyjamas.ui.Focus import FocusMixin
+from pyjamas.ui.ClickListener import ClickHandler
+from pyjamas.ui.KeyboardListener import KeyboardHandler
+from pyjamas.ui.FocusListener import FocusHandler
+from pyjamas.ui.MouseListener import MouseHandler
 
 class FocusWidget(Widget, FocusHandler, KeyboardHandler,
                           MouseHandler, ClickHandler,
                           FocusMixin):
+
+    _props = [("readonly", "Read only", "Readonly", False),
+            ] + Widget._props
 
     def __init__(self, element, **kwargs):
         self.setElement(element)
@@ -33,6 +36,9 @@ class FocusWidget(Widget, FocusHandler, KeyboardHandler,
         KeyboardHandler.__init__(self)
         ClickHandler.__init__(self)
         MouseHandler.__init__(self)
+
+    def getProps(self):
+        return self._props
 
 # TODO: sort out Element **kwargs, see Factory.createWidgetOnElement
 #Factory.registerClass('pyjamas.ui.FocusWidget', 'FocusWidget', FocusWidget)

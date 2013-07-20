@@ -1,5 +1,80 @@
+                    Changes made to Pyjamas since 0.8.1~+alpha1
+                    ---------------------------------
+
+                    Changes made to Pyjamas since 0.8pre1
+                    ---------------------------------
+
+ * completed the port of RichTextArea, added an example RichTextToolbar,
+   and added a port of gwt-selection which can be used to highlight
+   links, add span styles around blocks etc.  unsurprisingly an additional
+   example named "richtext" has been added.
+
+ * modified DisclosurePanel and Tree widgets to allow use of
+   alternative sets of images. Issue #715. (Phil Charlesworth)
+
+ * added Gradient and Text support to GWTCanvas IE implementation,
+   thanks to Bob Hamilton
+
+ * added download.sh script for processing-1.3.6.js to enable
+   canvasprocessing example to be compiled - solves Issue #694
+
+ * updated Focus.py and its browser overrides to bring it in 
+   conformance with GWT - solves Issue #537. Phil Charlesworth
+                    
+ * added server-side jsonrpc cherrypy helper, thanks to Rene Maurer
+
+ * use new platform override scheme {module}.{platformname}.py so that
+   platform override files live in the same subdirectory as the actual
+   file it's overriding
+
+ * moved JSONParser.py to json.py (in standard modules) because it is
+   effectively identical, and confusing to try to indicate that JSONParser.py
+   is somehow different or "special".
+
+ * DateField - show Calendar for typed-in month, not always current, 
+    By Maho (Łukasz Mach)
+ 
+ * pyjs/src/pyjs/linker.py workaround Issue #677, reverted cwd=pydir
+   so that compile works on Mac with python in /opt/local
+   By Michael Yang
+
+ * pyjs/src/pyjs/lib/string.py workaround Issue #658, mods to Template
+   class so that template strings substitution works.
+   By Phil Charlesworth
+
                     Changes made to Pyjamas since 0.7
                     ---------------------------------
+
+ * Added simple sys.stdout and sys.stderr objects. The print statement
+   now uses sys.stdout for printing. You can intercept print statements
+   by overriding sys.stdout (e.g. for displaying them on the web page).
+   By Waldemar Kornewald
+
+ * Fixed sys.exc_info() to behave more like Python (i.e. returning the
+   traceback starting from the current context instead of the whole
+   execution stack). Also includes tb_frame.f_globals, contributed
+   by Waldemar Kornewald
+
+ * Added very basic traceback module with format_traceback() function
+   which only works when compiling with debug information,
+   contributed by Waldemar Kornewald
+
+ * Added oninput and onpropertychange event support, thanks to Maxim
+   Lacrima.
+
+ * Make pyjsbuild call out to translator.py using subprocess.Popen,
+   with a view to adding "build generators" that will create Makefiles,
+   scons build files etc.  pyjsbuild should not be doing the job of make,
+   and... it's doing the job of make.
+
+ * Fix getWidget problem with HTMLTable under pyjd on Windows (mshtml,
+   fixes Issue 493, contributed by Phil Charlesworth
+   
+ * Add parsing of XML documents under pyjd on Windows (mshtml),
+   fixes Issue 481, contributed by Phil Charlesworth
+   
+ * Add auto-build (file monitoring) option to pyjsbuild, contributed
+   by Suzan Shakya.
 
  * Add pyjscompressor.py from Sujan Shakya to contrib: depends on java
    and google java compressor tool.
@@ -39,6 +114,15 @@
  * Added log10 to math module
 
  * Added "glass" opaque background option to PopupPanel, by Serge Tarkovski 
+
+ * Added HTML5 drag-and-drop support (native and emulated), by Jim Washington
+
+ * Enable __setattr__ support to object [pyjs], by C Anthony Risinger
+
+ * Implement assignment to slices in an assignment list (issue 514),
+   by Karl Voigtland
+   
+ * Updates to the Showcase example
 
                     Changes made to Pyjamas since 0.6
                     ---------------------------------

@@ -1,5 +1,5 @@
 # Copyright 2006 James Tauber and contributors
-# Copyright (C) 2009 Luke Kenneth Casson Leighton <lkcl@lkcl.net>
+# Copyright (C) 2009, 2010 Luke Kenneth Casson Leighton <lkcl@lkcl.net>
 # Copyright (C) 2010 Serge Tarkovski <serge.tarkovski@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,10 +17,11 @@ from pyjamas import DOM
 from pyjamas import Window
 from pyjamas import Factory
 from __pyjamas__ import JS, doc
-from SimplePanel import SimplePanel
-from RootPanel import RootPanel
+from pyjamas.ui.SimplePanel import SimplePanel
+from pyjamas.ui.RootPanel import RootPanel
 from pyjamas.ui import MouseListener
 from pyjamas.ui import KeyboardListener
+
 
 class PopupPanel(SimplePanel):
 
@@ -28,23 +29,22 @@ class PopupPanel(SimplePanel):
             ]
 
     def __init__(self, autoHide=False, modal=True, rootpanel=None, glass=False,
-                       **kwargs):
+                **kwargs):
 
         self.popupListeners = []
         self.showing = False
         self.autoHide = autoHide
         kwargs['Modal'] = kwargs.get('Modal', modal)
 
+        if rootpanel is None:
+            rootpanel = RootPanel()
+        self.rootpanel = rootpanel
+
         self.glass = glass
         if self.glass:
             self.glass = DOM.createDiv()
             if not 'GlassStyleName' in kwargs:
                 kwargs['GlassStyleName'] = "gwt-PopupPanelGlass"
-
-        if rootpanel is None:
-            rootpanel = RootPanel()
-
-        self.rootpanel = rootpanel
 
         if kwargs.has_key('Element'):
             element = kwargs.pop('Element')
@@ -53,6 +53,13 @@ class PopupPanel(SimplePanel):
         DOM.setStyleAttribute(element, "position", "absolute")
 
         SimplePanel.__init__(self, element, **kwargs)
+
+        if glass:
+            self.setGlassEnabled(True)
+            if 'GlassStyleName' in kwargs:
+                self.setGlassStyleName(kwargs.pop('GlassStyleName'))
+
+
 
     @classmethod
     def _getProps(self):
@@ -84,8 +91,10 @@ class PopupPanel(SimplePanel):
         self.rootpanel.remove(self)
         self.onHideImpl(self.getElement())
         for listener in self.popupListeners:
-            if hasattr(listener, 'onPopupClosed'): listener.onPopupClosed(self, autoClosed)
-            else: listener(self, autoClosed)
+            if hasattr(listener, 'onPopupClosed'):
+                listener.onPopupClosed(self, autoClosed)
+            else:
+                listener(self, autoClosed)
 
     def setModal(self, modal):
         self.modal = modal
@@ -103,39 +112,39 @@ class PopupPanel(SimplePanel):
         return target and DOM.isOrHasChild(self.getElement(), target)
 
     def onEventPreview(self, event):
-        type = DOM.eventGetType(event)
-        if type == "keydown":
+        etype = DOM.eventGetType(event)
+        if etype == "keydown":
             return (    self.onKeyDownPreview(
                             DOM.eventGetKeyCode(event),
                             KeyboardListener.getKeyboardModifiers(event)
                             )
                     and (not self.modal or self._event_targets_popup(event))
                    )
-        elif type == "keyup":
+        elif etype == "keyup":
             return (    self.onKeyUpPreview(
                             DOM.eventGetKeyCode(event),
                             KeyboardListener.getKeyboardModifiers(event)
                             )
                     and (not self.modal or self._event_targets_popup(event))
                    )
-        elif type == "keypress":
+        elif etype == "keypress":
             return (    self.onKeyPressPreview(
                             DOM.eventGetKeyCode(event),
                             KeyboardListener.getKeyboardModifiers(event)
                             )
                     and (not self.modal or self._event_targets_popup(event))
                    )
-        elif (   type == "mousedown"
-              or type == "blur"
+        elif (   etype == "mousedown"
+              or etype == "blur"
              ):
             if DOM.getCaptureElement() is not None:
                 return True
             if self.autoHide and not self._event_targets_popup(event):
                 self.hide(True)
                 return True
-        elif (   type == "mouseup"
-              or type == "click"
-              or type == "mousemove"
+        elif (   etype == "mouseup"
+              or etype == "click"
+              or etype == "mousemove"
               or type == "dblclick"
              ):
             if DOM.getCaptureElement() is not None:
@@ -163,10 +172,21 @@ class PopupPanel(SimplePanel):
         self.popupListeners.remove(listener)
 
     def setPopupPosition(self, left, top):
-        if left < 0:
-            left = 0
-        if top < 0:
-            top = 0
+        if isinstance(left, basestring):
+            if left.endswith('%'):
+                left = int(left[:-1])
+                left = int(left * Window.getClientWidth() / 100)
+            elif left.lower().endswith('px'):
+                left = int(left[:-2])
+        if isinstance(top, basestring):
+            if top.lower().endswith('%'):
+                top = int(top[:-1])
+                top = int(top * Window.getClientHeight() / 100)
+            elif top.endswith('px'):
+                top = int(top[:-2])
+
+        left = max(left, 0)
+        top = max(top, 0)
 
         # Account for the difference between absolute position and the
         # body's positioning context.
@@ -177,9 +197,27 @@ class PopupPanel(SimplePanel):
         DOM.setStyleAttribute(element, "left", "%dpx" % left)
         DOM.setStyleAttribute(element, "top", "%dpx" % top)
 
+    def isGlassEnabled(self):
+        return self.glass is not None
+
+    def setGlassEnabled(self, enabled):
+        if enabled:
+            if self.glass is None:
+                self.glass = DOM.createDiv()
+                self.setGlassStyleName()
+        elif self.glass is not None:
+            self.hideGlass()
+
+    def getGlassElement(self):
+        return self.glass
+
     def setGlassStyleName(self, style="gwt-PopupPanelGlass"):
         if self.glass:
             DOM.setAttribute(self.glass, "className", style)
+
+    def getGlassStyleName(self):
+        if self.glass:
+            return DOM.setAttribute(self.glass, "className")
 
     def setGlassPosition(self):
         top = Window.getScrollTop()
@@ -188,8 +226,10 @@ class PopupPanel(SimplePanel):
         width = Window.getClientWidth()
 
         DOM.setStyleAttribute(self.glass, "position", "absolute")
-        DOM.setStyleAttribute(self.glass, "left", "%s" % left if left == 0 else "%spx" % left)
-        DOM.setStyleAttribute(self.glass, "top", "%s" % top if top == 0 else "%spx" % top)
+        DOM.setStyleAttribute(self.glass, "left", "%s" % \
+                              left if left == 0 else "%spx" % left)
+        DOM.setStyleAttribute(self.glass, "top", "%s" % \
+                              top if top == 0 else "%spx" % top)
         DOM.setStyleAttribute(self.glass, "height", "%spx" % (top + height))
         DOM.setStyleAttribute(self.glass, "width", "%spx" % (left + width))
 
@@ -206,6 +246,25 @@ class PopupPanel(SimplePanel):
 
     def onWindowResized(self, width, height):
         self.setGlassPosition()
+
+    def centerBox(self):
+        self_width = self.getOffsetWidth()
+        self_height = self.getOffsetHeight()
+
+        height = Window.getClientHeight()
+        width = Window.getClientWidth()
+
+        center_x = int(width) / 2
+        center_y = int(height) / 2
+
+        self_top  = center_y - (int(self_height) / 2)
+        self_left = center_x - (int(self_width)  / 2)
+
+        self.setPopupPosition(self_left, self_top)
+
+    def center(self):
+        self.centerBox()
+        self.show()
 
     def add(self, widget):
         self.setWidget(widget)
@@ -225,4 +284,3 @@ class PopupPanel(SimplePanel):
         self.onShowImpl(self.getElement())
 
 Factory.registerClass('pyjamas.ui.PopupPanel', 'PopupPanel', PopupPanel)
-

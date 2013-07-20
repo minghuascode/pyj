@@ -19,7 +19,7 @@ from pyjamas import Factory
 from pyjamas import DOM
 from pyjamas import Window
 
-from AbsolutePanel import AbsolutePanel
+from pyjamas.ui.AbsolutePanel import AbsolutePanel
 
 rootPanels = {}
 class RootPanelManager(object):
@@ -40,9 +40,9 @@ def get(id=None):
         return rootPanels[id]
 
     element = None
-    if id:
+    if id is not None:
         element = DOM.getElementById(id)
-        if not element:
+        if element is None:
             return None
 
     return manageRootPanel(RootPanelCls(element), id)
@@ -58,7 +58,7 @@ def manageRootPanel(panel, id=None):
 
 class RootPanelCls(AbsolutePanel):
     def __init__(self, Element=None, **kwargs):
-        if Element:
+        if Element is not None:
             kwargs['Element'] = Element
         AbsolutePanel.__init__(self, **kwargs)
         if Element is None:

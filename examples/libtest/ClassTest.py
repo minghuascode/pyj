@@ -150,6 +150,8 @@ class ClassTest(UnitTest):
             self.fail("Failed to raise error on ExampleClass().fail_a() bug #217")
         except (NameError, AttributeError), e:
             self.assertTrue(True)
+        except ValueError:
+            self.fail("Failed to raise NameError or AttributeError on ExampleClass().fail_a() bug #217")
         except:
             self.fail("Failed to raise NameError or AttributeError on ExampleClass().fail_a()")
 
@@ -157,8 +159,119 @@ class ClassTest(UnitTest):
         # ExampleClass.a
         if IN_BROWSER:
             from __pyjamas__ import JS
-            x = ExampleClass().fail_a()
-            self.assertTrue(JS('pyjslib.isUndefined(x)'))
+            try:
+                x = ExampleClass().fail_a()
+                self.assertTrue(JS('pyjslib.isUndefined(@{{x}})'))
+            except ValueError:
+                self.assertTrue(True)
+
+    def test_iops(self):
+        class X(object):
+            def __init__(self, x):
+                self.x = x
+
+            def __add__(self, y):
+                return X(self.x + y.x)
+
+            def __mul__(self, y):
+                return X(self.x * y.x)
+
+            def __sub__(self, y):
+                return X(self.x - y.x)
+
+            def __iadd__(self, y):
+                self.x += y.x
+                return self
+
+            def __imul__(self, y):
+                self.x *= y.x
+                return self
+
+        a = a0 = X(2)
+        b = b0 = X(4)
+        c = a + b
+        d = a * b
+        self.assertTrue(c is not a and c is not b)
+        self.assertTrue(d is not a and d is not b and d is not c)
+        self.assertEqual(c.x, 6)
+        self.assertEqual(d.x, 8)
+        a += b
+        self.assertTrue(a is a0, 'Bug #573 __iadd__ should modify object in-place')
+        self.assertEqual(a.x, 6)
+        self.assertEqual(a0.x, a.x, 'Bug #573 __iadd__ should modify all references to an object')
+        a -= b
+        self.assertTrue(a is not a0)
+        self.assertEqual(a.x, 2)
+        self.assertNotEqual(a0.x, a.x, 'Bug #573 reference should not have same value after __iadd__ & __neg__')
+        b *= c
+        self.assertTrue(b is b0, 'Bug #573 __imul__ should modify object in-place')
+        self.assertEqual(b.x, 24)
+        self.assertEqual(b0.x, b.x, 'Bug #573 __imul__ should modify all references to an object')
+
+    def test_getattr(self):
+        class X(object):
+            def __init__(self, x=0):
+                self.x = x
+
+            def __getattr__(self, name):
+                return X(self.x + 1)
+
+        x = X()
+        self.assertEqual(x.x, 0)
+        try:
+            self.assertEqual(x.next.x, 1)
+            self.assertEqual(x.next.bla.x, 2)
+            self.assertEqual(x.a.b.c.x, 3)
+        except:
+            self.fail("Bug #575 __getattr__ method not supported")
+
+    def test_deep_property_access(self):
+        class X(object):
+            def __init__(self, x=0):
+                self.x = x
+
+            @property
+            def bla(self):
+                return self.next
+
+            @property
+            def next(self):
+                return X(self.x + 1)
+
+        x = X()
+
+        self.assertEqual(x.x, 0)
+        try:
+            self.assertEqual(x.next.x, 1)
+            self.assertEqual(x.next.bla.x, 2)
+            self.assertEqual(x.next.bla.next.x, 3)
+            self.assertEqual(x.bla.next.bla.next.bla.x, 5)
+        except:
+            self.fail("Bug #576 Deep property access not supported")
+
+    def test_slice(self):
+        class X(object):
+            def __init__(self, data):
+                self.data = data
+
+            def __getitem__(self, index):
+                assert isinstance(index, slice)
+                return self.data[index]
+
+            def __setitem__(self, index, value):
+                assert isinstance(index, slice)
+                self.data[index] = value
+
+        data = [1, 2, 3]
+        x = X(data)
+        self.assertEqual(data[:2], x[:2], 'Bug #577 __getitem__ should be used for slicing')
+        self.assertEqual(x[:2], [1, 2], 'Bug #577 __getitem__ not supported')
+        try:
+            x[1:2] = [5]
+            self.assertEqual(data[:], x[:], 'Bug #577 __setitem__ should be used for slice assignment')
+            self.assertEqual(x[1:], [5, 3])
+        except:
+            self.fail('Bug #577 slice / __getitem__ / __setitem__ not supported')
 
     # test Class().x
     def testInheritedProperties(self):
@@ -246,6 +359,53 @@ class ClassTest(UnitTest):
         self.assertEqual(ExampleChildConstructor.z, expected_result3, "Did not inherit class var from grandparent")
         self.assertEqual(ExampleChildNoConstructor.z, expected_result3, "Did not inherit class var from grandparent")
         self.assertEqual(ExampleChildExplicitConstructor.z, expected_result3, "Did not inherit class var from grandparent")
+        
+    def testInheritFromType(self):
+
+        i_types = [(int, 1), (float, 1.5), (str, "test"), (long, 1),
+                   (tuple, (1,2)), (list, [1,2]), (dict, {'1':1}), (set, set([1,2]))]
+        for cls, val in i_types:
+            try:
+                class subclassed_type(cls):
+                    def test_inh_method(self):
+                        return 1
+                subclassed_type.__name__ = cls.__name__
+                inst = subclassed_type(val)
+                self.assertEqual(inst, val, "Subclasses of type '%s' are not instantiated properly, issue #623" % cls.__name__)
+                self.assertEqual(inst.test_inh_method(), 1, "Methods of subclasses of type '%s' fail, issue #623" % cls.__name__)
+                self.assertEqual(str(inst), str(val), "__str__ of subclasses of type '%s' fail, issue #623" % cls.__name__)
+                self.assertEqual(type(inst), subclassed_type, "Subclasses of type '%s' have wrong type, issue #623" % cls.__name__)
+                self.assertTrue(isinstance(inst, subclassed_type), "Subclasses of type '%s' have wrong type, issue #623" % cls.__name__)                
+            except:
+                self.fail("Subclassing type '%s' does not work, issue #623" % cls.__name__)
+                
+
+        class SubclassedString(str): pass
+        class SubclassedInt(int): pass
+        class SubclassedFloat(float): pass
+        try:
+            self.assertEqual(str(SubclassedString("string")), "string", "#484")
+        except:
+            self.fail("Could not instantiate subclassed string, bug #484")
+        try:
+            v = str(SubclassedInt(1))
+            self.assertEqual(v, "1", "bug #484 - %s != '1'" % v)
+        except:
+            self.fail("Could not instantiate subclassed int")
+        try:
+            self.assertEqual(str(SubclassedFloat(1.1)), "1.1", "#484")
+        except:
+            self.fail("Could not instantiate subclassed float")
+        self.assertTrue(isinstance(SubclassedString('abc'), object),
+                        'Issue #670'
+                        ' derived from int/float/str not instance of object')
+        self.assertTrue(isinstance(SubclassedInt(1), object),
+                        'Issue #670'
+                        ' derived from int/float/str not instance of object')
+        self.assertTrue(isinstance(SubclassedFloat(1.1), object),
+                        'Issue #670'
+                        ' derived from int/float/str not instance of object')
+
 
     def testClassMethods(self):
         results = ExampleClass.sampleClassMethod("a")
@@ -309,19 +469,38 @@ class ClassTest(UnitTest):
         try:
             m = ExampleClass.oldIdiomStaticMethod("middle")
             self.assertEqual(m,"beforemiddleafter")
-        except TypeError:
-            self.fail("Issue 415 - Old idiom for static methods improperly checks first argument type")
         except:
-            exc = sys.exc_info()
-            self.fail("Issue 415?: %s" % exc[1])
-            print sys.trackstackstr()
+            self.fail("Issue #415 - staticmethod(method) idiom does not work")
+
+    def test_method_alias(self):
+        class C(object):
+            def original(self):
+                return 5
+
+            alias = original
+
+            def method_using_alias(self):
+                return self.alias()
+
+        c = C()
+        self.assertEqual(c.original(), 5)
+        try:
+            self.assertEqual(c.alias(), 5)
+            self.assertEqual(c.method_using_alias(), 5)
+        except:
+            self.fail("Bug #578 : method alias fails")
+
+    def test_class_isinstance_type(self):
+        class C(object):
+            pass
+        self.assertTrue(isinstance(C, type), "Bug #579 type type not supported")
 
     def test__new__Method(self):
         c = OtherClass1()
         self.assertEqual(c.__class__.__name__, 'ObjectClass')
         self.assertEqual(c.prop, 1)
         c = OtherSubclass1()
-        self.assertEqual(c.__class__.__name__, 'ObjectClass', "Issue 414: __new__ method on superclass not called")
+        self.assertEqual(c.__class__.__name__, 'ObjectClass', "Issue #414: __new__ method on superclass not called")
         c = OtherClass2()
         self.assertEqual(c.__class__.__name__, 'OtherClass2')
         try:
@@ -334,12 +513,12 @@ class ClassTest(UnitTest):
             c = OtherClass3(41, 42)
             self.assertTrue(True)
         except:
-            self.fail("Issue 417: __new__ method fails for lack of arguments")
-        self.assertEqual(c.y if hasattr(c,"y") else 0, 42, "Issue 417: __new__ method not passed constructor arguments.")
+            self.fail("Issue #417: __new__ method fails for lack of arguments")
+        self.assertEqual(c.y if hasattr(c,"y") else 0, 42, "Issue #417: __new__ method not passed constructor arguments.")
 
         try:
             c = OtherClass3()
-            self.fail("Issue 418: __new__ method doesn't fail for lack of arguments")
+            self.fail("Issue #418: __new__ method doesn't fail for lack of arguments")
         except:
             self.assertTrue(True)
         try:
@@ -476,6 +655,12 @@ class ClassTest(UnitTest):
 
         MultiInherit2.set_x(i, 5)
         self.assertEqual(MultiInherit1.get_x(i), 5)
+
+        self.assertEqual(i.getName(), 'MultiInherit2', 'Inheritance prolem issue #560')
+        self.assertEqual(str(i), 'MultiInherit2', 'Inheritance prolem issue #560')
+        i = DoubleInheritReversed(1,2,3)
+        self.assertEqual(i.getName(), 'MultiInherit2')
+        self.assertEqual(str(i), 'MultiInherit2')
 
     def testClassArguments(self):
         c = ClassArguments()
@@ -815,7 +1000,32 @@ class ClassTest(UnitTest):
             msg = str(e)
             if "fnc() takes exactly 2 arguments (1 given)" in msg:
                 msg = "bug #318 - " + msg
-            self.fail(msg)
+                self.fail("Bug #580 : %s " % msg)
+
+    def testExpressionInherit(self):
+        class X(object):
+            def m1(self):
+                return 1
+        class Y(object):
+            def m2(self):
+                return 2
+
+        cl = [list, X, Y]
+        class T(cl[0]):
+            pass
+        self.assertEqual(T([1]), [1])
+        
+        class T(cl[1], cl[2]):
+            pass
+        t = T()
+        self.assertEqual(t.m1(), 1)
+        self.assertEqual(t.m2(), 2)
+        
+        class T2(type(t)):
+            pass
+        t2 = T2()
+        self.assertEqual(t2.m1(), 1)
+        self.assertEqual(t2.m2(), 2)        
 
 class PassMeAClass(object):
     def __init__(self):
@@ -1027,6 +1237,10 @@ class MultiBase(object):
     def prototype(self, default, arguments, this):
         return (self.name, default, arguments, this)
 
+    def getName(self):
+        return 'MultiBase'
+
+
 class MultiInherit1(MultiBase):
     name = 'MultiInherit1'
     def __init__(self, x, y):
@@ -1039,6 +1253,7 @@ class MultiInherit1(MultiBase):
     def call(self, default, arguments, this):
         return self.prototype(default, arguments, this)
 
+
 class MultiInherit2(MultiBase):
     name = 'MultiInherit2'
     def __init__(self, x, z):
@@ -1048,11 +1263,26 @@ class MultiInherit2(MultiBase):
     def get_z(self):
         return self.z
 
+    def __str__(self):
+        return 'MultiInherit2'
+
+    def getName(self):
+        return 'MultiInherit2'
+
+
 class DoubleInherit(MultiInherit1, MultiInherit2):
     name = 'DoubleInherit'
     def __init__(self, x, y, z):
         MultiInherit1.__init__(self, x, y) # MultiBase __init__ called once
         MultiInherit2.__init__(self, x, z) # MultiBase __init__ called twice
+
+
+class DoubleInheritReversed(MultiInherit2, MultiInherit1):
+    name = 'DoubleInheritReversed'
+    def __init__(self, x, y, z):
+        MultiInherit1.__init__(self, x, y) # MultiBase __init__ called once
+        MultiInherit2.__init__(self, x, z) # MultiBase __init__ called twice
+
 
 class RecurseMe(object):
     chain = []
@@ -1280,4 +1510,3 @@ class DecoratedMethods(object):
     @mdeco_class
     def mtd_class2(cls, x):
         return x
-

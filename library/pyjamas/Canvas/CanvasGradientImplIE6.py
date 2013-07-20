@@ -1,6 +1,7 @@
 """
 * Copyright 2008 Google Inc.
-*
+* Copyright 2011 Bob Hampton
+* 
 * Licensed under the Apache License, Version 2.0 (the "License"); you may not
 * use this file except in compliance with the License. You may obtain a copy of
 * the License at
@@ -34,7 +35,11 @@ class CanvasGradientImplIE6:
         self.dx = x1 - x0
         self.dy = y1 - y0
         self.length =  math.sqrt((self.dx * self.dx) + (self.dy * self.dy))
-        self.angle = int(math.atan(self.dx / self.dy) * 180 / math.pi) + 180
+        if self.dy == 0:
+            #self.angle = int(math.atan(self.dx) * 180 / math.pi) + 180
+            self.angle = 90
+        else:
+            self.angle = int(math.atan(self.dx/self.dy) * 180 / math.pi) + 180
         
         self.colorStops = []
     

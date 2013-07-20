@@ -9,7 +9,7 @@ from pyjamas.ui.Hyperlink import Hyperlink
 from pyjamas.ui.VerticalPanel import VerticalPanel
 from pyjamas.ui.ScrollPanel import ScrollPanel
 from pyjamas import Window
-from SinkList import SinkList
+from pyjamas.ui.Sink import SinkList
 from pyjamas import History
 import Slide
 from pyjamas.HTTPRequest import HTTPRequest
@@ -74,7 +74,7 @@ class Slideshow:
         self.loadSinks()
 
     def onWindowResized(self, width, height):
-        self.sink_list.resize(width, height)
+        #self.sink_list.resize(width, height)
         self.sp.setHeight("%dpx" % (height-110))
 
     def show(self, info, affectHistory):
@@ -108,7 +108,7 @@ class Slideshow:
         for l in slides:
             name = l[0]
             desc = l[1]
-            self.sink_list.addSink(Slide.init(name, desc))
+            self.sink_list.add(Slide.init(name, desc))
 
         #Show the initial screen.
         initToken = History.getToken()

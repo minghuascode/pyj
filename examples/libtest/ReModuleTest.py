@@ -74,6 +74,21 @@ class ReModuleTest(UnitTest.UnitTest):
         e = re.compile("e").findall("Where are all these eees")
         self.assertEqual(len(e), 8)
 
+    def testFindallExtra(self):
+        # example from Python 2.7.2 Library Reference 7.2.6.7
+        # no groups defined
+        r = re.compile(r'\w+ly')
+        s = 'He was carefully disguised but captured quickly by police.'
+        out = ['carefully', 'quickly']
+        self.assertEqual(r.findall(s), out)
+
+        # example using regular expression used by string.Template
+        # has 4 groups
+        r = re.compile(r'\$(?:(\$)|([_a-z][_a-z0-9]*)|{([_a-z][_a-z0-9]*)}|())')
+        s = 'Here is $$some $text which contains ${some} $2 placeholders'
+        out = [('$', '', '', ''), ('', 'text', '', ''), ('', '', 'some', ''), ('', '', '', '')]
+        self.assertEqual(r.findall(s), out)
+
     def testSubBasics(self):
         matches = []
         def fn(m):
@@ -129,3 +144,12 @@ class ReModuleTest(UnitTest.UnitTest):
         g = m.groups("")
         self.assertEqual(g, ("", "1"))
 
+    def testBackReferences(self):
+        B_re = re.compile(r'\*\*(.*?)\*\*', re.DOTALL)
+        EM_re = re.compile(r'\*(.*?)\*', re.DOTALL)
+        s = '''Text between *single asterisks* is emphasized.<br>Text between **double asterisks** is bolded.<br>You **can *even* embed** them!'''
+        expected = '''Text between <EM>single asterisks</EM> is emphasized.<br>Text between <STRONG>double asterisks</STRONG> is bolded.<br>You <STRONG>can <EM>even</EM> embed</STRONG> them!'''
+
+        s = B_re.sub(r'<STRONG>\1</STRONG>', s)
+        s = EM_re.sub(r'<EM>\1</EM>', s)
+        self.assertEqual(s, expected, 'Bug #495')

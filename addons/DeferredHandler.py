@@ -5,7 +5,6 @@ A modification of pyjamas DeferredMethod
 """
 
 from pyjamas.Timer import Timer 
-from pyjamas import log
 
 global deferredHandlers
 deferredHandlers = []

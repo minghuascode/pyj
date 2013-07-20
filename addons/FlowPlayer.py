@@ -14,7 +14,9 @@ from pyjamas.ui.Composite import Composite
 from pyjamas.Timer import Timer
 import urllib
 from __pyjamas__ import wnd
-from pyjamas import log
+from pyjamas import logging
+
+log = logging.getAppendLogger(__name__, logging.DEBUG, logging.PLAIN_FORMAT)
 
 """
 Global variables called by Flash External Interface
@@ -196,7 +198,7 @@ class Player(FlashPanel):
         #config_string = config_string.replace('<', '&lt;')
         #config_string = config_string.replace('>', '&gt;')
         config_string = config_string.replace('\'', '\\\'')
-        #log.writebr(config_string)
+        #log.debug(config_string)
         return config_string
         
     def fireEvent(self, movieName, eventName, arguments):
@@ -205,9 +207,9 @@ class Player(FlashPanel):
         
         Fire event
         """
-        #log.writebr('FireEvent: %s/%s/%s' % (movieName, eventName, str(arguments)))
+        #log.debug('FireEvent: %s/%s/%s' % (movieName, eventName, str(arguments)))
         if eventName == 'testFireEvent':
-            log.writebr('fireEvent works')
+            log.debug('fireEvent works')
             return
         if eventName == 'onLoad' and arguments[0] == 'player':
                 self.loadApi()
@@ -251,7 +253,7 @@ class Player(FlashPanel):
                             DeferredHandler.add(eventMethod, [])
                     clip.fireEvent(eventName, arguments[2:])
                 else:
-                    #log.writebr('[FP Event] %s / %s' % (eventName, arguments))
+                    #log.debug('[FP Event] %s / %s' % (eventName, arguments))
                     if hasattr(listener, eventName):
                         eventMethod = getattr(listener, eventName)
                         DeferredHandler.add(eventMethod, arguments)

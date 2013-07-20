@@ -1,6 +1,7 @@
 # Copyright (C) 2006, Red Hat, Inc.
 # Copyright (C) 2007, One Laptop Per Child
 # Copyright (C) 2009, Luke Kenneth Casson Leighton <lkcl@lkcl.net>
+# Copyright (C) 2010, Daniel Popowich <danielpopowich@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -38,6 +39,25 @@ from xpcom.components import interfaces
 
 from progresslistener import ProgressListener
 
+class nsITimerCallback:
+
+    '''Used in the implementation of Timer() which for hulahop we use
+    xpcom interfaces nsITimer and nsITimerCallback.
+
+    An instance of this class can be used as the first argument to
+    nsITimer.initWithCallback().
+
+    Instantiate with a callable to be fired when the timer goes off.
+    It is called with no arguments.
+    '''
+
+    _com_interfaces_ = interfaces.nsITimerCallback
+
+    def __init__(self, func):
+        self.func = func
+
+    def notify(self, timer):
+        self.func()
 
 class ContentInvoker:
     _com_interfaces_ = interfaces.nsIDOMEventListener
@@ -110,7 +130,6 @@ class Browser(WebView):
         
         listener = xpcom.server.WrapObject(ContentInvoker(node, event_fn),
                                             interfaces.nsIDOMEventListener)
-        print event_name, listener
         node.addEventListener(event_name, listener, False)
         return listener
 
@@ -197,6 +216,33 @@ class Browser(WebView):
         while timer_q:
             fn = timer_q.pop()
             fn()
+
+    def nsITimer(self, func, delayMillis, repeating=False):
+
+        '''For implementation of Timer() we use xpcom interfaces
+        nsITimer and nsITimerCallback.
+
+        This method returns a nsITimer which has been initialized with
+        func as the callback (wrapped in an instance of
+        nsITimerCallback).
+        '''
+
+        # create the xpcom nsITimer instance
+        timer = components.classes['@mozilla.org/timer;1'].createInstance()
+        timer.QueryInterface(interfaces.nsITimer)
+
+        # what kind of timer are we?
+        timertype = (interfaces.nsITimer.TYPE_REPEATING_SLACK
+                     if repeating
+                     else interfaces.nsITimer.TYPE_ONE_SHOT)
+
+        # create the callback object (nsITimerCallback)
+        cb = xpcom.server.WrapObject(nsITimerCallback(func),
+                                     interfaces.nsITimerCallback)
+
+        # initialize and return the timer
+        timer.initWithCallback(cb, delayMillis, timertype)
+        return timer
 
 def is_loaded():
     return wv.already_initialised

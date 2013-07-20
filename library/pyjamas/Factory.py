@@ -6,7 +6,6 @@
 # * pyjamas.ui namespace is used for widgets in library/pyjamas/ui
 
 #from __pyjamas__ import doc
-from pyjamas import log
 from pyjamas import DOM
 
 factory = {}

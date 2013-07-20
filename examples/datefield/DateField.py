@@ -1,4 +1,4 @@
-﻿# Date Time Example
+# Date Time Example
 # Copyright (C) 2009 Yit Choong (http://code.google.com/u/yitchoong/)
 
 import pyjd # dummy in pyjs
@@ -16,7 +16,7 @@ class App:
         df1 = DateField()
         df2 = DateField(format='%Y/%m/%d')
         b = Button("Show Calendar", self)
-        self.cal = Calendar()
+        self.cal = Calendar(MinDate=(2012, 5, 10), MaxDate=(2014, 6, 8))
 
         vp = VerticalPanel()
         vp.setSpacing(10)

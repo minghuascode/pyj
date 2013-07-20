@@ -34,52 +34,52 @@ from __pyjamas__ import JS
 
 def translateGmapsObject(obj, fieldName, fields, pyToJs):
     JS("""
-    //console.log("translateGmapsObject " + fieldName+"("+pyToJs+")")
+    //console.log("translateGmapsObject " + fieldNameXXX+"("+pyToJs+")")
 
-    if (! (fieldName in fields))
+    if (! (@{{fieldName}} in @{{fields}}))
     {
       //console.log("nothing")
-      return obj;
+      return @{{obj}};
     }
     else{
-        action = fields[fieldName]
+        @{{action}} = @{{fields}}[@{{fieldName}}]
         //console.log("action=" + action)
 
-        if (action == 'd')
+        if (@{{action}} == 'd')
         {
           //console.log("is dict")
           // this newobj can be used in js and also in python, 
           // like this "newobj.field"
           var newobj = {}
-          for (var i in obj)
+          for (var i in @{{obj}})
              // vai ficar disponivel como uma propriedade, no python!
-             newobj[i] = Utils.translateGmapsObject(obj[i], i, fields, pyToJs);
+             newobj[i] = $m['translateGmapsObject'](@{{obj}}[i], i, @{{fields}}, @{{pyToJs}});
           return newobj
 
         }
-        else if (action == 'l')
+        else if (@{{action}} == 'l')
         {
-          if (pyToJs) {
-              var newobj = Utils.listToJs(obj)
+          if (@{{pyToJs}}) {
+              var newobj = $m['listToJs'](@{{obj}})
               //console.log("is list py->js")
               for (var i in newobj){
-                 newobj[i]=Utils.translateGmapsObject(
-                    newobj[i], fieldName + "[]", fields,pyToJs ) ;
+                 newobj[i]=$m['translateGmapsObject'](
+                    newobj[i], @{{fieldName}} + "[]", @{{fields}},@{{pyToJs}} ) ;
               }
               return newobj
           }else{
               //console.log("is list js->py")
-              var newobj = pyjslib.list([])
-              for (var i in obj)
-                 newobj.append(Utils.translateGmapsObject(
-                     obj[i], fieldName + "[]", fields,pyToJs ));
+              var newobj = @{{list}}([])
+              for (var i in @{{obj}})
+                 newobj.append($m['translateGmapsObject'](
+                     @{{obj}}[i], @{{fieldName}} + "[]", @{{fields}},@{{pyToJs}} ));
               return newobj
           }
         }
         else
         {
           //console.log("is special")
-          return action(obj)
+          return @{{action}}(@{{obj}})
         }
     }
     """)
@@ -103,7 +103,7 @@ def dictToJs(dict):
     try:
         for key in dict:
             value = dict[key]
-            JS("obj[key] = value")
+            JS("@{{obj}}[@{{key}}] = @{{value}}")
     except:
         pass
 
@@ -147,21 +147,21 @@ def __dumpListeners():
 def __addListener(eventName, callback):
     self = JS("this")
 
-    list = JS("""
-       $wnd.google.maps.event.addListener(this, eventName, function(event) {
-         callback(event);
-       });
+    thelist = JS("""
+       $wnd.google.maps.event.addListener(this, @{{eventName}}, function(event) {
+         @{{callback}}(event);
+       })
     """)
 
     # I have to keep information about the registered listeners for
     # this instance!
 
     if eventName in self.__listeners:
-        self.__listeners[eventName].append(list)
+        self.__listeners[eventName].append(thelist)
     else:
-        self.__listeners[eventName] = [list]
+        self.__listeners[eventName] = [thelist]
 
-    return list
+    return thelist
 
 
 def __removeListener(list):
@@ -169,7 +169,7 @@ def __removeListener(list):
 
     for eventName in self.__listeners:
         if list in self.__listeners[eventName]:
-            JS("""$wnd.google.maps.event.removeListener(list);""")
+            JS("""$wnd.google.maps.event.removeListener(@{{list}});""")
             self.__listeners[eventName].remove(list)
             return
     # if we get here, there is nothing to remove,
@@ -179,7 +179,7 @@ def __removeListener(list):
 def __clearListeners(eventName):
     self = JS("this")
 
-    JS("""$wnd.google.maps.event.clearListeners(this, eventName);""")
+    JS("""$wnd.google.maps.event.clearListeners(this, @{{eventName}})""")
     if eventName in self.__listeners:
         del self.__listeners[eventName]
 
@@ -187,5 +187,5 @@ def __clearListeners(eventName):
 def __clearInstanceListeners():
     self = JS("this")
 
-    JS("""$wnd.google.maps.event.clearInstanceListeners(this);""")
+    JS("""$wnd.google.maps.event.clearInstanceListeners(this)""")
     self.__listeners = {}

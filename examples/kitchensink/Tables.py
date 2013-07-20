@@ -1,4 +1,4 @@
-from Sink import Sink, SinkInfo
+from pyjamas.ui.Sink import Sink, SinkInfo
 from pyjamas.ui.Grid import Grid
 from pyjamas.ui.FlexTable import FlexTable
 from pyjamas.ui import HasHorizontalAlignment

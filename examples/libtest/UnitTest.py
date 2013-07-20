@@ -5,6 +5,8 @@ IN_BROWSER = sys.platform in ['mozilla', 'ie6', 'opera', 'oldmoz', 'safari']
 IN_JS = sys.platform in ['mozilla', 'ie6', 'opera', 'oldmoz',
                          'safari', 'spidermonkey', 'pyv8']
 
+PY27_BEHAVIOUR = not IN_JS and sys.version_info[0:2] >= (2,7)
+
 if IN_BROWSER:
     from pyjamas.Timer import Timer
 
@@ -22,7 +24,7 @@ class UnitTest:
         self.assertNotEqual = self.assertNotEquals = self.failIfEqual
         self.assertAlmostEqual = self.assertAlmostEquals = self.failUnlessAlmostEqual
         self.assertNotAlmostEqual = self.assertNotAlmostEquals = self.failIfAlmostEqual
-        self.assertRaises = self.failUnlessRaises
+        self.failUnlessRaises = self.assertRaises
         self.assert_ = self.assertTrue = self.failUnless
         self.assertFalse = self.failIf
 
@@ -32,7 +34,13 @@ class UnitTest:
         test_method=getattr(self, test_method_name)
         self.current_test_name = test_method_name
         self.setUp()
-        test_method()
+        try:
+            try:
+                test_method()
+            except Exception,e:
+                self.fail("uncaught exception: " + str(e))
+        except:
+            self.fail("uncaught javascript exception")
         self.tearDown()
         self.current_test_name = None
 
@@ -48,8 +56,8 @@ class UnitTest:
         self.test_idx = 0
         Timer(10, self)
 
-    def onTimer(self, tid):
-        for i in range(4):
+    def onTimer(self, timer):
+        for i in range(1):
             if self.test_idx >= len(self.test_methods):
                 self.displayStats()
                 self.test_idx = 'DONE'
@@ -58,7 +66,7 @@ class UnitTest:
 
             self._run_test(self.test_methods[self.test_idx])
             self.test_idx += 1
-        Timer(10, self)
+        timer.schedule(10)
 
     def setUp(self):
         pass
@@ -74,9 +82,13 @@ class UnitTest:
             if msg:
                 msg=" " + str(msg)
             if self.current_test_name:
-                msg += " (%s) " % self.current_test_name
+                msg += " (%s) " % self.getCurrentTestID()
             return self.getName() + msg + ": "
         return ""
+
+    def getCurrentTestID(self):
+        return "%s/%i" % (self.current_test_name,self.tests_completed)
+
 
     def getTestMethods(self):
         self.test_methods=[]
@@ -99,13 +111,28 @@ class UnitTest:
         else:
             msg = str(msg)
 
-        title="<b>" + self.getNameFmt("Test failed") + "</b>"
-        writebr(title + msg)
+        octothorp = msg.find("#")
+        has_bugreport = octothorp >= 0 and msg[octothorp+1].isdigit()
+        if has_bugreport:
+            name_fmt = "Known issue"
+            bg_colour="#ffc000"
+            fg_colour="#000000"
+        else:
+            bg_colour="#ff8080"
+            fg_colour="#000000"
+            name_fmt = "Test failed"
+        output="<table style='padding-left:20px;padding-right:20px;' cellpadding=2 width=100%><tr><td bgcolor='" + bg_colour + "'><font color='" + fg_colour + "'>"
+        write(output)
+        title="<b>" + self.getNameFmt(name_fmt) + "</b>"
+        write(title + msg)
+        output="</font></td></tr></table>"
+        output+= "\n"
+        write(output)
         if sys.platform in ['mozilla', 'ie6', 'opera', 'oldmoz', 'safari']:
             from __pyjamas__ import JS
-            JS("""if (typeof console != 'undefined') {
-                if (typeof console.error == 'function') console.error(msg);
-                if (typeof console.trace == 'function') console.trace();
+            JS("""if (typeof @{{!console}} != 'undefined') {
+                if (typeof @{{!console}}.error == 'function') @{{!console}}.error(@{{msg}});
+                if (typeof @{{!console}}.trace == 'function') @{{!console}}.trace();
             }""")
         return False
 
@@ -120,18 +147,9 @@ class UnitTest:
     def failUnless(self, expr, msg=None):
         self.startTest()
         if not expr:
+            if not msg:
+                msg = "expected True, got False"
             return self.fail(msg)
-
-    def failUnlessRaises(self, excClass, callableObj, *args, **kwargs):
-        try:
-            callableObj(*args, **kwargs)
-        except excClass:
-            return
-        else:
-            if hasattr(excClass,'__name__'): excName = excClass.__name__
-            else: excName = str(excClass)
-            #raise self.failureException, "%s not raised" % excName
-            self.fail("%s not raised" % excName)
 
     def failUnlessEqual(self, first, second, msg=None):
         self.startTest()
@@ -161,6 +179,21 @@ class UnitTest:
                 msg=repr(first) + " == " + repr(second) + " within " + repr(places) + " places"
             return self.fail(msg)
 
+    # from 2.7 unittest/case.py
+    def assertIn(self, member, container, msg=None):
+        """Just like self.assertTrue(a in b), but with a nicer default message."""
+        if member not in container:
+            standardMsg = '%s not found in %s' % (repr(member)[:80],
+                                                  repr(container)[:80])
+            self.fail(msg if msg else standardMsg)
+
+    def assertNotIn(self, member, container, msg=None):
+        """Just like self.assertTrue(a not in b), but with a nicer default message."""
+        if member in container:
+            standardMsg = '%s unexpectedly found in %s' % (repr(member)[:80],
+                                                        repr(container)[:80])
+            self.fail(msg if msg else standardMsg)
+
     # based on the Python standard library
     def assertRaises(self, excClass, callableObj, *args, **kwargs):
         """
@@ -174,7 +207,7 @@ class UnitTest:
         self.startTest()
         try:
             callableObj(*args, **kwargs)
-        except excClass, exc:
+        except excClass:
             return
         else:
             if hasattr(excClass, '__name__'):
@@ -207,4 +240,3 @@ class UnitTest:
             output+= "\n"
 
         write(output)
-

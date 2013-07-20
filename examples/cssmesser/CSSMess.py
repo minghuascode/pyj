@@ -16,34 +16,9 @@ import pygwt
 from __pyjamas__ import doc
 from pyjamas import DOM
 
-class StyleSheetCssFileChanger:
+from pyjamas.ui.CSS import StyleSheetCssFile
+from pyjamas.ui.CSS import StyleSheetCssText
 
-    def __init__(self, cssFile=''):
-        self._e = DOM.createElement('link')
-        self._e.setAttribute('rel', 'stylesheet')
-        self._e.setAttribute('type', 'text/css')
-        self._e.setAttribute('href', cssFile);
-
-        print "css file", cssFile
-        doc().getElementsByTagName("head").item(0).appendChild(self._e) 
-
-    def remove(self):
-        parent = DOM.getParent(self._e)
-        DOM.removeChild(parent, self._e) 
-        
-class StyleSheetCssChanger:
-
-    def __init__(self, text=''):
-        self._e = DOM.createElement('style')
-        self._e.setAttribute('type', 'text/css')
-        DOM.appendChild(self._e, doc().createTextNode(text))
-
-        doc().getElementsByTagName("head").item(0).appendChild(self._e) 
-
-    def remove(self):
-        parent = DOM.getParent(self._e)
-        DOM.removeChild(parent, self._e) 
-        
 newcolours = """
 <!--
 .teststyle {
@@ -72,13 +47,13 @@ def greet(fred):
     global sc
     txt = fred.getText() 
     if txt == "Click me lots":
-        sc = StyleSheetCssChanger(newcolours)
+        sc = StyleSheetCssText(newcolours)
         fred.setText("Did it work?")
     elif txt == "Did it work?":
         sc.remove()
         fred.setText("It did!")
     elif txt == "It did!":
-        sc = StyleSheetCssChanger(morenewcolours)
+        sc = StyleSheetCssText(morenewcolours)
         fred.setText("Play again!")
     elif txt != "Ok enough now":
         fred.setText("Ok enough now")
@@ -95,5 +70,5 @@ if __name__ == '__main__':
     RootPanel().add(h)
     RootPanel().add(l)
     RootPanel().add(base)
-    StyleSheetCssFileChanger("./CSSMess.css")
+    StyleSheetCssFile("./CSSMess.css")
     pyjd.run()

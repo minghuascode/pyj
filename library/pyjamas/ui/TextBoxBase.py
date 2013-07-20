@@ -15,10 +15,12 @@
 from pyjamas import DOM
 from pyjamas import Factory
 from __pyjamas__ import console, JS
-from FocusWidget import FocusWidget
+from pyjamas.ui.FocusWidget import FocusWidget
+from pyjamas.ui.ChangeListener import ChangeHandler
+from pyjamas.ui.InputListener import InputHandler
 from pyjamas.ui import Event
 
-class TextBoxBase(FocusWidget):
+class TextBoxBase(FocusWidget, ChangeHandler, InputHandler):
     ALIGN_CENTER = "center"
     ALIGN_JUSTIFY = "justify"
     ALIGN_LEFT = "left"
@@ -29,18 +31,15 @@ class TextBoxBase(FocusWidget):
             ]
 
     def __init__(self, element, **kwargs):
-        self.changeListeners = []
         self.currentEvent = None
 
         FocusWidget.__init__(self, element, **kwargs)
-        self.sinkEvents(Event.ONCHANGE)
+        ChangeHandler.__init__(self)
+        InputHandler.__init__(self)
 
     @classmethod
     def _getProps(self):
         return FocusWidget._getProps() + self._props
-
-    def addChangeListener(self, listener):
-        self.changeListeners.append(listener)
 
     def cancelKey(self):
         if self.currentEvent is not None:
@@ -82,18 +81,6 @@ class TextBoxBase(FocusWidget):
 
     def getText(self):
         return DOM.getAttribute(self.getElement(), "value")
-
-    def onBrowserEvent(self, event):
-        FocusWidget.onBrowserEvent(self, event)
-
-        type = DOM.eventGetType(event)
-        if type == "change":
-            for listener in self.changeListeners:
-                if hasattr(listener, 'onChange'): listener.onChange(self)
-                else: listener(self)
-
-    def removeChangeListener(self, listener):
-        self.changeListeners.remove(listener)
 
     def selectAll(self):
         length = len(self.getText())

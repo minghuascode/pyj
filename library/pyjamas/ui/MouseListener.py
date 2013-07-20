@@ -34,14 +34,14 @@ def fireMouseEvent(listeners, sender, event):
             listener.onMouseMove(sender, x, y)
         return True
     elif etype == "mouseover":
-        from_element = DOM.eventGetFromElement(event)
-        if not DOM.isOrHasChild(sender.getElement(), from_element):
+        to_element = DOM.eventGetToElement(event)
+        if to_element and not DOM.isOrHasChild(sender.getElement(), to_element):
             for listener in listeners:
                 listener.onMouseEnter(sender)
         return True
     elif etype == "mouseout":
         to_element = DOM.eventGetToElement(event)
-        if not DOM.isOrHasChild(sender.getElement(), to_element):
+        if to_element and not DOM.isOrHasChild(sender.getElement(), to_element):
             for listener in listeners:
                 listener.onMouseLeave(sender)
         return True
@@ -86,6 +86,12 @@ class MouseHandler(object):
     def onMouseLeave(self, sender):
         pass
 
+    def onMouseGlassEnter(self, sender):
+        pass
+
+    def onMouseGlassLeave(self, sender):
+        pass
+
 class MouseWheelHandler(object):
 
     def __init__(self, preventDefault=False):
@@ -96,7 +102,7 @@ class MouseWheelHandler(object):
 
     def onBrowserEvent(self, event):
         etype = DOM.eventGetType(event)
-        if etype in ["mousewheel", "DOMMouseScroll"]:
+        if etype == "mousewheel":
             if self._mouseWheelPreventDefault:
                 DOM.eventPreventDefault(event)
             velocity = DOM.eventGetMouseWheelVelocityY(event)

@@ -1,4 +1,4 @@
-import os
+import os, sys
 from pyjs import linker
 from pyjs import translator
 from pyjs import util
@@ -138,7 +138,7 @@ class SpidermonkeyLinker(linker.BaseLinker):
         available_modules = self.visited_modules[PLATFORM]
 
         out_file = open(
-            os.path.join(self.output, self.top_module + '.js'), 'w')
+            os.path.join(self.output, self.top_module + pyjs.MOD_SUFFIX), 'w')
         out_file.write(APP_TEMPLATE % locals())
         out_file.close()
 
@@ -153,7 +153,7 @@ def build_script():
     linker.add_linker_options(parser)
     options, args = parser.parse_args()
     if len(args) != 1:
-        parser.error("incorrect number of arguments")
+        parser.error("incorrect number of arguments in %s" % repr(sys.argv))
 
     top_module = args[0]
     for d in options.library_dirs:

@@ -34,4 +34,7 @@ class SlideLoader:
     def onTimeout(self, text):
         self.panel.onTimeout(text)
 
+    def onProgress(self, event):
+        self.panel.onProgress(event)
+
 

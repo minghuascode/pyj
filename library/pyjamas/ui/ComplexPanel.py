@@ -15,49 +15,52 @@
 from pyjamas import DOM
 from pyjamas import Factory
 
-from Panel import Panel
+from pyjamas.ui.Panel import Panel
 
 class ComplexPanel(Panel):
     """
         Superclass for widgets with multiple children.
     """
-    def add(self, widget, container):
-        self.insert(widget, container, len(self.children))
+    def add(self, widget, container=None):
+        if container is not None:
+            self.insert(widget, container, self.getWidgetCount())
+        else:
+            self.insert(widget, self.getWidgetCount())
 
-    def getWidgetCount(self):
-        return len(self.children)
-
-    def getWidget(self, index):
-        return self.children[index]
-
-    def getWidgetIndex(self, child):
-        return self.children.index(child)
-
-    def getChildren(self):
-        return self.children
-
-    def insert(self, widget, container, beforeIndex):
+    def insert(self, widget, container, beforeIndex=None):
+        """ has two modes of operation:
+            widget, beforeIndex
+            widget, container, beforeIndex.
+            if beforeIndex argument is not given, the 1st mode is assumed.
+            this technique is less costly than using *args.
+        """
         if widget.getParent() == self:
             return
+
+        if beforeIndex is None:
+            beforeIndex = container
+            container = self.getElement()
 
         self.adopt(widget, container)
         self.children.insert(beforeIndex, widget)
 
-        # this code introduces an obscure IE6 bug that corrupts its DOM tree!
-        #widget.removeFromParent()
-        #self.children.insert(beforeIndex, widget)
-        #DOM.insertChild(container, widget.getElement(), beforeIndex)
-        #self.adopt(widget, container)
-
     def remove(self, widget):
-        if widget not in self.children:
+        if isinstance(widget, int):
+            widget = self.getWidget(widget)
+        if widget not in self.getChildren():
             return False
 
         self.disown(widget)
-        #elem = self.getElement()
-        #DOM.removeChild(DOM.getParent(elem), elem)
-        self.children.remove(widget)
+        self.getChildren().remove(widget)
+
         return True
+
+    def replace(self, index, new_widget):
+        if not isinstance(index, int):
+            index = self.getWidgetIndex(widget)
+        self.remove(index)
+        self.insert(new_widget, index)
+
 
 Factory.registerClass('pyjamas.ui.ComplexPanel', 'ComplexPanel', ComplexPanel)
 

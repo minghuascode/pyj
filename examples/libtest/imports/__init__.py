@@ -11,7 +11,14 @@ imports = Imports()
 overrideme = "not overridden"
 
 from . import cls as loccls
-from .imports import cls as upcls
+
+# TODO: Generate an ImportError
+# This is not valid since Python 2.6!
+#try:
+#    from .imports import cls as upcls
+#except ImportError:
+#    upcls = loccls
+upcls = loccls
 
 def conditional_func():
     return "not overridden"
@@ -19,3 +26,9 @@ def conditional_func():
 if True:
     def conditional_func():
         return "overridden"
+
+# Import all
+all_masked = False
+all_override = False
+from allwith__all__ import *
+from allsimple import *

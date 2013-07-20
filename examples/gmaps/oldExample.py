@@ -1,7 +1,7 @@
 from pyjamas.ui.RootPanel import RootPanelCls
 from pyjamas.ui.VerticalPanel import VerticalPanel
 from pyjamas.ui.SimplePanel import SimplePanel
-import pyjamas.DOM
+from pyjamas import DOM
 from pyjamas.JSONService import JSONProxy
 from pyjamas import Window
 from __pyjamas__ import JS
@@ -9,15 +9,15 @@ from __pyjamas__ import JS
 ### GOOGLE MAPS WRAPPERS ###
 def GMap2(el, options):
     if options:
-        JS("""return new $wnd.GMap2(el,options);""")
+        JS("""return new $wnd.GMap2(@{{el}},@{{options}});""")
     else:
-        JS("""return new $wnd.GMap2(el);""")
+        JS("""return new $wnd.GMap2(@{{el}});""")
 
 def GLatLng(lat,long):
-    JS("return new $wnd.GLatLng(lat,long);")
+    JS("return new $wnd.GLatLng(@{{lat}},long);")
 
 def GPolyline(points,color,width):
-    JS("return new $wnd.GPolyline(points,color,width);")
+    JS("return new $wnd.GPolyline(@{{points}},@{{color}},@{{width}});")
 
 def jsList():
     JS("return [];")
@@ -30,9 +30,9 @@ def jsOpts(options):
     JS("return {};")
 
 def getStart(ui):
-    JS("return ui.values[0]")
+    JS("return @{{ui}}.values[0]")
 def getEnd(ui):
-    JS("return ui.values[1]")
+    JS("return @{{ui}}.values[1]")
 
 class Greed:
     def onModuleLoad(self):

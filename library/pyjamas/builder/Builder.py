@@ -1,9 +1,13 @@
+# Copyright (C) 2010 Luke Kenneth Casson Leighton <lkcl@lkcl.net>
+# Copyright (C) 2011 Janjaap Bos <janjaapbos@gmail.com>
+
 from pyjamas.builder.XMLFile import XMLFile
 from pyjamas import Factory
 from pyjamas import ui
 from pyjamas.ui.MultiListener import MultiListener
 from pyjamas.HTTPRequest import HTTPRequest
 from pyjamas.ui.Tooltip import TooltipListener
+from pyjamas.ui.CSS import StyleSheetCssFile
 
 
 # All event listeners with a tuple that comprises of the listener add 
@@ -34,15 +38,55 @@ eventListeners = dict(
         )
 
 
+class BuilderState(object):
+    def __init__(self, builder, eventTarget):
+        self.builder = builder
+        self.eventTarget = eventTarget
+
+
 class Builder(object):
 
-    def __init__(self, text):
-        xmlFile = XMLFile(str(text)) # XMLFile only accepts str not unicode!
+    def __init__(self, text=None, addcss=False):
+        self.builder_text = None
+        self.css = None
+        self.setText(text)
+
+        if not addcss:
+            return
+        if not self.properties:
+            return
+        cssfile = self.properties.get('cssfile', None)
+        if not cssfile:
+            return
+        self.css = StyleSheetCssFile(cssfile)
+        print "setting CSS stylesheet", cssfile
+
+    def setText(self, text):
+        if text is None:
+            self.widgets_by_name = {}
+            self.widget_instances = {}
+            self.widget_order = {}
+            self.widgets_by_class = {}
+            self.properties = None
+            self.components = None
+            self.builder_text = None
+            if self.css:
+                self.css.remove()
+                self.css = None
+            return
+
+        text = str(text) # XMLFile only accepts str not unicode!
+        if text == self.builder_text: # don't redo the xml file if same
+            return
+
+        self.builder_text = text
+
         self.widgets_by_name = {}
         self.widget_instances = {}
         self.widget_order = {}
         self.widgets_by_class = {}
-        self.properties, self.components = xmlFile.parse()
+        self.properties, self.components = XMLFile(text).parse()
+
 
     def createInstance(self, instancename,
                        eventTarget=None, targetItem=None, index=None):
@@ -63,6 +107,8 @@ class Builder(object):
             wprops = {}
             if props.has_key("common"):
                 wprops.update(props['common'])
+            if props.has_key("layout"):
+                wprops.update(props['layout'])
             if props.has_key("widget"):
                 wprops.update(props['widget'])
             for n in kls._getProps():
@@ -70,13 +116,15 @@ class Builder(object):
                 if not wprops.has_key(name):
                     continue
                 fname = n[ui.PROP_FNAM]
+                if wprops[name] == '':
+                    continue
                 args[fname] = wprops[name]
 
             # create item with properties including weird ones
             # which can't fit into the name value structure
             item = kls(**args)
             if hasattr(item, "_setWeirdProps"):
-                item._setWeirdProps(wprops)
+                item._setWeirdProps(wprops, BuilderState(self, eventTarget))
 
             tooltip = wprops.get('tooltip')
             if tooltip is not None:
@@ -93,30 +141,41 @@ class Builder(object):
             #if parentInstance is not None:
             #    context = parentInstance.getIndexedChild(comp['index'])
             #    context.add(item.componentInstance)
-            for (index, child) in enumerate(childs):
+            if modname == 'pyjamas.ui.TabPanel': # yuk! HACK!
+                tabs = props.get('tabs', None)
+                print "tab props", tabs
+            print "element full props", props.get('elements', None)
+            for (i, child) in enumerate(childs):
                 if not child[0].has_key("type") or child[0]["type"] is None:
                     continue
                 childitem = addItem(child[0], child[1], child[2], item,
                                     eventTarget)
-                item.addIndexedItem(child[0]["index"], childitem)
+                if childitem is None:
+                    continue
+                index = child[0]["index"]
+                if modname == 'pyjamas.ui.TabPanel': # yuk! HACK!
+                    index = (index, tabs[index])
+                print "childitem", index, childitem
+                item.addIndexedItem(index, childitem)
                 if not "elements" in props:
                     props["elements"] = {}
                 if not index in props["elements"]:
                     props["elements"][index] = {}
 
-                elemprops = props['elements'][index]
-                childitem.setElementProperties(item, elemprops)
-
                 # add child (by name) to item
                 cname = child[0]["id"] 
                 setattr(item, cname, childitem)
 
+                elemprops = props['elements'][index]
+                print "elemprops", childitem, item, index, elemprops
+                item.setElementProperties(childitem, elemprops)
+
             # make the event target the recipient of all events
-            if eventTarget and props.has_key("events"):
+            if eventTarget is not None and props.has_key("events"):
                 added_already = []
                 #print props["events"]
                 for listener_name, listener_fn in props["events"].items():
-                    if  listener_name in added_already:
+                    if listener_name in added_already or not listener_fn:
                         continue
                     args = {}
                     args[listener_name] = listener_fn

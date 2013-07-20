@@ -517,7 +517,15 @@ class GWTCanvas(FocusWidget):
     def setGlobalAlpha(self, alpha):
         self.impl.setGlobalAlpha(alpha)
     
-    
+    """*
+    * Set the canvas font attribute.
+    *
+    * @param font CSS font
+    """
+    def setFont(self, font):
+        self.impl.setFont(font)
+
+
     """*
     * Determines how the canvas is displayed relative to any background content.
     * The string identifies the desired compositing mode. If you do not self.set this
@@ -596,7 +604,7 @@ class GWTCanvas(FocusWidget):
     * @param height the height of the canvas in pixels
     """
     def setPixelHeight(self, height):
-        FocusWidget.setHeight(self, height)
+        FocusWidget.setHeight(self, str(height) + "px")
         self.impl.setPixelHeight(self.getCanvasElement(), height)
     
     
@@ -606,7 +614,7 @@ class GWTCanvas(FocusWidget):
     * @param width width of the canvas in pixels
     """
     def setPixelWidth(self, width):
-        FocusWidget.setWidth(self, width)
+        FocusWidget.setWidth(self, str(width) + "px")
         self.impl.setPixelWidth(self.getCanvasElement(), width)
     
     

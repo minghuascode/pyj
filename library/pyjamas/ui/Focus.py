@@ -12,9 +12,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pyjd
 from pyjamas import DOM
 from __pyjamas__ import JS
 
+if not pyjd.is_desktop:
+    JS("""
+    var focusHandler = null;
+    """)
+
+def ensureFocusHandler():
+    pass
+
+def createFocusHandler():
+    pass    
+
+def createFocusable0():
+    pass
+    
 def blur(elem):
     elem.blur()
 
@@ -54,6 +69,10 @@ class FocusMixin:
         setTabIndex(self.getElement(), index)
 
     def isEnabled(self):
+        print "warning: this function is deprecated, please use getEnabled"
+        return self.getReadonly()
+
+    def getEnabled(self):
         try:
             return not DOM.getBooleanAttribute(self.getElement(), "disabled")
         except TypeError:
@@ -65,6 +84,10 @@ class FocusMixin:
         DOM.setBooleanAttribute(self.getElement(), "disabled", not enabled)
 
     def isReadonly(self):
+        print "warning: this function is deprecated, please use getReadonly"
+        return self.getReadonly()
+
+    def getReadonly(self):
         try:
             return not DOM.getBooleanAttribute(self.getElement(), "readOnly")
         except TypeError:

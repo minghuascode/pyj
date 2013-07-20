@@ -12,11 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __pyjamas__ import console
 from pyjamas import Factory
 from pyjamas import DOM
 
-from CellPanel import CellPanel
+from pyjamas.ui.CellPanel import CellPanel
 from pyjamas.ui import HasHorizontalAlignment
 from pyjamas.ui import HasVerticalAlignment
 
@@ -42,29 +41,17 @@ class DockPanel(CellPanel):
     SOUTH = "south"
     WEST = "west"
 
-    elem_props = [
-           ("height", "Cell Height", "CellHeight", str, None),
-           ("width", "Cell Width", "CellWidth", str, None),
-           ("halign", "Cell Horizontal Alignment",
-                      "CellHorizontalAlignment", None, "left"),
-           ("valign", "Cell Vertical Alignment",
-                      "CellVerticalAlignment", None, "top"),
-                 ]
-
-    def _getElementProps(self):
-        return CellPanel._getElementProps() + self.elem_props
-
     def __init__(self, **kwargs):
 
         self.center = None
-        self.dock_children = [] # TODO: can self.children be used instead?
+        self.dock_children = [] # cannot use self.children
 
         CellPanel.__init__(self, **kwargs)
 
     def add(self, widget, direction):
         if direction == self.CENTER:
             if self.center is not None:
-                console.error("Only one CENTER widget may be added")
+                raise Exception("Only one CENTER widget may be added")
             self.center = widget
 
         layout = LayoutData(direction)
@@ -75,10 +62,11 @@ class DockPanel(CellPanel):
         self.dock_children.append(widget)
         self.realizeTable(widget)
 
+    # next three functions are part of the standard Builder API for panels
     def addIndexedItem(self, index, item):
         self.add(item, index[1])
 
-    def getIndex(self, widget):
+    def getWidgetIndex(self, widget):
         index = self.dock_children.index(widget)
         direction = self.getWidgetDirection(widget)
         return (index, direction)
@@ -91,6 +79,12 @@ class DockPanel(CellPanel):
         if widget.getParent() != self:
             return None
         return widget.getLayoutData().direction
+
+    def __len__(self):
+        return len(self.dock_children)
+
+    def __iter__(self):
+        return self.dock_children.__iter__()
 
     def remove(self, widget):
         if widget == self.center:
@@ -105,25 +99,25 @@ class DockPanel(CellPanel):
     def setCellHeight(self, widget, height):
         data = widget.getLayoutData()
         data.height = height
-        if data.td:
+        if data.td is not None:
             DOM.setStyleAttribute(data.td, "height", data.height)
 
     def setCellHorizontalAlignment(self, widget, align):
         data = widget.getLayoutData()
         data.hAlign = align
-        if data.td:
+        if data.td is not None:
             DOM.setAttribute(data.td, "align", data.hAlign)
 
     def setCellVerticalAlignment(self, widget, align):
         data = widget.getLayoutData()
         data.vAlign = align
-        if data.td:
+        if data.td is not None:
             DOM.setStyleAttribute(data.td, "verticalAlign", data.vAlign)
 
     def setCellWidth(self, widget, width):
         data = widget.getLayoutData()
         data.width = width
-        if data.td:
+        if data.td is not None:
             DOM.setStyleAttribute(data.td, "width", data.width)
 
     def realizeTable(self, beingAdded):

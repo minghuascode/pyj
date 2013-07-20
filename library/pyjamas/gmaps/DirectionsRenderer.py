@@ -15,10 +15,10 @@
 from __pyjamas__ import JS
 
 
-from Utils import dictToJs
+from pyjamas.gmaps.Utils import dictToJs
 
 
-from DirectionsService import translateDirectionsResults
+from pyjamas.gmaps.DirectionsService import translateDirectionsResults
 
 
 class DirectionsRenderer:
@@ -26,10 +26,10 @@ class DirectionsRenderer:
     def __init__(self, options):
         if options:
             self.renderer = \
-                JS("""new $wnd.google.maps.DirectionsRenderer(options);""")
+                JS("""new $wnd.google.maps.DirectionsRenderer(@{{options}})""")
         else:
             self.renderer = \
-                JS("""new $wnd.google.maps.DirectionsRenderer();""")
+                JS("""new $wnd.google.maps.DirectionsRenderer()""")
 
     def setDirections(self, results):
         self.renderer.setDirections(translateDirectionsResults(results, True))

@@ -6,6 +6,7 @@ var $wnd = parent;
 var $doc = $wnd.document;
 var $moduleName = "%(app_name)s";
 var $pyjs = new Object();
+var $p = null;
 $pyjs.global_namespace = this;
 $pyjs.__modules__ = {};
 $pyjs.loaded_modules = {};
@@ -80,12 +81,20 @@ var onExecutionError = function (exception, name) {
 };
 
 function app_imported() {
-    $pyjs.loaded_modules['pyjslib']('pyjslib');
-    $pyjs.__modules__.pyjslib = $pyjs.loaded_modules['pyjslib']
-    pyjslib.___import___(
-               '%(app_name)s',
-               null,
-               '__main__');
+    $p = $pyjs.loaded_modules['pyjslib'];
+    if (typeof $p != "undefined") {
+        $p('pyjslib');
+        $pyjs.__modules__.pyjslib = $p['pyjslib']
+        pyjslib.___import___(
+            '%(app_name)s',
+            null,
+            '__main__');
+    } else {
+        var B$ = $pyjs.loaded_modules['__builtin__'];
+        $p = B$['$dict'];
+        B$.$module_init('__builtin__');
+        $p._start_main('%(app_name)s');
+    }
     return;
 }
 
@@ -100,7 +109,7 @@ function prepare_app() {
         var wait = function ( ) {
             var notLoaded = [];
             for (var i in module_list) {
-                if (typeof $pyjs.loaded_modules[module_list[i]] != 'function') {
+                if (typeof $pyjs.loaded_modules[module_list[i]] == 'undefined') {
                     notLoaded.push(module_list[i]);
                 }
             }

@@ -83,10 +83,10 @@ def getTitle():
     return doc().title
 
 def open(url, name, features):
-    wnd().open(url, name, features)
+    return wnd().open(url, name, features)
 
 def setMargin(size):
-    doc().body.style.margin = size;
+    doc().body.style.margin = size
 
 def setTitle(title):
     d = doc()

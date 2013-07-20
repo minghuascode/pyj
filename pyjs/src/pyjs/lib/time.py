@@ -10,8 +10,9 @@ if altzone > timezone:
     d = timezone
     timezone = altzone
     altzone = d
+_dst = timezone - altzone
 d = JS("(new Date(new Date().getFullYear(), 0, 1))")
-d = d.toLocaleString().split()[-1]
+d = str(d.toLocaleString()).split()[-1]
 if d[0] == '(':
     d = d[1:-1]
 tzname = (d, None)
@@ -22,7 +23,7 @@ __c__months = ["January", "February", "March", "April", "May", "June", "July", "
 
 
 def time():
-    JS("return new Date().getTime() / 1000.0;")
+    return float(JS("new Date().getTime() / 1000.0"))
 
 class struct_time(object):
     n_fields = 9
@@ -38,7 +39,7 @@ class struct_time(object):
     tm_yday = None
     tm_isdst = None
 
-    def __init__(self, ttuple = None):
+    def __init__(self, ttuple=None):
         if not ttuple is None:
             self.tm_year = ttuple[0]
             self.tm_mon = ttuple[1]
@@ -64,6 +65,9 @@ class struct_time(object):
         )
         return t.__str__()
 
+    def __repr__(self):
+        return self.__str__()
+
     def __getitem__(self, idx):
         return [self.tm_year, self.tm_mon, self.tm_mday, 
                 self.tm_hour, self.tm_min, self.tm_sec, 
@@ -74,57 +78,48 @@ class struct_time(object):
                 self.tm_hour, self.tm_min, self.tm_sec, 
                 self.tm_wday, self.tm_yday, self.tm_isdst][lower:upper]
 
-def gmtime(t = None):
-    if t == None:
+def gmtime(t=None):
+    if t is None:
         t = time()
     date = JS("new Date(@{{t}}*1000)")
     tm = struct_time()
-    tm.tm_year = date.getUTCFullYear()
-    tm.tm_mon = date.getUTCMonth() + 1
-    tm.tm_mday = date.getUTCDate()
-    tm.tm_hour = date.getUTCHours()
-    tm.tm_min = date.getUTCMinutes()
-    tm.tm_sec = date.getUTCSeconds()
-    tm.tm_wday = (date.getUTCDay() + 6) % 7
+    tm_year = tm.tm_year = int(date.getUTCFullYear())
+    tm.tm_mon = int(date.getUTCMonth()) + 1
+    tm.tm_mday = int(date.getUTCDate())
+    tm.tm_hour = int(date.getUTCHours())
+    tm.tm_min = int(date.getUTCMinutes())
+    tm.tm_sec = int(date.getUTCSeconds())
+    tm.tm_wday = (int(date.getUTCDay()) + 6) % 7
     tm.tm_isdst = 0
-    startOfYear = JS("new Date('Jan 1 '+ @{{tm}}.tm_year +' GMT+0000')")
+    startOfYear = JS("new Date('Jan 1 '+ @{{tm_year}} +' GMT+0000')")
     tm.tm_yday = 1 + int((t - startOfYear.getTime()/1000)/86400)
     return tm
 
-def localtime(t = None):
-    if t == None:
+def localtime(t=None):
+    if t is None:
         t = time()
     date = JS("new Date(@{{t}}*1000)")
     dateOffset = date.getTimezoneOffset()
     tm = struct_time()
-    tm.tm_year = date.getFullYear()
-    tm.tm_mon = date.getMonth() + 1
-    tm.tm_mday = date.getDate()
-    tm.tm_hour = date.getHours()
-    tm.tm_min = date.getMinutes()
-    tm.tm_sec = date.getSeconds()
-    tm.tm_wday = (date.getDay() + 6) % 7
+    tm_year = tm.tm_year = int(date.getFullYear())
+    tm_mon = tm.tm_mon = int(date.getMonth()) + 1
+    tm_mday = tm.tm_mday = int(date.getDate())
+    tm.tm_hour = int(date.getHours())
+    tm.tm_min = int(date.getMinutes())
+    tm.tm_sec = int(date.getSeconds())
+    tm.tm_wday = (int(date.getDay()) + 6) % 7
     tm.tm_isdst = 0 if timezone == 60*date.getTimezoneOffset() else 1
-    startOfYear = JS("new Date(@{{tm}}.tm_year,0,1)") # local time
+    startOfYear = JS("new Date(@{{tm_year}},0,1)") # local time
     startOfYearOffset = startOfYear.getTimezoneOffset()
-    startOfDay = JS("new Date(@{{tm}}.tm_year,@{{tm}}.tm_mon-1,@{{tm}}.tm_mday)")
-    dt = (startOfDay.getTime() - startOfYear.getTime())/1000
+    startOfDay = JS("new Date(@{{tm_year}},@{{tm_mon}}-1,@{{tm_mday}})")
+    dt = float(startOfDay.getTime() - startOfYear.getTime())/1000
     dt = dt + 60 * (startOfYearOffset - dateOffset)
     tm.tm_yday = 1 + int(dt/86400.0)
     return tm
-    if startOfYearOffset != dateOffset:
-        # Changed from std to dst or the opposite
-        #if startOfYearOffset > dateOffset:
-        # Changed from std to dst
-        tm.tm_yday += 1
-        dt2 = dt + 60 * (startOfYearOffset - dateOffset)
-        print dt, dt/86400.0, (startOfYearOffset, dateOffset), dt2, dt2/86400.0
-        tm.tm_yday = 1 + int(dt2/86400.0)
-    #if tm.tm_isdst and 60*startOfYearOffset == timezone:
-    #    tm.tm_yday += 1
-    return tm
 
 def mktime(t):
+    """mktime(tuple) -> floating point number
+    Convert a time tuple in local time to seconds since the Epoch."""
     tm_year = t[0]
     tm_mon = t[1] - 1
     tm_mday = t[2]
@@ -132,12 +127,15 @@ def mktime(t):
     tm_min = t[4]
     tm_sec = t[5]
     date = JS("new Date(@{{tm_year}}, @{{tm_mon}}, @{{tm_mday}}, @{{tm_hour}}, @{{tm_min}}, @{{tm_sec}})") # local time
+    utc = JS("Date.UTC(@{{tm_year}}, @{{tm_mon}}, @{{tm_mday}}, @{{tm_hour}}, @{{tm_min}}, @{{tm_sec}})")/1000
+    ts = date.getTime() / 1000
     if t[8] == 0:
-        return date.getTime()/1000 - 60 * date.getTimezoneOffset()
-    #return date.getTime()/1000 - 60 * date.getTimezoneOffset() + (60 * date.getTimezoneOffset() - timezone)
-    return date.getTime()/1000 - timezone
+        if ts - utc == timezone:
+            return ts
+        return ts + _dst
+    return ts
 
-def strftime(fmt, t = None):
+def strftime(fmt, t=None):
     if t is None:
         t = localtime()
     else:
@@ -165,13 +163,13 @@ def strftime(fmt, t = None):
         if c == '%':
             return '%'
         elif c == 'a':
-            raise NotImplementedError("strftime format character '%s'" % c)
+            return format('A')[:3]
         elif c == 'A':
-            raise NotImplementedError("strftime format character '%s'" % c)
+            return __c__days[format('w')]
         elif c == 'b':
-            raise NotImplementedError("strftime format character '%s'" % c)
+            return format('B')[:3]
         elif c == 'B':
-            raise NotImplementedError("strftime format character '%s'" % c)
+            return __c__months[tm_mon-1]
         elif c == 'c':
             return date.toLocaleString()
         elif c == 'd':
@@ -215,26 +213,138 @@ def strftime(fmt, t = None):
     JS("var a, fmtChar;")
     while remainder:
         JS("""
-        a = @{{re_pct}}.exec(@{{remainder}});
-        if (!a) {
-            result += @{{remainder}};
-            remainder = null;
+        @{{!a}} = @{{re_pct}}.exec(@{{remainder}});
+        if (!@{{!a}}) {
+            @{{result}} += @{{remainder}};
+            @{{remainder}} = false;
         } else {
-            result += a[1];
-            fmtChar = a[2];
-            remainder = a[3];
-            if (typeof fmtChar != 'undefined') {
-                result += @{{format}}(fmtChar);
+            @{{result}} += @{{!a}}[1];
+            @{{!fmtChar}} = @{{!a}}[2];
+            @{{remainder}} = @{{!a}}[3];
+            if (typeof @{{!fmtChar}} != 'undefined') {
+                @{{result}} += @{{format}}(@{{!fmtChar}});
             }
         }
         """)
-    return result
+    return str(result)
 
-def asctime(t = None):
-    if t == None:
+def asctime(t=None):
+    if t is None:
         t = localtime()
     return "%s %s %02d %02d:%02d:%02d %04d" % (__c__days[(t[6]+1)%7][:3], __c__months[t[1]-1], t[2], t[3], t[4], t[5], t[0])
 
-def ctime(t = None):
-    t = localtime()
-    return asctime(t)
+def ctime(t=None):
+    return asctime(localtime(t))
+
+# This is an incomplete implementation and comes from
+# Adrien Di Mascio
+# See http://www.logilab.org/blogentry/6731
+JS("""
+var _DATE_FORMAT_REGXES = {
+    'Y': new RegExp('^-?[0-9]+'),
+    'y': new RegExp('^-?[0-9]{1,2}'),
+    'd': new RegExp('^[0-9]{1,2}'),
+    'm': new RegExp('^[0-9]{1,2}'),
+    'H': new RegExp('^[0-9]{1,2}'),
+    'M': new RegExp('^[0-9]{1,2}'),
+    'S': new RegExp('^[0-9]{1,2}')
+}
+
+/*
+ * _parseData does the actual parsing job needed by `strptime`
+ */
+function _parseDate(datestring, format) {
+    var parsed = {};
+    for (var i1=0,i2=0;i1<format.length;i1++,i2++) {
+        var c1 = format[i1];
+        var c2 = datestring[i2];
+        if (c1 == '%') {
+            c1 = format[++i1];
+            var data = _DATE_FORMAT_REGXES[c1].exec(datestring.substring(i2));
+            if (!data.length) {
+                return null;
+            }
+            data = data[0];
+            i2 += data.length-1;
+            var value = parseInt(data, 10);
+            if (isNaN(value)) {
+                return null;
+            }
+            parsed[c1] = value;
+            continue;
+        }
+        if (c1 != c2) {
+            return null;
+        }
+    }
+    return parsed;
+}
+
+/*
+ * basic implementation of strptime. The only recognized formats
+ * defined in _DATE_FORMAT_REGEXES (i.e. %Y, %d, %m, %H, %M)
+ */
+function strptime(datestring, format) {
+    var parsed = _parseDate(datestring, format);
+    if (!parsed) {
+        return null;
+    }
+    // create initial date (!!! year=0 means 1900 !!!)
+    var date = new Date(0, 0, 1, 0, 0);
+    date.setFullYear(0); // reset to year 0
+    if (typeof parsed.Y != "undefined") {
+        date.setFullYear(parsed.Y);
+    }
+    if (typeof parsed.y != "undefined") {
+        date.setFullYear(2000+parsed.y);
+    }
+    if (typeof parsed.m != "undefined") {
+        if (parsed.m < 1 || parsed.m > 12) {
+            return null;
+        }
+        // !!! month indexes start at 0 in javascript !!!
+        date.setMonth(parsed.m - 1);
+    }
+    if (typeof parsed.d != "undefined") {
+        if (parsed.m < 1 || parsed.m > 31) {
+            return null;
+        }
+        date.setDate(parsed.d);
+    }
+    if (typeof parsed.H != "undefined") {
+        if (parsed.H < 0 || parsed.H > 23) {
+            return null;
+        }
+        date.setHours(parsed.H);
+    }
+    if (typeof parsed.M != "undefined") {
+        if (parsed.M < 0 || parsed.M > 59) {
+            return null;
+        }
+        date.setMinutes(parsed.M);
+    }
+    if (typeof parsed.S != "undefined") {
+        if (parsed.S < 0 || parsed.S > 59) {
+            return null;
+        }
+        date.setSeconds(parsed.S);
+    }
+    return date;
+};
+""")
+
+# For use in datetime.datetime.strptime()
+# There's a timestamp required
+def _strptime(datestring, format):
+    try:
+        return float(JS("strptime(@{{datestring}}.valueOf(), @{{format}}.valueOf()).getTime() / 1000.0"))
+    except:
+        raise ValueError("Invalid or unsupported values for strptime: '%s', '%s'" % (datestring, format))
+
+def strptime(datestring, format):
+    try:
+        tt = localtime(float(JS("strptime(@{{datestring}}.valueOf(), @{{format}}.valueOf()).getTime() / 1000.0")))
+        tt.tm_isdst = -1
+        return tt
+    except:
+        raise ValueError("Invalid or unsupported values for strptime: '%s', '%s'" % (datestring, format))

@@ -12,22 +12,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
-if sys.platform not in ['mozilla', 'ie6', 'opera', 'oldmoz', 'safari']:
+import pyjd
+if pyjd.is_desktop:
     from __pyjamas__ import doc
 from pyjamas import Factory
 
 from pyjamas import DOM
 
-from HTMLTable import HTMLTable
-from RowFormatter import RowFormatter
-from FlexCellFormatter import FlexCellFormatter 
+from pyjamas.ui.HTMLTable import HTMLTable
+from pyjamas.ui.RowFormatter import RowFormatter
+from pyjamas.ui.FlexCellFormatter import FlexCellFormatter 
 
 class FlexTable(HTMLTable):
     def __init__(self, **kwargs):
         if not kwargs.has_key('CellFormatter'):
             kwargs['CellFormatter'] = FlexCellFormatter(self)
         HTMLTable.__init__(self, **kwargs)
+
+    elem_props = HTMLTable.elem_props + [
+           ("rowspan", "Cell Row Span", "CellRowSpan", int, None),
+           ("colspan", "Cell Column Span", "CellColSpan", int, None),
+                 ]
+
+    def _getElementProps(self):
+        return self.elem_props
 
     def addCell(self, row):
         self.insertCell(row, self.getCellCount(row))
@@ -67,6 +75,23 @@ class FlexTable(HTMLTable):
         for i in range(num):
             cell = doc().createElement("td")
             rowElem.appendChild(cell)
+
+    def getCellColSpan(self, context):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().getColSpan(row, col)
+
+    def setCellColSpan(self, context, val):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().setColSpan(row, col, val)
+
+    def getCellRowSpan(self, context):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().getRowSpan(row, col)
+
+    def setCellRowSpan(self, context, val):
+        row, col = self.getIndex(context)
+        self.getCellFormatter().setRowSpan(row, col, val)
+
 
 Factory.registerClass('pyjamas.ui.FlexTable', 'FlexTable', FlexTable)
 

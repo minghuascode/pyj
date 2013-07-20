@@ -1,5 +1,6 @@
 """
 * Copyright 2008 Google Inc.
+* Copyright 2011 Bob Hampton
 *
 * Licensed under the Apache License, Version 2.0 (the "License"); you may not
 * use this file except in compliance with the License. You may obtain a copy of
@@ -18,6 +19,19 @@
 from pyjamas.Canvas import GWTCanvasConsts
 from pyjamas.Canvas import GWTCanvasImplIEConsts
 
+"""
+* A rational fill/stroke style abstraction
+"""
+class VMLStyle:
+
+    def __init__(self):
+
+        self.type = 'Color'
+        self.alpha = 1
+        self.color = '#000'
+        self.gradient = None
+
+
 """*
 * The VML context abstraction for the Internet Explorer implementation.
 """
@@ -34,19 +48,15 @@ class VMLContext:
                            0, 0, 1]
 
             # init other stuff
-            self.arcScaleX         =  1
-            self.arcScaleY         =  1
-            self.globalAlpha         =  1
-            self.strokeAlpha         =  1
-            self.fillAlpha         =  1
-            self.miterLimit          = 10
-            self.lineWidth         =  1
-            self.lineCap           =  GWTCanvasImplIEConsts.BUTT
-            self.lineJoin          =  GWTCanvasConsts.MITER
-            self.strokeStyle         =  "#000"
-            self.fillStyle         =  "#000"
-            self.fillGradient = None
-            self.strokeGradient = None
+            self.arcScaleX =  1
+            self.arcScaleY =  1
+            self.globalAlpha =  1
+            self.miterLimit = 10
+            self.lineWidth =  1
+            self.lineCap =  GWTCanvasImplIEConsts.BUTT
+            self.lineJoin =  GWTCanvasConsts.MITER
+            self.strokeStyle =  VMLStyle()
+            self.fillStyle =  VMLStyle()
             self.globalCompositeOperation  =  GWTCanvasImplIEConsts.SOURCE_OVER
 
             return
@@ -57,19 +67,15 @@ class VMLContext:
             self.matrix.append(ctx.matrix[i])
 
         # copy other stuff
-        self.arcScaleX         = ctx.arcScaleX
-        self.arcScaleY         = ctx.arcScaleY
-        self.globalAlpha         = ctx.globalAlpha
-        self.strokeAlpha         = ctx.strokeAlpha
-        self.fillAlpha         = ctx.fillAlpha
-        self.miterLimit          = ctx.miterLimit
-        self.lineWidth         = ctx.lineWidth
-        self.lineCap           = ctx.lineCap
-        self.lineJoin          = ctx.lineJoin
-        self.strokeStyle         = ctx.strokeStyle
-        self.fillStyle         = ctx.fillStyle
-        self.fillGradient = ctx.fillGradient
-        self.strokeGradient = ctx.strokeGradient
+        self.arcScaleX = ctx.arcScaleX
+        self.arcScaleY = ctx.arcScaleY
+        self.globalAlpha = ctx.globalAlpha
+        self.miterLimit = ctx.miterLimit
+        self.lineWidth = ctx.lineWidth
+        self.lineCap = ctx.lineCap
+        self.lineJoin = ctx.lineJoin
+        self.strokeStyle = ctx.strokeStyle
+        self.fillStyle = ctx.fillStyle
         self.globalCompositeOperation  = ctx.globalCompositeOperation
 
 

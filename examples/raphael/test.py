@@ -10,7 +10,7 @@ import math
 from pyjamas.Timer import Timer
 from pyjamas import Window
 
-from raphael import Raphael
+from pyjamas.raphael.raphael import Raphael
 
 
 #############################################################################
@@ -45,7 +45,7 @@ class TestPanel(SimplePanel):
             alpha = beta * i - math.pi/2
             cos   = math.cos(alpha)
             sin   = math.sin(alpha)
-            path  = self.canvas.path(pathParams)
+            path  = self.canvas.path(data=None, attrs=pathParams)
             path.moveTo(cx + r1 * cos, cy + r1 * sin)
             path.lineTo(cx + r2 * cos, cy + r2 * sin)
             self.opacity.append(1 / self.numSectors * i)
@@ -53,13 +53,13 @@ class TestPanel(SimplePanel):
 
         period = 1000/self.numSectors
 
-        self._timer = Timer(listener=self)
+        self._timer = Timer(notify=self)
         self._timer.scheduleRepeating(period)
 
         self.add(self.canvas)
 
 
-    def onTimer(self, timerID):
+    def onTimer(self, timer):
         """ Respond to our timer firing.
         """
         self.opacity.insert(0, self.opacity.pop())
@@ -71,3 +71,4 @@ class TestPanel(SimplePanel):
 if __name__ == "__main__":
     panel = TestPanel()
     RootPanel().add(panel)
+

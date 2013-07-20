@@ -11,17 +11,15 @@ if __name__ == '__main__':
     from pyjamas.ui.RootPanel import RootPanel
     from pyjamas.ui.Image import Image
     root = RootPanel()
-    image_url = "http://www.dcuktec.com/static/images/logo.png"
-    image = Image(image_url)
-    anchor = Anchor()
-    anchor.add(image)
-    anchor.href.set('http://www.dcuktec.com')
+    image = Image('http://pyjs.org/img/pyjamas.128x128.png')
+    anchor = Anchor(Widget=image, Href='http://pyjs.org')
     root.add(anchor)
 ---------------------------------------------------------
 """
 
 from pyjamas import DOM
 from pyjamas.ui.Widget import Widget
+from pyjamas.ui.ClickListener import ClickHandler
 
 class _Attribute(object):
     "Attribute definition class with method set and remove"
@@ -54,8 +52,9 @@ class _Attributes(object):
         self.rel = _Attribute(element, 'rel', 'link-types' ,'ci')
         self.rev = _Attribute(element, 'rev', 'link-types', 'ci')
         self.charset = _Attribute(element, 'charset', 'charset', 'ci')
+        self.target = _Attribute(element, 'target', 'target', 'ci')
         
-class Anchor(Widget, _Attributes):
+class Anchor(Widget, ClickHandler, _Attributes):
     """Anchor attribute, use this to create the equivalent of the <a></a> tag.
     The attributes: name, href. hreflang, type, rel, rev, charset are in the
     namespace of the Anchor instance.
@@ -71,6 +70,7 @@ class Anchor(Widget, _Attributes):
         self.setElement(element)
         self.widget = None
         Widget.__init__(self, **kwargs)
+        ClickHandler.__init__(self)
         
     def setWidget(self, widget):
         """ Add child widget
@@ -79,11 +79,14 @@ class Anchor(Widget, _Attributes):
         widget.setParent(self)
         self.widget = widget
         DOM.appendChild(self.getElement(), widget.getElement())
-        
+
     def removeWidget(self):
         """ remove child widget
         """
-        widget.removeFromParent()
+        self.widget.removeFromParent()
         DOM.removeChild(self.getElement(), self.widget.getElement())
         self.widget = None
+
+    def setHref(self, url):
+        self.href.set(url)
 

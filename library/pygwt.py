@@ -10,7 +10,7 @@ def getNextHashId():
 def getHashCode(o):
     JS("""
     return (@{{o}} == null) ? 0 :
-        (@{{o}}.$H ? @{{o}}.$H : (@{{o}}.$H = pygwt_getNextHashId()))
+        (@{{o}}.$H ? @{{o}}.$H : (@{{o}}.$H = @{{!pygwt_getNextHashId}}()))
     """)
 
 def getModuleName():
@@ -22,26 +22,25 @@ def getModuleName():
     return mod_name
 
 def getModuleBaseURL():
-    
+    import os.path
+
     # get original app base
     s = get_main_frame().getUri()
-    #s = doc().location.href
-    
-    # Pull off any hash.
-    i = s.find('#')
-    if i != -1:
-        s = s[:i]
-    
-    # Pull off any query string.
-    i = s.find('?')
-    if i != -1:
-        s = s[:i]
-    
-    # Rip off everything after the last slash.
-    i = s.rfind('/')
-    if i != -1:
-        s = s[:i]
+
+    # pull out the directory part
+    s = os.path.dirname(s)
 
     if len(s) > 0:
         return s + "/"
     return ""
+
+def getImageBaseURL(images=False):
+    import pyjd
+
+    if images:
+        if isinstance(images, str):
+            return getModuleBaseURL() + images + '/'
+        else:
+            return getModuleBaseURL() + "images/"
+    else:
+        return getModuleBaseURL()

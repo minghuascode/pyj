@@ -72,7 +72,7 @@ class HTTPHandler(logging.Handler):
     def onCompletion(self, response):
         pass
 
-    def onError(self, repsonse, status):
+    def onError(self, response, status):
         pass
 
     def mapLogRecord(self, record):

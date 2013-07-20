@@ -14,7 +14,7 @@
 
 from __pyjamas__ import JS
 
-from Utils import dictToJs, createListenerMethods
+from pyjamas.gmaps.Utils import dictToJs, createListenerMethods
 
 ### GOOGLE MAPS WRAPPERS ###
 MapTypeId = JS("$wnd.google.maps.MapTypeId")
@@ -41,17 +41,17 @@ def ScaleControlOptions(**params):
 
 def Map(el, options):
     if options:
-        map = JS("""new $wnd.google.maps.Map(el, options);""")
+        map = JS("""new $wnd.google.maps.Map(@{{el}}, @{{options}})""")
     else:
-        map = JS("""new $wnd.google.maps.Map(el);""")
+        map = JS("""new $wnd.google.maps.Map(@{{el}})""")
 
     createListenerMethods(map)
     return map
 
 
 def MapPanes(el):
-    JS("""return new $wnd.google.maps.MapPanes(el);""")
+    JS("""return new $wnd.google.maps.MapPanes(@{{el}})""")
 
 
 def MapCanvasProjection(el):
-    JS("""return new $wnd.google.maps.MapCanvasProjection(el);""")
+    JS("""return new $wnd.google.maps.MapCanvasProjection(@{{el}})""")

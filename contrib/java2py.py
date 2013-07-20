@@ -256,12 +256,13 @@ def java2python(txt):
     return '\n'.join(l)
 
 if __name__ == "__main__":
-    fname = sys.argv[1]
-    f = open(fname + ".java", "r")
-    txt = java2python(f.read())
-    f.close()
+    fnames = sys.argv[1:]
+    for fname in fnames:
+        f = open(fname, "r")
+        txt = java2python(f.read())
+        f.close()
 
-    f = open(fname + ".py", "w")
-    f.write(txt)
-    f.close()
+        f = open(fname[:-5] + ".py", "w")
+        f.write(txt)
+        f.close()
 

@@ -16,7 +16,7 @@
 from pyjamas import DOM
 from pyjamas import Factory
 
-from ComplexPanel import ComplexPanel
+from pyjamas.ui.ComplexPanel import ComplexPanel
 
 class FlowPanel(ComplexPanel):
     def __init__(self, **kwargs):
@@ -31,10 +31,6 @@ class FlowPanel(ComplexPanel):
     def add(self, w):
         ComplexPanel.add(self, w, self.getElement())
 
-    def remove(self, index):
-        if isinstance(index, int):
-            index = self.getWidget(index)
-        return ComplexPanel.remove(self, index)
 
 Factory.registerClass('pyjamas.ui.FlowPanel', 'FlowPanel', FlowPanel)
 

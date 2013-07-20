@@ -164,14 +164,14 @@ class RightGrid(DockPanel):
         self.max_cols = 0
         Timer(1, self)
 
-    def onTimer(self, t):
+    def onTimer(self, timer):
         count = 0
         while count < 10 and self.index < len(self.items):
             self._add_items(self.index)
             self.index += 1
             count += 1
         if self.index < len(self.items):
-            Timer(1, self)
+            timer.schedule(1)
 
     def _add_items(self, i):
 
@@ -468,7 +468,7 @@ class InfoDirectory:
 
 class InfoServicePython(JSONProxy):
     def __init__(self):
-            JSONProxy.__init__(self, "/infoservice/EchoService.py",
+            JSONProxy.__init__(self, "services/EchoService.py",
                     ["get_midpanel_data",
                      "get_rightpanel_datanames",
                      "get_rightpanel_data"])

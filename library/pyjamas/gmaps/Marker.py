@@ -13,11 +13,11 @@
 # limitations under the License.
 
 from __pyjamas__ import JS
-from Utils import dictToJs, createListenerMethods
+from pyjamas.gmaps.Utils import dictToJs, createListenerMethods
 
 
 def Marker(options):
-    marker = JS("""new $wnd.google.maps.Marker(options)""")
+    marker = JS("""new $wnd.google.maps.Marker(@{{options}})""")
     createListenerMethods(marker)
 
     return marker
@@ -29,7 +29,7 @@ def MarkerOptions(**params):
 
 def MarkerImage(url, size, origin, anchor):
     markerImage = JS("""
-       new $wnd.google.maps.MarkerImage(url, size, origin, anchor)
+       new $wnd.google.maps.MarkerImage(@{{url}}, @{{size}}, @{{origin}}, @{{anchor}})
     """)
 
     createListenerMethods(marker)

@@ -12,13 +12,19 @@ from pyjamas.ui.HTML import HTML
 from pyjamas.ui.ClickListener import ClickHandler
 from pyjamas.ui.RootPanel import RootPanel
 from pyjamas.ui import Event
-from pyjamas import log
 from pyjamas import DOM
+from pyjamas import logging
+log = logging.getAppendLogger(__name__, logging.DEBUG, logging.PLAIN_FORMAT)
 
 class Board(VerticalPanel, ClickHandler):
     def __init__(self):
         """ Standard initialiser.
         """
+        global Text
+        # There's an issue with javascript reserved words
+        # Eigther add the global statement (as above) or
+        # define the class Text before this class
+        # See issue #574
         VerticalPanel.__init__(self)
         ClickHandler.__init__(self)
         self.addClickListener(self)
@@ -29,7 +35,7 @@ class Board(VerticalPanel, ClickHandler):
         self.setBorderWidth(1)
 
     def onClick(self, sender):
-        log.writebr('Text'+str(sender))
+        log.debug('Text'+str(sender))
 
     def _event_targets_title(self, event):
         target = DOM.eventGetTarget(event)
@@ -50,7 +56,7 @@ class Text(HTML, ClickHandler):
         self.addClickListener(self)        
 
     def onClick(self, sender):
-        log.writebr('Text'+str(sender))
+        log.debug('Text'+str(sender))
 
 
 if __name__ == "__main__":
@@ -58,4 +64,3 @@ if __name__ == "__main__":
     board = Board()
     RootPanel().add(board)
     pyjd.run()
-

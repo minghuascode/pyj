@@ -12,14 +12,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __pyjamas__ import console
 from pyjamas import Factory
 from pyjamas import DOM
 
-from ComplexPanel import ComplexPanel
+from pyjamas.ui.ComplexPanel import ComplexPanel
 
 class AbsolutePanel(ComplexPanel):
 
+    elem_props = [
+           ("left", "Widget Left Position", "WidgetLeftPos", None, None),
+           ("top", "Widget Top Position", "WidgetTopPos", None, None),
+            ]
+
+    def _getElementProps(self):
+        return ComplexPanel._getElementProps() + self.elem_props
+    
     def __init__(self, **ka):
         element = ka.pop('Element', None) or DOM.createDiv()
         self.setElement(element)
@@ -30,10 +37,30 @@ class AbsolutePanel(ComplexPanel):
     def add(self, widget, left=None, top=None):
         ComplexPanel.add(self, widget, self.getElement())
 
-        if left is not None:
+        if left is not None or top is not None:
             self.setWidgetPosition(widget, left, top)
 
-    def setWidgetPosition(self, widget, left, top):
+    def getWidgetPosition(self, widget):
+        self.checkWidgetParent(widget)
+
+        h = widget.getElement()
+        return DOM.getStyleAttribute(h, "left"), DOM.getStyleAttribute(h, "top")
+
+    def setWidgetLeftPos(self, widget, left):
+        self.setWidgetPosition(widget, left=left)
+
+    def setWidgetTopPos(self, widget, top):
+        self.setWidgetPosition(widget, top=top)
+
+    def getWidgetLeftPos(self, widget):
+        self.checkWidgetParent(widget)
+        return DOM.getStyleAttribute(widget.getElement(), "top")
+
+    def getWidgetTopPos(self, widget):
+        self.checkWidgetParent(widget)
+        return DOM.getStyleAttribute(widget.getElement(), "left")
+
+    def setWidgetPosition(self, widget, left=None, top=None):
         self.checkWidgetParent(widget)
 
         h = widget.getElement()
@@ -43,8 +70,14 @@ class AbsolutePanel(ComplexPanel):
             DOM.setStyleAttribute(h, "position", "static")
         else:
             DOM.setStyleAttribute(h, "position", "absolute")
-            DOM.setStyleAttribute(h, "left", "%dpx" % left)
-            DOM.setStyleAttribute(h, "top", "%dpx" % top)
+            if left is not None:
+                if not isinstance(left, basestring):
+                    left = "%dpx" % left
+                DOM.setStyleAttribute(h, "left", left)
+            if top is not None:
+                if not isinstance(top, basestring):
+                    top = "%dpx" % top
+                DOM.setStyleAttribute(h, "top", top)
 
     def getWidgetLeft(self, widget):
         self.checkWidgetParent(widget)

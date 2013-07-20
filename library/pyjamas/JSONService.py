@@ -8,24 +8,15 @@
 """
 
 import sys
+import traceback
 from HTTPRequest import HTTPRequest
 
-# jeeeez...
 try:
     # included in python 2.6...
     from json import dumps, loads
 except ImportError:
-    try:
-        # recommended library (python 2.5)
-        from simplejson import dumps, loads
-    except ImportError:
-        # who's the pyjs daddy?
-        from pyjamas.JSONParser import JSONParser
-        parser = JSONParser()
-        dumps = getattr(parser, 'encode')
-        loads = getattr(parser, 'decodeAsObject')
-        JSONDecodeException = None
-
+    # recommended library (python 2.5)
+    from simplejson import dumps, loads
 
 class JSONServiceError(Exception):
     pass
@@ -52,6 +43,9 @@ def nextRequestID():
 
 # no stream support
 class JSONService(object):
+    content_type = 'application/json-rpc'
+    accept = 'application/json-rpc'
+
     def __init__(self, url, handler=None, headers=None):
         """
         Create a JSON remote service object. The url is the URL that will 
@@ -75,7 +69,7 @@ class JSONService(object):
         self.handler = handler
         self.headers = headers if headers is not None else {}
         if not self.headers.get("Accept"):
-            self.headers["Accept"] = "application/json"
+            self.headers["Accept"] = self.accept
 
     def callMethod(self, method, params, handler = None):
         if handler is None:
@@ -110,6 +104,12 @@ class JSONService(object):
         #     application/json.
         #     The Accept MUST be specified and SHOULD read application/json.
         #
+        # From http://groups.google.com/group/json-rpc/web/json-rpc-over-http
+        #     Content-Type SHOULD be 'application/json-rpc' but MAY be 
+        #     'application/json' or 'application/jsonrequest'
+        #     The Accept MUST be specified and SHOULD read 'application/json-rpc' 
+        #     but MAY be 'application/json' or 'application/jsonrequest'.
+        #
         msg = {"jsonrpc": "2.0",
                "version": "1.1",
                "method": method, 
@@ -117,7 +117,7 @@ class JSONService(object):
               }
         msg_data = dumps(msg)
         if not HTTPRequest().asyncPost(self.url, msg_data, self,
-                                       False, "text/json",
+                                       False, self.content_type,
                                        self.headers):
             return -1
         return 1
@@ -134,7 +134,7 @@ class JSONService(object):
         request_info = JSONRequestInfo(id, method, handler)
         if not HTTPRequest().asyncPost(self.url, msg_data,
                                        JSONResponseTextHandler(request_info),
-                                       False, "text/json",
+                                       False, self.content_type,
                                        self.headers):
             return -1
         return id
@@ -181,7 +181,7 @@ class JSONResponseTextHandler(object):
             error = dict(
                          code=-32700,
                          message="Parse error while decoding response",
-                         data=None,
+                         data=traceback.format_exc(),
                         )
             self.request.handler.onRemoteError(0, error, self.request)
             return
@@ -265,9 +265,9 @@ class JSONProxy(JSONService):
         self.headers = {} if headers is None else headers
         # Init with JSONService, for the use of callMethod
         JSONService.__init__(self, url, headers=self.headers)
-        self.__registerMethods(methods)
+        self._registerMethods(methods)
 
-    def __registerMethods(self, methods):
+    def _registerMethods(self, methods):
         if methods:
             for method in methods:
                 setattr(self, 
@@ -277,8 +277,8 @@ class JSONProxy(JSONService):
                                 '__call__')
                        )
 
-    # It would be nice to use __getattr__ (in stead of __registerMethods)
-    # However, that doesn't work with pyjs and the use of __registerMethods
+    # It would be nice to use __getattr__ (instead of _registerMethods)
+    # However, that doesn't work with pyjs and the use of _registerMethods
     # saves some repeated instance creations (now only once per method and 
     # not once per call)
     #def __getattr__(self, name):

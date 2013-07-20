@@ -1,11 +1,31 @@
+# Copyright (C) 2009, 2010, Luke Kenneth Casson Leighton <lkcl@lkcl.net>
+# Copyright (C) 2010, Sujan Shakya <suzan.shakya@gmail.com>
+
 import os
+import sys
+import time
+import shutil
 from pyjs import linker
 from pyjs import translator
+if translator.name == 'proto':
+    required_modules =  [
+        'pyjslib', 'sys', 'imp', 'dynamic', 'pyjamas', 'pyjamas.DOM',
+    ]
+    early_static_app_libs = ['_pyjs.js']
+elif translator.name == 'dict':
+    required_modules =  [
+        '__builtin__', 'sys', 'imp', 'dynamic', 'pyjamas', 'pyjamas.DOM',
+    ]
+    early_static_app_libs = []
+else:
+    raise ValueError("unknown translator engine '%s'" % translator.name)
+
 from pyjs import util
 from cStringIO import StringIO
 from optparse import OptionParser
 import pyjs
 import re
+import traceback
 try:
     from hashlib import md5
 except:
@@ -18,19 +38,18 @@ if pyjs.pyjspth is None:
 else:
     BOILERPLATE_PATH = os.path.join(pyjs.pyjspth, 'pyjs', 'src','pyjs', 'boilerplate')
 
+
 APP_HTML_TEMPLATE = """\
 <html>
-<!-- auto-generated html - you should consider editing and
-adapting this to suit your requirements
+<!-- auto-generated html - You should consider editing and adapting this
+ to suit your requirements. No doctype used here to force quirks mode; see
+ wiki for details: http://pyjs.org/wiki/csshellandhowtodealwithit/
 -->
 <head>
-<meta name="pygwt:module" content="%(modulename)s">
 %(css)s
 <title>%(title)s</title>
 </head>
-<body bgcolor="white">
-<script language="javascript" src="%(bootstrap_file)s"></script>
-<iframe id='__pygwt_historyFrame' style='width:0;height:0;border:0'></iframe>
+<body style="background-color:white">
 </body>
 </html>
 """
@@ -50,6 +69,7 @@ class BrowserLinker(linker.BaseLinker):
         self.multi_file = kwargs.pop('multi_file', False)
         self.cache_buster = kwargs.pop('cache_buster', False)
         self.bootstrap_file = kwargs.pop('bootstrap_file', 'bootstrap.js')
+        self.apploader_file = kwargs.pop('apploader_file', None)
         self.public_folder = kwargs.pop('public_folder', 'public')
         self.runtime_options = kwargs.pop('runtime_options', [])
         super(BrowserLinker, self).__init__(*args, **kwargs)
@@ -57,8 +77,7 @@ class BrowserLinker(linker.BaseLinker):
     def visit_start(self):
         super(BrowserLinker, self).visit_start()
         self.boilerplate_path = None
-        self.early_static_app_libs.append('_pyjs.js')
-        #self.js_libs.append('_pyjs.js')
+        self.early_static_app_libs += early_static_app_libs
         self.merged_public = set()
         self.app_files = {}
         self.renamed_libs = {}
@@ -78,17 +97,22 @@ class BrowserLinker(linker.BaseLinker):
                     f.close()
                     name, ext = os.path.splitext(p)
                     new_p = name + '.' + md5sum + ext
-                    os.rename(p, new_p)
+                    # if we are keeping all intermediate files
+                    if self.keep_lib_files:
+                        # copy the file to it's hashed equivalent
+                        shutil.copyfile(p, new_p)
+                    else:   # keep new file only
+                        # clean out any previous version of the hashed file
+                        if os.access(new_p, os.F_OK):
+                            os.unlink(new_p)
+                        os.rename(p, new_p)
                     self.renamed_libs[p] = new_p
                 renamed.append(new_p)
             self.done[platform] = renamed
         self.app_files[platform] = self._generate_app_file(platform)
 
     def visit_end(self):
-        html_output_filename = os.path.join(self.output, self.top_module + '.html')
-        if not os.path.exists(html_output_filename):
-            # autogenerate
-            self._create_app_html(html_output_filename)
+        self._create_app_html()
         self._create_nocache_html()
         if not self.keep_lib_files:
             for fname in self.remove_files:
@@ -160,7 +184,7 @@ class BrowserLinker(linker.BaseLinker):
         late_static_js_libs = [] + self.late_static_js_libs
         dynamic_modules = []
         not_unlinked_modules = [re.compile(m[1:]) for m in self.unlinked_modules if m[0] == '!']
-        for m in ['pyjslib', 'sys', 'dynamic', 'pyjamas', 'pyjamas.DOM']:
+        for m in required_modules:
             not_unlinked_modules.append(re.compile('^%s$' % m))
         unlinked_modules = [re.compile(m) for m in self.unlinked_modules if m[0] != '!' and m not in not_unlinked_modules]
 
@@ -176,7 +200,7 @@ class BrowserLinker(linker.BaseLinker):
                     name = fname[len_ouput_dir:]
                 else:
                     name = os.path.basename(lib)
-                code.append("""<script type="text/javascript"><!--""")
+                code.append('<script type="text/javascript"><!--')
                 if not msg is None:
                     code.append("/* start %s: %s */" % (msg, name))
                 f = file(fname)
@@ -198,11 +222,16 @@ class BrowserLinker(linker.BaseLinker):
 
         def skip_unlinked(lst):
             new_lst = []
-            pltfrm = '.__%s__' % platform_name
+            pltfrm = '__%s__' % platform_name
             for path in lst:
-                fname = os.path.basename(path)[:-3]
-                if fname.endswith(pltfrm):
-                    fname = '.'.join(fname.split('.')[:-1])
+                fname = os.path.basename(path).rpartition(pyjs.MOD_SUFFIX)[0]
+                frags = fname.split('.')
+                # TODO: do not combine module chunks until we write the file
+                if self.cache_buster and len(frags[-1])==32 and len(frags[-1].strip('0123456789abcdef'))==0:
+                    frags.pop()
+                if frags[-1] == pltfrm:
+                    frags.pop()
+                fname = '.'.join(frags)
                 in_not_unlinked_modules = False
                 for m in not_unlinked_modules:
                     if m.match(fname):
@@ -231,7 +260,7 @@ class BrowserLinker(linker.BaseLinker):
         dynamic_app_libs = skip_unlinked(dynamic_app_libs)
         static_js_libs = skip_unlinked(static_js_libs)
         static_app_libs = skip_unlinked(static_app_libs)
-        
+
         dynamic_modules = self.unique_list_values(available_modules + [js_modname(lib) for lib in dynamic_js_libs])
         available_modules = self.unique_list_values(available_modules + early_static_app_libs + dynamic_modules)
         if len(dynamic_modules) > 0:
@@ -240,7 +269,7 @@ class BrowserLinker(linker.BaseLinker):
             dynamic_modules = "[]"
         appscript = "<script><!--\n$wnd.__pygwt_modController.init($pyjs.appname, window)\n$wnd.__pygwt_modController.load($pyjs.appname, [\n'%s'\n])\n--></script>"
         jsscript = """<script type="text/javascript" src="%(path)s" onload="$pyjs.script_onload('%(modname)s')" onreadystatechange="$pyjs.script_onreadystate('%(modname)s')"></script>"""
-        dynamic_app_libs = appscript % "',\n'".join([lib[len_ouput_dir:] for lib in dynamic_app_libs])
+        dynamic_app_libs = appscript % "',\n'".join([lib[len_ouput_dir:].replace('\\', '/') for lib in dynamic_app_libs])
         dynamic_js_libs = '\n'.join([jsscript % {'path': lib, 'modname': js_modname(lib)} for lib in dynamic_js_libs])
         early_static_app_libs = static_code(early_static_app_libs)
         static_app_libs = static_code(static_app_libs)
@@ -278,9 +307,9 @@ class BrowserLinker(linker.BaseLinker):
             ))
         out_file.close()
 
-    def _create_app_html(self, file_name):
-        """ Checks if a base HTML-file is available in the PyJamas
-        output directory.
+    def _create_app_html(self):
+        """ Checks if a base HTML-file is available in the Pyjamas
+        output directory, and injects the bootstrap loader script tag.
         If the HTML-file isn't available, it will be created.
 
         If a CSS-file with the same name is available
@@ -293,29 +322,125 @@ class BrowserLinker(linker.BaseLinker):
         in the generated HTML-file.
         """
 
-        # if html file in output directory exists, leave it alone.
-        if os.path.exists(file_name):
-            return 0
-        if os.path.exists(
-            os.path.join(self.output, self.top_module + '.css' )):
-            css = "<link rel='stylesheet' href='" + self.top_module + ".css'>"
-        elif os.path.exists(
-            os.path.join(self.output, 'pyjamas_default.css' )):
-            css = "<link rel='stylesheet' href='pyjamas_default.css'>"
+        html_output_filename = os.path.join(self.output,
+                                            self.top_module + '.html')
+        if self.apploader_file is None:
+            file_name = html_output_filename 
         else:
-            css = ''
+            file_name = self.apploader_file
 
-        title = 'PyJamas Auto-Generated HTML file ' + self.top_module
+        if os.path.exists(file_name):
+            fh = open(file_name, 'r')
+            base_html = fh.read()
+            fh.close()
+            created = 0
+        else:
+            title = self.top_module + ' (Pyjamas Auto-Generated HTML file)'
+            link_tag = '<link rel="stylesheet" href="%s">'
+            module_css = self.top_module + '.css'
+            default_css = 'pyjamas_default.css'
 
-        base_html = APP_HTML_TEMPLATE % {'modulename': self.top_module,
-                                         'title': title, 'css': css,
-                                         'bootstrap_file': self.bootstrap_file,
-                                        }
+            if os.path.exists(os.path.join(self.output, module_css)):
+                css = link_tag % module_css
+            elif os.path.exists(os.path.join(self.output, default_css)):
+                css = link_tag % default_css
+            else:
+                css = ''
 
-        fh = open (file_name, 'w')
-        fh.write  (base_html)
-        fh.close  ()
-        return 1
+            base_html = APP_HTML_TEMPLATE % { 'title': title, 'css': css }
+            created = 1
+
+        # replace (or add) meta tag pygwt:module
+        meta_tag_head = '<meta name="pygwt:module"'
+        meta_tag_tail = ' content="%s">' % self.top_module
+
+        meta_found = base_html.find(meta_tag_head)
+        if meta_found > -1:
+            meta_stop = base_html.find('>', meta_found + len(meta_tag_head))
+        else:
+            head_end = '</head>'
+            meta_found = base_html.find(head_end)
+            meta_stop = meta_found - 1
+            meta_tag_tail += '\n'
+            if meta_found == -1:
+                raise RuntimeError("Can't inject module meta tag. " +\
+                                   "No tag %(tag)s found in %(file)s" %\
+                                   { 'tag': head_end, 'file': file_name })
+
+        base_html = base_html[:meta_found] \
+                  + meta_tag_head + meta_tag_tail \
+                  + base_html[meta_stop + 1:]
+
+        # inject bootstrap script tag and history iframe
+        script_tag = '<script type="text/javascript" src="%s"></script>' % self.bootstrap_file
+        iframe_tag = '<iframe id="__pygwt_historyFrame" style="display:none;"></iframe>'
+        body_end = '</body>'
+
+        if base_html.find(body_end) == -1:
+            raise RuntimeError("Can't inject bootstrap loader. " + \
+                               "No tag %(tag)s found in %(file)s" % \
+                               { 'tag': body_end, 'file': file_name })
+        base_html = base_html.replace(body_end,
+                                      script_tag +'\n'+ iframe_tag +'\n'+ body_end)
+
+        fh = open(html_output_filename, 'w')
+        fh.write(base_html)
+        fh.close()
+        return created
+
+MODIFIED_TIME = {}
+
+def is_modified(path):
+    current_mtime = os.path.getmtime(path)
+    if current_mtime == MODIFIED_TIME.get(path):
+        return False
+    else:
+        MODIFIED_TIME[path] = current_mtime
+        print('mtime changed for %s.' % path)
+        return True
+
+def serve(path):
+    print("\nMonitoring file modifications in %s ..." % \
+           os.path.abspath(os.curdir))
+
+def build(top_module, pyjs, options, app_platforms,
+          runtime_options, args):
+    print "Building :", top_module
+    print "PYJSPATH :", '\n    '.join(['['] + [p for p in pyjs.path]) + '\n]'
+    
+    translator_arguments= translator.get_compile_options(options)
+    
+    l = BrowserLinker(args,
+                      output=options.output,
+                      platforms=app_platforms,
+                      path=pyjs.path,
+                      js_libs=options.js_includes,
+                      unlinked_modules=options.unlinked_modules,
+                      keep_lib_files=options.keep_lib_files,
+                      compile_inplace=options.compile_inplace,
+                      translator_arguments=translator_arguments,
+                      multi_file=options.multi_file,
+                      cache_buster=options.cache_buster,
+                      bootstrap_file=options.bootstrap_file,
+                      apploader_file=options.apploader_file,
+                      public_folder=options.public_folder,
+                      runtime_options=runtime_options,
+                      list_imports=options.list_imports,
+                     )
+    l()
+
+    if not options.list_imports:
+        print "Built to :", os.path.abspath(options.output)
+        return
+    print "Dependencies"
+    for f, deps in l.dependencies.items():
+        print "%s\n%s" % (f, '\n'.join(map(lambda x: "\t%s" % x, deps)))
+    print
+    print "Visited Modules"
+    for plat, deps in l.visited_modules.items():
+        print "%s\n%s" % (plat, '\n'.join(map(lambda x: "\t%s" % x, deps)))
+    print
+
 
 def build_script():
     usage = """
@@ -343,6 +468,11 @@ def build_script():
         help="Include each module via a script-tag instead of writing"
               " the whole code into the main cache.html file")
 
+    parser.add_option("-A", "--auto-build", dest="auto_build",
+                      default=False,
+                      action="store_true",
+                      help="Runs continuous re-builds on file changes")
+
     parser.add_option("-i", "--list-imports", dest="list_imports",
                       default=False,
                       action="store_true",
@@ -356,7 +486,13 @@ def build_script():
         )
 
     parser.add_option(
-        "--bootstrap-file", 
+        "--apploader-file",
+        dest="apploader_file",
+        help="Specify the application html loader file."
+        )
+
+    parser.add_option(
+        "--bootstrap-file",
         dest="bootstrap_file",
         help="Specify the bootstrap code. (Used when application html file is generated)."
         )
@@ -375,10 +511,29 @@ def build_script():
         )
 
     parser.add_option(
-        "--keep-lib-files", dest="keep_lib_files",
-        default=False,
+        "--no-compile-inplace", dest="compile_inplace",
+        action="store_false",
+        help="Store all js compiled files in output/lib"
+        )
+
+    parser.add_option(
+        "--no-keep-lib-files", dest="keep_lib_files",
+        action="store_false",
+        help="Deletes the js compiled files after linking"
+        )
+
+    parser.add_option(
+        "--compile-inplace", dest="compile_inplace",
+        default=True,
         action="store_true",
-        help="Keep the files generated in the lib directory"
+        help="Store js compiled files in the same place as the python source"
+        )
+
+    parser.add_option(
+        "--keep-lib-files", dest="keep_lib_files",
+        default=True,
+        action="store_true",
+        help="Keep the js compiled files"
         )
 
     parser.set_defaults(output="output",
@@ -387,6 +542,7 @@ def build_script():
                         library_dirs=[],
                         platforms=(','.join(AVAILABLE_PLATFORMS)),
                         bootstrap_file="bootstrap.js",
+                        apploader_file=None,
                         public_folder="public",
                         unlinked_modules=[],
                         )
@@ -398,13 +554,11 @@ def build_script():
         else:
             args.append(a)
 
-    compiler = translator.import_compiler(options.internal_ast)
-
     if options.log_level is not None:
         import logging
         logging.basicConfig(level=options.log_level)
     if len(args) < 1:
-        parser.error("incorrect number of arguments")
+        parser.error("incorrect number of arguments in %s" % repr((sys.argv, options, _args)))
 
     top_module = args[0]
     for d in options.library_dirs:
@@ -412,8 +566,9 @@ def build_script():
 
     if options.platforms:
        app_platforms = options.platforms.lower().split(',')
-    print "Building:", top_module
-    print "PYJSPATH:", pyjs.path
+
+    if options.multi_file and options.compile_inplace:
+        options.compile_inplace = False
 
     runtime_options = []
     runtime_options.append(("arg_ignore", options.function_argument_checking))
@@ -425,47 +580,50 @@ def build_script():
     runtime_options.append(("arg_kwarg_multiple_values", options.function_argument_checking))
     runtime_options.append(("dynamic_loading", (len(options.unlinked_modules)>0)))
 
-    translator_arguments=dict(
-        debug=options.debug,
-        print_statements = options.print_statements,
-        function_argument_checking=options.function_argument_checking,
-        attribute_checking=options.attribute_checking,
-        bound_methods=options.bound_methods,
-        descriptors=options.descriptors,
-        source_tracking=options.source_tracking,
-        line_tracking=options.line_tracking,
-        store_source=options.store_source,
-        inline_code = options.inline_code,
-        operator_funcs = options.operator_funcs,
-        number_classes = options.number_classes,
-        list_imports=options.list_imports,
-    )
+    build(top_module, pyjs, options, app_platforms,
+          runtime_options, args)
 
-    l = BrowserLinker(args,
-                      compiler=compiler,
-                      output=options.output,
-                      platforms=app_platforms,
-                      path=pyjs.path,
-                      js_libs=options.js_includes,
-                      unlinked_modules=options.unlinked_modules,
-                      keep_lib_files=options.keep_lib_files,
-                      translator_arguments=translator_arguments,
-                      multi_file=options.multi_file,
-                      cache_buster=options.cache_buster,
-                      bootstrap_file=options.bootstrap_file,
-                      public_folder=options.public_folder,
-                      runtime_options=runtime_options,
-                      list_imports=options.list_imports,
-                     )
-    l()
-    if not options.list_imports:
-        print "Built to :", os.path.abspath(options.output)
-        return
-    print "Dependencies"
-    for f, deps in l.dependencies.items():
-        print "%s\n%s" % (f, '\n'.join(map(lambda x: "\t%s" % x, deps)))
-    print
-    print "Visited Modules"
-    for plat, deps in l.visited_modules.items():
-        print "%s\n%s" % (plat, '\n'.join(map(lambda x: "\t%s" % x, deps)))
-    print
+    if not options.auto_build:
+        sys.exit(0)
+
+    # autobuild starts here: loops round the current directory file structure
+    # looking for file modifications.  extra files in the public folder are
+    # copied to output, verbatim (without a recompile) but changes to python
+    # files result in a recompile with the exact same compile options.
+
+    first_loop = True
+
+    public_dir = options.public_folder
+    output_dir = options.output
+
+    serve(top_module)
+
+    while True:
+        for root, dirs, files in os.walk('.'):
+            if root[2:].startswith(output_dir):
+                continue
+            if root[2:].startswith(public_dir):
+                for filename in files:
+                    file_path = os.path.join(root, filename)
+                    if is_modified(file_path) and not first_loop:
+                        dest_path = output_dir
+                        dest_path += file_path.split(public_dir, 1)[1]
+                        dest_dir = os.path.dirname(dest_path)
+                        if not os.path.exists(dest_dir):
+                            os.makedirs(dest_dir)
+                        print('Copying %s to %s' % (file_path, dest_path))
+                        shutil.copy(file_path, dest_path)
+            else:
+                for filename in files:
+                    if os.path.splitext(filename)[1] in ('.py',):
+                        file_path = os.path.join(root, filename)
+                        if is_modified(file_path) and not first_loop:
+                            try:
+                              build(top_module, pyjs, options,
+                                    app_platforms, runtime_options, args)
+                            except Exception:
+                              traceback.print_exception(*sys.exc_info())
+                            break
+        first_loop = False
+        time.sleep(1)
+

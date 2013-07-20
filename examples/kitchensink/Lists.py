@@ -1,4 +1,4 @@
-from Sink import Sink, SinkInfo
+from pyjamas.ui.Sink import Sink, SinkInfo
 from pyjamas.ui.ListBox import ListBox
 from pyjamas.ui.HorizontalPanel import HorizontalPanel
 from pyjamas.ui.VerticalPanel import VerticalPanel
@@ -29,6 +29,8 @@ class Lists(Sink):
             self.combo.setItemText(i, txt + " using set text")
         self.combo.setSelectedIndex(0)
         self.fillList(0)
+        self.list.setItemSelected(0, False)
+        self.list.setItemSelected(1, True)
         
         self.list.addChangeListener(self)
         

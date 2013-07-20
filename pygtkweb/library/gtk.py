@@ -1,10 +1,11 @@
 import pyjd
-from pyjamas import log
+from pyjamas import logging
 
 import browser
 import gdk
 #import lxml.etree
 
+log = logging.getAppendLogger(__name__, logging.DEBUG, logging.PLAIN_FORMAT)
 
 # WINDOW TYPES
 WINDOW_TOPLEVEL = 1
@@ -1274,11 +1275,11 @@ def find_props(node):
     for i in range(props.length):
         n = props.item(n)
         name = n.attributes.getNamedItem('name').nodeValue
-        log.write("find_props ")
-        log.write(name)
-        log.write(" ")
-        log.write(n.textContent)
-        log.writebr("")
+        log.debug("find_props ")
+        log.debug(name)
+        log.debug(" ")
+        log.debug(n.textContent)
+        log.debug("")
         res[name] = n.textContent
     return res
 
@@ -1351,10 +1352,10 @@ class Builder:
         klsname = node.attributes.getNamedItem('class').nodeValue
         # XXX shadowing builtin id
         id = node.attributes.getNamedItem('id').nodeValue
-        log.writebr("%s %s" % (klsname, id))
+        log.debug("%s %s" % (klsname, id))
         obj = gtkmap[klsname]()
         props = node.getElementsByTagName("property")
-        log.writebr("%s %d" % (klsname, props.length))
+        log.debug("%s %d" % (klsname, props.length))
         for i in range(props.length):
             prop = props.item(i)
             name = prop.attributes.getNamedItem('name').nodeValue
@@ -1368,7 +1369,7 @@ class Builder:
                 else:
                     print "setattr failed", klsname, name, value
         childnodes = node.getElementsByTagName("child")
-        log.writebr("%s children %d" % (klsname, childnodes.length))
+        log.debug("%s children %d" % (klsname, childnodes.length))
         for i in range(childnodes.length):
             childnode = childnodes.item(i)
             childobj = childnode.getElementsByTagName("object")
@@ -1404,9 +1405,9 @@ class Builder:
     def add_from_string(self, xmldoc):
         x = xmldoc.firstChild.firstChild
         while x:
-            log.writebr(x.nodeName)
+            log.debug(x.nodeName)
             if x.nodeName == 'object':
-                log.writebr("creating object")
+                log.debug("creating object")
                 obj = self.create_object_from_xml_node(x)
                 self.objects.append(obj)
             x = x.nextSibling

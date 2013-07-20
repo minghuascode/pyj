@@ -855,7 +855,7 @@ class Logger(Filterer):
         if self.manager.disable >= DEBUG:
             return
         if DEBUG >= self.getEffectiveLevel():
-            self._log(DEBUG, msg, *args, **kwargs)
+            self._log(DEBUG, msg, args, **kwargs)
 
     def info(self, msg, *args, **kwargs):
         """
@@ -869,7 +869,7 @@ class Logger(Filterer):
         if self.manager.disable >= INFO:
             return
         if INFO >= self.getEffectiveLevel():
-            self._log(INFO, msg, *args, **kwargs)
+            self._log(INFO, msg, args, **kwargs)
 
     def warning(self, msg, *args, **kwargs):
         """
@@ -883,7 +883,7 @@ class Logger(Filterer):
         if self.manager.disable >= WARNING:
             return
         if self.isEnabledFor(WARNING):
-            self._log(WARNING, msg, *args, **kwargs)
+            self._log(WARNING, msg, args, **kwargs)
 
     warn = warning
 
@@ -899,7 +899,7 @@ class Logger(Filterer):
         if self.manager.disable >= ERROR:
             return
         if self.isEnabledFor(ERROR):
-            self._log(ERROR, msg, *args, **kwargs)
+            self._log(ERROR, msg, args, **kwargs)
 
     def exception(self, msg, *args):
         """
@@ -919,7 +919,7 @@ class Logger(Filterer):
         if self.manager.disable >= CRITICAL:
             return
         if CRITICAL >= self.getEffectiveLevel():
-            self._log(CRITICAL, msg, *args, **kwargs)
+            self._log(CRITICAL, msg, args, **kwargs)
 
     fatal = critical
 
@@ -940,7 +940,7 @@ class Logger(Filterer):
         if self.manager.disable >= level:
             return
         if self.isEnabledFor(level):
-            self._log(level, msg, *args, **kwargs)
+            self._log(level, msg, args, **kwargs)
 
     def findCaller(self):
         """

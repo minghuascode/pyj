@@ -10,6 +10,7 @@
     finally open a web browser window to show the compiled application.
 
 """
+import subprocess
 import cStringIO
 import os
 import os.path
@@ -37,7 +38,7 @@ def main():
     # Load all our demonstrations into memory.
 
     demoInfo = {}
-    for section in ["widgets", "panels"]:
+    for section in ["widgets", "panels", "other"]:
         for fName in os.listdir(os.path.join("src", "demos_" + section)):
             if fName.startswith(".") or not fName.endswith(".py"):
                 continue
@@ -92,8 +93,11 @@ def main():
     for section,name in sortKeys:
         demo = demoInfo[name]
         capName = name[0].upper() + name[1:]
+        prefix = "ui."
+        if demo["section"] == "other":
+            prefix = ""
         s.append('    demos.append({"name" : "' + name + '",')
-        s.append('                  "title" : "ui.' + capName + '",')
+        s.append('                  "title" : "' + prefix + capName + '",')
         s.append('                  "section" : "' + demo['section'] + '",')
         s.append('                  "doc" : """' + demo['doc'] + '""",')
         s.append('                  "src" : """' + demo['htmlSrc'] + '""",')
@@ -110,23 +114,26 @@ def main():
     options = " ".join(sys.argv[1:])
     # Compile the application using Pyjamas.
     if sys.platform == "win32":
-        stmt = (os.path.join(PATH_TO_PYJAMAS, 'bin', 'pyjsbuild.py') +
+        stmt = (sys.executable + " " + os.path.join(PATH_TO_PYJAMAS, 'bin', 'pyjsbuild.py') +
                 " " + options +
-                " -o " + os.path.join(here,'build') + " " +
+                " -o " + os.path.join(here,'output') + " " +
                 " -I " + os.path.join(here, 'src') + " " +
                 'Showcase')
     else:
         stmt = (os.path.join(PATH_TO_PYJAMAS, 'bin', 'pyjsbuild') +
                 " " + options +
-                " -o " + os.path.join(here,'build') + " " +
+                " -o " + os.path.join(here,'output') + " " +
                 " -I " + os.path.join(here, 'src') + " " +
                 'Showcase' +
                 " > /dev/null")
-    if os.system(stmt) != 0: return
+
+    e = subprocess.Popen(stmt, shell=True)
+    retcode = e.wait()
+    if retcode != 0: return
 
     # Finally, launch a web browser to show the compiled application.
 
-    #webbrowser.open("file://" + os.path.abspath("build/Showcase.html"))
+    #webbrowser.open("file://" + os.path.abspath("output/Showcase.html"))
 
 #############################################################################
 

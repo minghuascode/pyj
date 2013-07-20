@@ -1,4 +1,5 @@
 from UnitTest import UnitTest
+import sys
 
 name = 'Name'
 prototype = 'Prototype'
@@ -27,18 +28,32 @@ class Foo:
     def do(self):
         return 'do'
 
+    def delete_me(self):
+        pass
+
 
 class AttributeTest(UnitTest):
 
     def testHasattr(self):
-        self.assertEqual(hasattr(self, "getName"), True, "AttrTest should have method 'getName'")
-        self.assertEqual(hasattr(self, "blah"), False, "AttrTest has no method 'getName'")
+        self.assertEqual(hasattr(self, "getName"), True, 
+                        "AttrTest should have method 'getName'")
+        self.assertEqual(hasattr(self, "blah"), False, 
+                        "AttrTest has no method 'getName'")
+        self.assertEqual(hasattr("", "find"), True, 
+                        "str should have method 'find', bug #483")
+        self.assertEqual(hasattr(1.0, "real"), True, 
+                        "float should have attribute 'real', bug #483")
+        self.assertEqual(hasattr(1, "real"), True, 
+                        "int should have attribute 'real', bug #483") 
+
 
     def testGetattr(self):
         func = getattr(self, "getName")
         self.assertEqual(func(), "AttributeTest",
                          "getattr does not return correct value'")
 
+        self.assertEqual(getattr(Foo, 'name'),
+                        'Foo', "attribute mapping, bug #521")
         self.assertEqual(1, getattr(Foo, "notthere", 1))
         foo = Foo(1)
         self.assertEqual(foo.v, getattr(foo, "v"))
@@ -84,9 +99,33 @@ class AttributeTest(UnitTest):
         self.assertEqual(hasattr(foo, "getV"), True)
         try:
             delattr(foo, "getV")
-            self.fail("No AttributeError raised")
         except AttributeError, e:
             self.assertEqual(str(e), "Foo instance has no attribute 'getV'")
+
+
+        class Foo1(Foo):
+            pass
+
+        foo1 = Foo1(1)
+
+        try:
+            delattr(foo, "delete_me")
+            self.fail("Bug #697: No AttributeError raised")
+        except AttributeError:
+            self.assertTrue(True)
+        self.assertEqual(hasattr(foo, "delete_me"), True)
+
+        try:
+            delattr(Foo1, "delete_me")
+            self.fail("Bug #697: No AttributeError raised")
+        except AttributeError:
+            self.assertTrue(True)
+        self.assertEqual(hasattr(Foo1, "delete_me"), True, "Bug #697: Foo1 should still have method 'delete_me'")
+
+        delattr(Foo, "delete_me")
+        self.assertEqual(hasattr(Foo, "delete_me"), False, "Foo shouldn't have method 'delete_me'")
+        self.assertEqual(hasattr(Foo1, "delete_me"), False, "Foo1 shouldn't have method 'delete_me'")
+        self.assertEqual(hasattr(foo, "delete_me"), False, "foo shouldn't have method 'delete_me'")
 
     def testAttrErr(self):
         foo = Foo(1)
@@ -143,3 +182,36 @@ class AttributeTest(UnitTest):
         self.assertTrue(hasattr(Foo, 'typeof'))
         del Foo.typeof
         self.assertFalse(hasattr(Foo, 'typeof'))
+    
+    def testTypeAttributes(self):
+        try:
+            x = [].append
+            x = {}.get
+            if sys.version_info >= (2, 6):
+                x = (1,2,3).count
+            x = (lambda x:z).__name__
+            x = [1,2,3,4][1:2].append
+        except Exception, e:
+            self.fail("Base type attribute, #594, '%s'" % e)
+        try:
+            x = "asdfgd".rjust
+        except Exception, e:
+            self.fail("String attribute, #595, '%s'" % e)
+    
+    def testExpressionAttributeCall(self):
+        s1 = "    1234"
+        s2 = "5678    "
+        
+        def s3():
+            return " 6 "
+        
+        l = [" 1 ", " 2", "3 "]
+        
+        self.assertEqual((s1 + s2).strip(), "12345678")
+        self.assertEqual((s1 + "").strip(), "1234")
+        self.assertEqual(l[0].strip(), "1")
+        self.assertEqual((''.join(l)).strip(), "1  23")
+        self.assertEqual((s3() + s2).strip(), "6 5678")
+        self.assertEqual(s3().strip(), "6")
+        self.assertEqual(" 6 ".strip(), "6")
+        self.assertEqual([1,2,3].pop(), 3)

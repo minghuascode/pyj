@@ -19,6 +19,7 @@ from pyjamas.ui import Applier
 class CellFormatter(Applier):
 
     _elem_props = [
+        ("visible", "Visible", "Visible", None, True),
         ("wordwrap", "Word Wrap", "WordWrap", None, True),
         ("stylename", "Style Name", "StyleName", None, ""),
         ("height", "Height", "Height", None, None),
@@ -99,13 +100,8 @@ class CellFormatter(Applier):
 
     def setWordWrap(self, row, column, wrap):
         self.outer.prepareCell(row, column)
-        if wrap:
-            wrap_str = ""
-        else:
-            wrap_str = "nowrap"
-
-        DOM.setStyleAttribute(self.getElement(row, column),
-                              "whiteSpace", wrap_str)
+        wrap = (not wrap) and "nowrap" or ""
+        DOM.setStyleAttribute(self.getElement(row, column), "whiteSpace", wrap)
 
     def getCellElement(self, table, row, col):
         length = table.rows.length

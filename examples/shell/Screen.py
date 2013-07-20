@@ -1,7 +1,9 @@
 from Popups import DialogBoxModal
 from pyjamas.ui.AbsolutePanel import AbsolutePanel
 from pyjamas import Window
-from pyjamas import log
+from pyjamas import logging
+
+log = logging.getAppendLogger(__name__, logging.DEBUG, logging.PLAIN_FORMAT)
 
 class Application(DialogBoxModal):
     def __init__(self, screen, title, width, height):
@@ -13,12 +15,12 @@ class Application(DialogBoxModal):
         #self.setHeight(height)
 
     def onMouseDown(self, sender, x, y):
-        #log.writebr("down %d %d" % (x, y))
+        #log.debug("down %d %d" % (x, y))
         DialogBoxModal.onMouseDown(self, sender, x, y)
         self.dragged = False
         
     def onMouseMove(self, sender, x, y):
-        #log.writebr("move %d %d" % (x, y))
+        #log.debug("move %d %d" % (x, y))
         if self.dragStartX != x or self.dragStartY != y:
             if not self.dragged:
                 self.screen.raise_app(self)
@@ -26,7 +28,7 @@ class Application(DialogBoxModal):
         DialogBoxModal.onMouseMove(self, sender, x, y)
 
     def onMouseUp(self, sender, x, y):
-        #log.writebr("up %d %d" % (x, y))
+        #log.debug("up %d %d" % (x, y))
         DialogBoxModal.onMouseUp(self, sender, x, y)
         if not self.dragged:
             self.screen.raise_or_lower(self)

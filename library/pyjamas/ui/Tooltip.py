@@ -2,10 +2,10 @@
 # Ported by Willie Gollino from Tooltip component for GWT - Originally by Alexei Sokolov http://gwt.components.googlepages.com/
 # Copyright (C) 2009 Luke Kenneth Casson Leighton <lkcl@lkcl.net>
 
-from PopupPanel import PopupPanel
+from pyjamas.ui.PopupPanel import PopupPanel
 from pyjamas import Factory
-from HTML import HTML
-from RootPanel import RootPanel
+from pyjamas.ui.HTML import HTML
+from pyjamas.ui.RootPanel import RootPanel
 from pyjamas.Timer import Timer
 
 tooltip_hide_timer = None
@@ -19,7 +19,7 @@ class Tooltip(PopupPanel):
         self.show_delay = show_delay
         self.hide_delay = hide_delay
         
-        if isinstance(contents, str):
+        if isinstance(contents, basestring):
             contents = HTML(contents)
         self.add(contents)
 
@@ -45,14 +45,14 @@ class Tooltip(PopupPanel):
         self.tooltip_show_timer.cancel()
         PopupPanel.hide(self, autoClosed)
 
-    def onTimer(self, tooltip_id):
+    def onTimer(self, timer):
         global tooltip_hide_timer
 
         # deactivate fast tooltips on last timer
-        if tooltip_hide_timer and tooltip_id == tooltip_hide_timer.getID():
+        if timer is tooltip_hide_timer:
             tooltip_hide_timer = None
 
-        if tooltip_id == self.tooltip_show_timer.getID():
+        if timer is self.tooltip_show_timer:
             self.show()
         else:
             self.hide()
@@ -65,24 +65,22 @@ class TooltipListener:
 
     def __init__(self, text, show_delay = 1000, hide_delay = 5000, styleName = ""):
         if not styleName:
-            styleName = TooltipListener.DEFAULT_TOOLTIP_STYLE
+            styleName = self.DEFAULT_TOOLTIP_STYLE
         
         self.tooltip = None
         self.text = text
         self.styleName = styleName
         self.show_delay = show_delay
         self.hide_delay = hide_delay
-        self.offsetX = TooltipListener.DEFAULT_OFFSET_X
-        self.offsetY = TooltipListener.DEFAULT_OFFSET_Y
+        self.offsetX = self.DEFAULT_OFFSET_X
+        self.offsetY = self.DEFAULT_OFFSET_Y
 
     def onMouseEnter(self, sender):
-        if self.tooltip is not None:
-            self.tooltip.hide()
+        self.hide()
         self.tooltip = Tooltip(sender, self.offsetX, self.offsetY, self.text, self.show_delay, self.hide_delay, self.styleName)
 
     def onMouseLeave(self, sender):
-        if self.tooltip is not None:
-            self.tooltip.hide()
+        self.hide()
 
     def onMouseMove(self, sender, x, y):
         pass
@@ -111,5 +109,9 @@ class TooltipListener:
     def setOffsetY(self, offsetY):
         self.offsetY = offsetY
 
+    def hide(self):
+        if self.tooltip is not None:
+            self.tooltip.hide()
+        
 Factory.registerClass('pyjamas.ui.Tooltip', 'Tooltip', Tooltip)
 

@@ -1,5 +1,5 @@
 # Copyright 2006 James Tauber and contributors
-# Copyright (C) 2009 Luke Kenneth Casson Leighton <lkcl@lkcl.net>
+# Copyright (C) 2009, 2010 Luke Kenneth Casson Leighton <lkcl@lkcl.net>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,76 +15,68 @@
 from pyjamas import DOM
 from pyjamas import Factory
 
-from PopupPanel import PopupPanel
-from HTML import HTML
-from FlexTable import FlexTable
+from pyjamas.ui.PopupPanel import PopupPanel
+from pyjamas.ui.HTML import HTML
+from pyjamas.ui.FlexTable import FlexTable
 from pyjamas.ui import HasHorizontalAlignment
 from pyjamas.ui import HasVerticalAlignment
-from pyjamas.ui.Image import Image
 from pyjamas.ui import GlassWidget
 
-from pyjamas import Window
 
 class DialogBox(PopupPanel):
-    _props = [( "caption", "Caption", "Caption", None),
-            ]
+    _props = [
+        ("caption", "Caption", "HTML", None),
+    ]
 
     def __init__(self, autoHide=None, modal=True, centered=False,
-                       **kwargs):
-
-        self.caption = HTML()
-        self.child = None
-        self.modal = modal
+                 **kwargs):
+        # Init section
         self.dragging = False
         self.dragStartX = 0
         self.dragStartY = 0
-        self.panel = FlexTable(Height="100%", BorderWidth="0",
-                                CellPadding="0", CellSpacing="0")
-        self.panel.setWidget(0, 0, self.caption)
+        self.child = None
+        self.panel = FlexTable(
+            Height="100%",
+            BorderWidth="0",
+            CellPadding="0",
+            CellSpacing="0",
+        )
         cf = self.panel.getCellFormatter()
         cf.setHeight(1, 0, "100%")
         cf.setWidth(1, 0, "100%")
-        cf.setAlignment(1, 0,
-                        HasHorizontalAlignment.ALIGN_CENTER,
-                        HasVerticalAlignment.ALIGN_MIDDLE)
+        cf.setAlignment(
+            1, 0,
+            HasHorizontalAlignment.ALIGN_CENTER,
+            HasVerticalAlignment.ALIGN_MIDDLE,
+        )
 
+        # Arguments section
+        self.modal = modal
+        self.caption = HTML()
+        self.panel.setWidget(0, 0, self.caption)
         self.caption.setStyleName("Caption")
         self.caption.addMouseListener(self)
 
-        self.centered = centered
-
-        self.closeable = False
-
+        # Finalize
         kwargs['StyleName'] = kwargs.get('StyleName', "gwt-DialogBox")
         PopupPanel.__init__(self, autoHide, modal, **kwargs)
         PopupPanel.setWidget(self, self.panel)
 
+        self.centered = centered
+
+    def onWindowResized(self, width, height):
+        super(DialogBox, self).onWindowResized(width, height)
+        if self.centered:
+            self.centerBox()
+
+    def show(self):
+        super(DialogBox, self).show()
+        if self.centered:
+            self.centerBox()
+
     @classmethod
     def _getProps(self):
         return PopupPanel._getProps() + self._props
-
-    def _closeClicked(self, sender):
-        self.hide()
-
-    def setCloseable(self, closeable):
-        """ Note: only use this to set closeable to True,
-            and do not attempt to set closeable to False:
-            it won't work.
-        """
-        if self.closeable or not closeable:
-            return
-
-        closeButton = Image("window_close.gif")
-        closeButton.setStyleName("Caption closeBtn")
-        closeButton.addClickListener(getattr(self, "_closeClicked"))
-        self.panel.setWidget(0, 1, closeButton)
-        self.panel.getFlexCellFormatter().setColSpan(1, 0, 2)
-        cf = self.panel.getCellFormatter()
-        cf.setWidth(0, 1, "16px")
-        cf.setAlignment(0, 1,
-                        HasHorizontalAlignment.ALIGN_RIGHT,
-                        HasVerticalAlignment.ALIGN_MIDDLE)
-        self.closeable = True
 
     def onEventPreview(self, event):
         # preventDefault on mousedown events, outside of the
@@ -112,7 +104,7 @@ class DialogBox(PopupPanel):
 
     def onMouseDown(self, sender, x, y):
         self.dragging = True
-        GlassWidget.show(self)
+        GlassWidget.show(self.caption)
         self.dragStartX = x
         self.dragStartY = y
 
@@ -170,30 +162,4 @@ class DialogBox(PopupPanel):
 
         self.child = widget
 
-    def centerBox(self):
-        self_width = self.getOffsetWidth()
-        self_height = self.getOffsetHeight()
-
-        height = Window.getClientHeight()
-        width = Window.getClientWidth()
-
-        center_x = int(width) / 2
-        center_y = int(height) / 2
-
-        self_top  = center_y - (int(self_height) / 2)
-        self_left = center_x - (int(self_width)  / 2)
-
-        self.setPopupPosition(self_left, self_top)
-
-    def onWindowResized(self, width, height):
-        super(DialogBox, self).onWindowResized(width, height)
-        if self.centered:
-            self.centerBox()
-
-    def show(self):
-        super(DialogBox, self).show()
-        if self.centered:
-            self.centerBox()
-
 Factory.registerClass('pyjamas.ui.DialogBox', 'DialogBox', DialogBox)
-

@@ -16,16 +16,18 @@ from pyjamas import DOM
 from pyjamas import Factory
 from __pyjamas__ import console
 
-from Composite import Composite
-from DeckPanel import DeckPanel
-from VerticalPanel import VerticalPanel
-from TabBar import TabBar
+from pyjamas.ui.Composite import Composite
+from pyjamas.ui.DeckPanel import DeckPanel
+from pyjamas.ui.VerticalPanel import VerticalPanel
+from pyjamas.ui.Panel import PanelBase
+from pyjamas.ui.TabBar import TabBar
 
-class TabPanel(Composite):
+class TabPanel(PanelBase, Composite):
     def __init__(self, tabBar=None, **kwargs):
-        self.tab_children = [] # TODO: can self.children be used instead?
+        self.children = [] # TODO: can self.children be used instead?
         self.tab_names = {} 
         self.deck = kwargs.pop('Deck', None)
+        floatingtab = kwargs.pop('FloatingTab', False)
         if self.deck is None:
             self.deck = DeckPanel(StyleName="gwt-TabPanelBottom")
         if tabBar is None:
@@ -39,7 +41,8 @@ class TabPanel(Composite):
         element = kwargs.pop('Element', None)
 
         panel = VerticalPanel(Element=element)
-        panel.add(self.tabBar)
+        if not floatingtab:
+            panel.add(self.tabBar)
         if self.deck.getParent() is None:
             panel.add(self.deck)
             panel.setCellHeight(self.deck, "100%")
@@ -48,6 +51,7 @@ class TabPanel(Composite):
 
         kwargs['StyleName'] = kwargs.get('StyleName', "gwt-TabPanel")
 
+        PanelBase.__init__(self)
         Composite.__init__(self, panel, **kwargs)
 
     def add(self, widget, tabText=None, asHTML=False, name=None):
@@ -58,14 +62,15 @@ class TabPanel(Composite):
             name refers to an optional name (string) where the tab can
             be removed by name, if desired, using TabBar.remove.
         """
+        print "TabPanel add", widget, tabText, asHTML, name
         self.insert(widget, tabText, asHTML, self.getWidgetCount(), name)
+
+    def addIndexedItem(self, index, child):
+        idx, name = index
+        self.insert(child, name, False, idx, name)
 
     def addTabListener(self, listener):
         self.tabListeners.append(listener)
-
-    def clear(self):
-        while self.getWidgetCount() > 0:
-            self.remove(self.getWidget(0))
 
     def getDeckPanel(self):
         return self.deck
@@ -73,29 +78,17 @@ class TabPanel(Composite):
     def getTabBar(self):
         return self.tabBar
 
-    def getWidget(self, index):
-        return self.tab_children[index]
-
-    def getWidgetCount(self):
-        return len(self.tab_children)
-
-    def getWidgetIndex(self, child):
-        return self.tab_children.index(child)
-
     def insert(self, widget, tabText, asHTML=False, beforeIndex=None,
                                       name=None):
         if beforeIndex is None:
             beforeIndex = asHTML
             asHTML = False
 
-        self.tab_children.insert(beforeIndex, widget)
+        self.children.insert(beforeIndex, widget)
         if name is not None:
             self.tab_names[name] = widget
         self.tabBar.insertTab(tabText, asHTML, beforeIndex)
         self.deck.insert(widget, beforeIndex)
-
-    def __iter__(self):
-        return self.tab_children.__iter__()
 
     def onBeforeTabSelected(self, sender, tabIndex):
         for listener in self.tabListeners:
@@ -113,7 +106,7 @@ class TabPanel(Composite):
             or by name (string).  if by name, the name has to be one
             which was given to add or insert
         """
-        if isinstance(widget, str):
+        if isinstance(widget, basestring):
             widget = self.tab_names[widget]
         elif isinstance(widget, int):
             widget = self.getWidget(widget)
@@ -127,7 +120,7 @@ class TabPanel(Composite):
         if index == -1:
             return False
 
-        self.tab_children.remove(widget)
+        self.children.remove(widget)
         self.tabBar.removeTab(index)
         self.deck.remove(widget)
         return True
@@ -136,6 +129,16 @@ class TabPanel(Composite):
         self.tabListeners.remove(listener)
 
     def selectTab(self, index):
+        """ manual tab selection. tab can be selected:
+             * by index,
+             * by tab name (matching TabPanel.insert name arg if given)
+             * or by widget.
+        """
+        if isinstance(index, basestring):
+            index = self.tab_names[index]
+        if not isinstance(index, int):
+            index = self.getWidgetIndex(index)
+
         self.tabBar.selectTab(index)
 
 Factory.registerClass('pyjamas.ui.TabPanel', 'TabPanel', TabPanel)

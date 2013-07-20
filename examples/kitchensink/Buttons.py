@@ -1,4 +1,4 @@
-from Sink import Sink, SinkInfo
+from pyjamas.ui.Sink import Sink, SinkInfo
 from pyjamas.ui.Button import Button
 from pyjamas.ui.CheckBox import CheckBox
 from pyjamas.ui.VerticalPanel import VerticalPanel

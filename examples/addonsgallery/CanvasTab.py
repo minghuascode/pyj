@@ -1,10 +1,12 @@
-from Sink import Sink, SinkInfo
+from pyjamas.ui.Sink import Sink, SinkInfo
 from pyjamas.ui.Image import Image
 from pyjamas.ui.HTML import HTML
 from pyjamas.ui.VerticalPanel import VerticalPanel
 from pyjamas.ui.HorizontalPanel import HorizontalPanel
 from pyjamas.ui.RootPanel import RootPanel
-from pyjamas.Canvas2D import Canvas, CanvasImage, ImageLoadListener
+from pyjamas.Canvas.GWTCanvas import GWTCanvas
+from pyjamas.Canvas.ImageLoader import loadImages
+from pyjamas.Canvas.Color import Color
 from pyjamas.Timer import Timer
 from math import floor, cos, sin
 import time
@@ -15,7 +17,7 @@ class CanvasTab(Sink):
         colour_grid = ColourGridCanvas()
         rotated = RotatedCanvas()       
         spheres = SpheresCanvas()
-        pattern = PatternCanvas()
+        #pattern = PatternCanvas()
         spiro = SpiroCanvas()
         self.solar = SolarCanvas()
         
@@ -24,7 +26,7 @@ class CanvasTab(Sink):
         row0.add(colour_grid)
         row0.add(rotated)
         row0.add(spheres)
-        row0.add(pattern)
+        #row0.add(pattern)
         
         row1 = HorizontalPanel()
         row1.setSpacing(8)
@@ -46,16 +48,26 @@ class CanvasTab(Sink):
 
 
 def init():
-    text=r"<b>Canvas vector drawing component</b><p>Gives python access to the browser's native canvas tag (<a href=\"http://excanvas.sourceforge.net\">Explorer Canvas</a> in IE)"
-    text+=r"<p>Originally by Alexei Sokolov at <a href=\"http://gwt.components.googlepages.com\">gwt.components.googlepages.com</a>"
-    text+=r"<br>Samples ported from the <a href=\"http://developer.mozilla.org/en/docs/Canvas_tutorial\">Mozilla canvas tutorial</a>" 
+    text="""
+<b>Canvas vector drawing component: Canvas2D</b>
+<p>Gives python access to the browser's native canvas tag.
+
+<p>There are two canvas drawing libraries: Canvas2D (oldest) and Canvas 
+(preferred). Both work in modern browsers (that support canvas). For IE 
+the canvas functionality is emulated in javascript. This leads to
+lower performance in IE and missing/broken functionality.
+
+<p>Originally by Alexei Sokolov at <a href=\"http://gwt.components.googlepages.com\">gwt.components.googlepages.com</a>"
+<br>Samples ported from the <a href=\"http://developer.mozilla.org/en/docs/Canvas_tutorial\">Mozilla canvas tutorial</a>" 
+<br>Samples ported from the <a href=\"http://developer.mozilla.org/en/docs/Canvas_tutorial\">Mozilla canvas tutorial</a>
+"""
     
     return SinkInfo("Canvas", text, CanvasTab)
 
 
-class ColourGridCanvas(Canvas):
+class ColourGridCanvas(GWTCanvas):
     def __init__(self):
-        Canvas.__init__(self, 150, 150)
+        GWTCanvas.__init__(self, 150, 150, 150, 150)
         self.draw()
         self.addMouseListener(self)
         self.addKeyboardListener(self)
@@ -63,9 +75,10 @@ class ColourGridCanvas(Canvas):
     def draw(self):
         for i in range(0, 6):
             for j in range(0, 6):
-                self.context.fillStyle = u'rgb(%d,%d,0)' % \
-                                        ( floor(255-42.5*i), floor(255-42.5*j))
-                self.context.fillRect(j*25,i*25,25,25)
+                self.setFillStyle(Color(
+                    'rgb(%d,%d,0)' % (floor(255-42.5*i), floor(255-42.5*j))
+                ))
+                self.fillRect(j*25,i*25,25,25)
 
     def onMouseDown(self, sender, x, y):
         pass
@@ -97,99 +110,102 @@ class ColourGridCanvas(Canvas):
         RootPanel().add(HTML("keypressed: %s" % keyCode))      
 
 
-class RotatedCanvas(Canvas):
+class RotatedCanvas(GWTCanvas):
     def __init__(self):
-        Canvas.__init__(self, 150, 150)
-        self.context.translate(75,75)
+        GWTCanvas.__init__(self, 150, 150, 150, 150)
+        self.translate(75,75)
         self.draw()
 
     def draw(self):
         pi = 3.14159265358979323
         # Loop through rings (from inside to out)
         for i in range(1,6):
-            self.context.save()
-            self.context.fillStyle = 'rgb(%d,%d,255)'%((51*i), (255-51*i))
+            self.saveContext()
+            self.setFillStyle(Color('rgb(%d,%d,255)'%((51*i), (255-51*i))))
 
             # draw individual dots
             for j in range(0,i*6): 
-                self.context.rotate(pi*2/(i*6))
-                self.context.beginPath()
-                self.context.arc(0,i*12.5,5,0,pi*2,True)
-                self.context.fill()
+                self.rotate(pi*2/(i*6))
+                self.beginPath()
+                self.arc(0,i*12.5,5,0,pi*2,True)
+                self.fill()
 
-            self.context.restore()
+            self.restoreContext()
 
 
-class SpheresCanvas(Canvas):
+class SpheresCanvas(GWTCanvas):
     def __init__(self):
-        Canvas.__init__(self, 150, 150)
+        GWTCanvas.__init__(self, 150, 150, 150, 150)
         self.draw()
         
     def draw(self):
         # create gradients
-        radgrad = self.context.createRadialGradient(45,45,10,52,50,30)
-        radgrad.addColorStop(0, '#A7D30C')
-        radgrad.addColorStop(0.9, '#019F62')
-        radgrad.addColorStop(1, 'rgba(1,159,98,0)')
+        radgrad = self.createRadialGradient(45,45,10,52,50,30)
+        radgrad.addColorStop(0, Color('#A7D30C'))
+        radgrad.addColorStop(0.9, Color('#019F62'))
+        radgrad.addColorStop(1, Color('rgba(1,159,98,0)'))
   
-        radgrad2 = self.context.createRadialGradient(105,105,20,112,120,50)
-        radgrad2.addColorStop(0, '#FF5F98')
-        radgrad2.addColorStop(0.75, '#FF0188')
-        radgrad2.addColorStop(1, 'rgba(255,1,136,0)')
+        radgrad2 = self.createRadialGradient(105,105,20,112,120,50)
+        radgrad2.addColorStop(0, Color('#FF5F98'))
+        radgrad2.addColorStop(0.75, Color('#FF0188'))
+        radgrad2.addColorStop(1, Color('rgba(255,1,136,0)'))
 
-        radgrad3 = self.context.createRadialGradient(95,15,15,102,20,40)
-        radgrad3.addColorStop(0, '#00C9FF')
-        radgrad3.addColorStop(0.8, '#00B5E2')
-        radgrad3.addColorStop(1, 'rgba(0,201,255,0)')
+        radgrad3 = self.createRadialGradient(95,15,15,102,20,40)
+        radgrad3.addColorStop(0, Color('#00C9FF'))
+        radgrad3.addColorStop(0.8, Color('#00B5E2'))
+        radgrad3.addColorStop(1, Color('rgba(0,201,255,0)'))
 
-        radgrad4 = self.context.createRadialGradient(0,150,50,0,140,90)
-        radgrad4.addColorStop(0, '#F4F201')
-        radgrad4.addColorStop(0.8, '#E4C700')
-        radgrad4.addColorStop(1, 'rgba(228,199,0,0)')
+        radgrad4 = self.createRadialGradient(0,150,50,0,140,90)
+        radgrad4.addColorStop(0, Color('#F4F201'))
+        radgrad4.addColorStop(0.8, Color('#E4C700'))
+        radgrad4.addColorStop(1, Color('rgba(228,199,0,0)'))
  
         # draw shapes
-        self.context.fillStyle = radgrad4
-        self.context.fillRect(0,0,150,150)
-        self.context.fillStyle = radgrad3
-        self.context.fillRect(0,0,150,150)
-        self.context.fillStyle = radgrad2
-        self.context.fillRect(0,0,150,150)
-        self.context.fillStyle = radgrad
-        self.context.fillRect(0,0,150,150)
+        self.setFillStyle(radgrad4)
+        self.fillRect(0,0,150,150)
+        self.setFillStyle(radgrad3)
+        self.fillRect(0,0,150,150)
+        self.setFillStyle(radgrad2)
+        self.fillRect(0,0,150,150)
+        self.setFillStyle(radgrad)
+        self.fillRect(0,0,150,150)
 
 
-class PatternCanvas(Canvas):
+class PatternCanvas(GWTCanvas):
     def __init__(self):
-        Canvas.__init__(self, 150, 150)
-        self.img = CanvasImage('images/wallpaper.png', self)
+        GWTCanvas.__init__(self, 150, 150, 150, 150)
+        loadImages(['images/wallpaper.png'], self)
 
-    def onLoad(self, sender=None):
-        if sender==self.img:
-            self.draw()
-    
+    def onImagesLoaded(self, imagesHandles):
+        self.img = imagesHandles[0]
+        self.draw()
+
     def onError(self):
         pass
 
     def draw(self):
-        ptrn = self.context.createPattern(self.img.getElement(), 'repeat')
-        self.context.fillStyle = ptrn
-        self.context.fillRect(0,0,200,200)
+        # in GWTCanvas createPattern is not defined
+        ptrn = self.createPattern(self.img, 'repeat')
+        self.setFillStyle(ptrn)
+        self.fillRect(0,0,200,200)
 
 
-class SpiroCanvas(Canvas):
+class SpiroCanvas(GWTCanvas):
     def __init__(self):
-        Canvas.__init__(self, 300, 300)
+        GWTCanvas.__init__(self, 300, 300, 300, 300)
         self.draw()     
 
     def draw(self):
-        self.context.fillRect(0,0,300,300)
+        self.saveContext()
+        self.fillRect(0,0,300,300)
         for i in range(0, 3):
             for j in range(0, 3):
-                self.context.save()
-                self.context.strokeStyle = "#9CFF00"
-                self.context.translate(50+j*100,50+i*100)
+                self.setStrokeStyle(Color("#9CFF00"))
+                self.saveContext()
+                self.translate(50+j*100,50+i*100)
                 self.drawSpirograph(20*(j+2)/(j+1),-8*(i+3)/(i+1),10)
-                self.context.restore()
+                self.restoreContext()
+        self.restoreContext()
 
     def drawSpirograph(self, R, r, O):
         pi = 3.14159265358979323
@@ -198,34 +214,39 @@ class SpiroCanvas(Canvas):
         x2 = -1
         y2 =  -1
         i  = 1
-        self.context.beginPath()
-        self.context.moveTo(x1,y1)
+        self.beginPath()
+        self.moveTo(x1,y1)
         while x2 != R-O and y2 != 0:
             if i>20000:
                 break
             x2 = (R+r)*cos(i*pi/72) - (r+O)*cos(((R+r)/r)*(i*pi/72))
             y2 = (R+r)*sin(i*pi/72) - (r+O)*sin(((R+r)/r)*(i*pi/72))
-            self.context.lineTo(x2,y2)
+            self.lineTo(x2,y2)
             x1 = x2
             y1 = y2
             i+=1
-        self.context.stroke()
+        self.stroke()
 
 
-class SolarCanvas(Canvas):
+class SolarCanvas(GWTCanvas):
     def __init__(self):
-        Canvas.__init__(self, 300, 300)     
-        self.sun = CanvasImage('images/sun.png')
-        self.moon = CanvasImage('images/moon.png')
-        self.earth = CanvasImage('images/earth.png')
-        
-        self.loader = ImageLoadListener()
-        self.loader.add(self.sun)
-        self.loader.add(self.moon)
-        self.loader.add(self.earth) 
+        GWTCanvas.__init__(self, 300, 300, 300, 300)
+        loadImages(
+            [
+                'images/sun.png',
+                'images/moon.png',
+                'images/earth.png',
+            ],
+            self,
+        )
         
         self.isActive = True
         self.onTimer()
+
+    def onImagesLoaded(self, imagesHandles):
+        self.sun = imagesHandles[0]
+        self.moon = imagesHandles[1]
+        self.earth = imagesHandles[2]
 
     def onTimer(self, t=None):
         if not self.isActive:
@@ -242,37 +263,37 @@ class SolarCanvas(Canvas):
 
     def draw(self):
         pi = 3.14159265358979323
-        if not self.loader.isLoaded():
+        if not getattr(self, 'earth', None):
             return
         
-        self.context.globalCompositeOperation = 'destination-over'
+        self.setGlobalCompositeOperation('destination-over')
 
         # clear canvas
-        self.context.clearRect(0,0,300,300) 
+        self.clear() 
         
-        self.context.save()
-        self.context.fillStyle = 'rgba(0,0,0,0.4)'
-        self.context.strokeStyle = 'rgba(0,153,255,0.4)'
-        self.context.translate(150,150)
+        self.saveContext()
+        self.setFillStyle(Color('rgba(0,0,0,0.4)'))
+        self.setStrokeStyle(Color('rgba(0,153,255,0.4)'))
+        self.translate(150,150)
         
         # Earth
-        self.context.rotate( ((2*pi)/60)*self.getTimeSeconds() + ((2*pi)/60000)*self.getTimeMilliseconds() )
-        self.context.translate(105,0)
-        self.context.fillRect(0,-12,50,24) # Shadow
-        self.context.drawImage(self.earth.getElement() ,-12,-12)
+        self.rotate( ((2*pi)/60)*self.getTimeSeconds() + ((2*pi)/60000)*self.getTimeMilliseconds() )
+        self.translate(105,0)
+        self.fillRect(0,-12,50,24) # Shadow
+        self.drawImage(self.earth.getElement() ,-12,-12)
         
         # Moon
-        self.context.save()
-        self.context.rotate( ((2*pi)/6)*self.getTimeSeconds() + ((2*pi)/6000)*self.getTimeMilliseconds() )
-        self.context.translate(0,28.5)
-        self.context.drawImage(self.moon.getElement(),-3.5,-3.5)
-        self.context.restore()
+        self.saveContext()
+        self.rotate( ((2*pi)/6)*self.getTimeSeconds() + ((2*pi)/6000)*self.getTimeMilliseconds() )
+        self.translate(0,28.5)
+        self.drawImage(self.moon.getElement(),-3.5,-3.5)
+        self.restoreContext()
         
-        self.context.restore()
+        self.restoreContext()
         
-        self.context.beginPath()
-        self.context.arc(150,150,105,0,pi*2,False) # Earth orbit
-        self.context.stroke()
+        self.beginPath()
+        self.arc(150,150,105,0,pi*2,False) # Earth orbit
+        self.stroke()
         
-        self.context.drawImage(self.sun.getElement(),0,0)
+        self.drawImage(self.sun.getElement(),0,0)
 

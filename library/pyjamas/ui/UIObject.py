@@ -17,11 +17,11 @@ from pyjamas import Factory
 from pyjamas import Window
 from pyjamas.ui import Applier
 
-def setStyleName(element, style, add):
+def findStyleName(element, style):
 
     oldStyle = DOM.getAttribute(element, "className")
     if oldStyle is None:
-        oldStyle = ""
+        return -1
     idx = oldStyle.find(style)
 
     # Calculate matching index
@@ -29,23 +29,52 @@ def setStyleName(element, style, add):
     while idx != -1:
         if idx == 0 or (oldStyle[idx - 1] == " "):
             last = idx + len(style)
-            if (last == lastPos) or ((last < lastPos) and (oldStyle[last] == " ")):
+            if (last == lastPos) or ((last < lastPos) and \
+                                     (oldStyle[last] == " ")):
                 break
         idx = oldStyle.find(style, idx + 1)
+
+    return idx
+
+def setStyleName(element, style, add):
+
+    oldStyle = DOM.getAttribute(element, "className")
+    if oldStyle is None:
+        oldStyle = ""
+
+    idx = findStyleName(element, style)
 
     if add:
         if idx == -1:
             DOM.setAttribute(element, "className", oldStyle + " " + style)
+        return
+
+    if idx == -1:
+        return
+
+    if idx == 0:
+      begin = ''
     else:
-        if idx != -1:
-            if idx == 0:
-              begin = ''
-            else:
-              begin = oldStyle[:idx-1]
-            end = oldStyle[idx + len(style):]
-            DOM.setAttribute(element, "className", begin + end)
+      begin = oldStyle[:idx-1]
+
+    end = oldStyle[idx + len(style):]
+    DOM.setAttribute(element, "className", begin + end)
 
 class UIObject(Applier):
+
+    _props = [ ("visible", "Visibility", "Visible", None),
+              ("element", "Element", "Element", None),
+              ("stylename", "Style name", "StyleName", None),
+              ("width", "Width", "Width", None),
+              ("height", "Height", "Height", None),
+              ("size", "Size", "Size", None),
+              ("title", "Title", "Title", None),
+              ("zindex", "Z Index", "zIndex", None),
+             ]
+
+    @classmethod
+    def _getProps(self):
+        return Applier._getProps() + self._props
 
     def __init__(self, **kwargs):
         # do not initialise element, here, to None, whatever you do.
@@ -78,6 +107,22 @@ class UIObject(Applier):
         fullClassName = self.getStyleName()
         if fullClassName: return fullClassName.split()[0]
 
+    def getStyleAttribute(self, attribute):
+        """ can be called with two forms:
+            getStyleAttribute(self, attr) - returns value
+            getStyleAttribute(self, (attr1,attr2,...)) - returns dictionary
+                                                         of attr:value pairs
+        """
+        if isinstance(attribute, basestring):
+            return DOM.getStyleAttribute(self.getElement(), attribute)
+        # if attribute is not a string, assume it is iterable,
+        # and return the multi-attribute form
+        el = self.getElement()
+        result = {}
+        for attr in attribute:
+            result[attr] = DOM.getStyleAttribute(el,attr)
+        return result
+
     def getTitle(self):
         return DOM.getAttribute(self.element, "title")
 
@@ -89,6 +134,8 @@ class UIObject(Applier):
         """Set the height of the element associated with this UIObject.  The
            value should be given as a CSS value, such as 100px, 30%, or 50pi
         """
+        if height is None:
+            height = ""
         DOM.setStyleAttribute(self.element, "height", str(height))
 
     def getHeight(self):
@@ -137,18 +184,42 @@ class UIObject(Applier):
         self.removeStyleName(self.getStylePrimaryName()+"-"+styleSuffix)
 
     # also callable as: setStyleName(self, style)
-    def setStyleName(self, element, style=None, add=True):
-        """When called with a single argument, this replaces all the CSS
-           classes associated with this UIObject's element with the given
-           parameter.  Otherwise, this is assumed to be a worker function
-           for addStyleName and removeStyleName.
+    def setStyleName(self, element, style=None, add=None):
+        """* When called with a single argument, this replaces all the CSS
+             classes associated with this UIObject's element with the given
+             parameter.
+           * When called with 2 arguments and the 1st is a string and the
+             2nd is a boolean, it is used to add or remove a style from the
+             widget.
+           * Otherwise, this is assumed to be a worker function
+             for addStyleName and removeStyleName.
         """
         # emulate setStyleName(self, style)
-        if style is None:
-            style = element
-            DOM.setAttribute(self.element, "className", style)
+        if style is not None:
+            if add is None and isinstance(style, bool) and \
+               isinstance(element, basestring):
+                add = style
+                style = element
+                element = self.element
+            elif add is None:
+                add = True
+            setStyleName(element, style, add)
             return
-        setStyleName(element, style, add)
+        style = element
+        DOM.setAttribute(self.element, "className", style)
+
+    def setStyleAttribute(self, attribute, value=None):
+        """ can be called with two forms:
+            single attr:  setStyleAttribute(self, attr, value)
+            multi  attr:  setStyleAttribute(self, {attr1:val1, attr2:val2, ...})
+        """
+        if value is not None:   # assume single attr form
+            DOM.setStyleAttribute(self.getElement(), attribute, value)
+            return
+        # assume multi value form
+        el = self.getElement()
+        for attr, val in attribute.items():
+            DOM.setStyleAttribute(el, attr, val)
 
     def setTitle(self, title):
         DOM.setAttribute(self.element, "title", title)
@@ -157,6 +228,8 @@ class UIObject(Applier):
         """Set the width of the element associated with this UIObject.  The
            value should be given as a CSS value, such as 100px, 30%, or 50pi
         """
+        if width is None:
+            width = ""
         DOM.setStyleAttribute(self.element, "width", str(width))
 
     def getWidth(self):
@@ -177,6 +250,11 @@ class UIObject(Applier):
         DOM.setIntStyleAttribute(self.element, "zIndex", index)
 
     def isVisible(self, element=None):
+        """ XXX DEPRECATED - use getVisible
+        """
+        return self.getVisible(element)
+
+    def getVisible(self, element=None):
         """Determine whether this element is currently visible, by checking
             the CSS property 'display'
         """

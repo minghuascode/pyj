@@ -1,6 +1,7 @@
 """
 * Copyright 2008 Google Inc.
 * Copyright (C) 2009 Luke Kenneth Casson Leighton <lkcl@lkcl.net>
+* Copyright (C) 2011 Bob Hampton <bobh@optimizations.com>
 *
 * Licensed under the Apache License, Version 2.0 (the "License"); you may not
 * use this file except in compliance with the License. You may obtain a copy of
@@ -52,6 +53,8 @@ class SuiteDemoControls (Composite):
         self.b10 = Button("Transparency", self)
         self.b11 = Button("Lines", self)
         self.b9 = Button("Animations", self)
+        self.b12 = Button("Text", self)
+        self.b13 = Button("Gradients", self)
         
         hp = HorizontalPanel()
         vp = VerticalPanel()
@@ -69,6 +72,8 @@ class SuiteDemoControls (Composite):
         vp.add(self.b10)
         vp.add(self.b11)
         vp.add(self.b9)
+        vp.add(self.b12)
+        vp.add(self.b13)
         hp.add(vp)
         
         Composite.__init__(self, hp)
@@ -96,6 +101,10 @@ class SuiteDemoControls (Composite):
             self.onClickClock(sender)
         elif sender == self.b10:
             self.onClickTrans(sender)
+        elif sender == self.b12:
+            self.onClickText(sender)
+        elif sender == self.b13:
+            self.onClickGradients(sender)
 
     # compositing
     def onClickCompositing(self, sender):
@@ -482,6 +491,176 @@ class SuiteDemoControls (Composite):
             self.canvas.arc(75, 75, 10 + (10 * i), 0,  (math.pi * 2), True)
             self.canvas.fill()
         
+        self.canvas.restoreContext()
+    
+
+    # text
+    def onClickText(self, sender):
+        self.chart.run = False
+
+        # several text examples
+        # size/font/orientation/alignment
+        # gradients...
+
+        self.canvas.saveContext()
+        self.canvas.clear()
+        self.canvas.setFillStyle(Color.Color("#FFF"))
+        self.canvas.fillText("Simple Text", 10, 10)
+
+        self.canvas.saveContext()
+        #self.canvas.setFont("bold 12px sans-serif")
+        self.canvas.setFillStyle(Color.Color("#00F"))
+        self.canvas.fillText("Changed Font Text", 10, 30)
+        self.canvas.restoreContext()
+
+        self.canvas.saveContext()
+        self.canvas.translate(100, 100)
+
+        self.canvas.saveContext()
+        self.canvas.rotate(45.0 * (math.pi/180))
+        self.canvas.fillText("CW 45d Rotated Text", 0, 0)
+        self.canvas.restoreContext()
+
+        self.canvas.rotate(90.0 * (math.pi/180))
+        self.canvas.fillText("CW 90d Rotated Text", 0, 0)
+        self.canvas.restoreContext()
+
+        self.canvas.restoreContext()
+    
+    def onClickGradients(self, sender):
+        self.chart.run = False
+
+        # several gradient examples
+        # dark to light to dark
+        # linear/radial
+        # different colors
+
+        self.canvas.saveContext()
+        self.canvas.clear()
+
+        fillLG_0 = self.canvas.createLinearGradient(0, 0, 400, 400)
+        fillLG_0.addColorStop(0.0, Color.Color("#100000"))
+        fillLG_0.addColorStop(1.0, Color.Color("#F01010"))
+
+        self.canvas.setFillStyle(fillLG_0)
+        self.canvas.fillRect(0, 0, 400, 400)
+
+        # note the difference in coordinate specifications
+        # the linear gradient is a line running from x0,y0 to x1,y1
+        # while the fillRect is startX,startY,width,height
+        # this allows for some interesting effects but requires you
+        # to be awake when using them
+
+        fillLG_1H = self.canvas.createLinearGradient(20, 0, 120, 0)
+        fillLG_1H.addColorStop(0.0, Color.Color("#101010"))
+        fillLG_1H.addColorStop(0.35, Color.Color("#f0f0f0"))
+        fillLG_1H.addColorStop(0.65, Color.Color("#f0f0f0"))
+        fillLG_1H.addColorStop(1.0, Color.Color("#101010"))
+
+        self.canvas.setFillStyle(fillLG_1H)
+        self.canvas.fillRect(20, 20, 100, 20)
+
+        fillLG_1V = self.canvas.createLinearGradient(140, 20, 140, 40)
+        fillLG_1V.addColorStop(0.0, Color.Color("#101010"))
+        fillLG_1V.addColorStop(0.35, Color.Color("#f0f0f0"))
+        fillLG_1V.addColorStop(0.65, Color.Color("#f0f0f0"))
+        fillLG_1V.addColorStop(1.0, Color.Color("#101010"))
+
+        self.canvas.setFillStyle(fillLG_1V)
+        self.canvas.fillRect(140, 20, 100, 20)
+
+        fillLG_C1 = self.canvas.createLinearGradient(20, 0, 120, 0)
+        fillLG_C1.addColorStop(0.0, Color.Color("#001000"))
+        fillLG_C1.addColorStop(0.35, Color.Color("#00f000"))
+        fillLG_C1.addColorStop(0.35, Color.Color("#f0f0f0"))
+        fillLG_C1.addColorStop(0.65, Color.Color("#f0f0f0"))
+        fillLG_C1.addColorStop(0.65, Color.Color("#0000f0"))
+        fillLG_C1.addColorStop(1.0, Color.Color("#000010"))
+
+        self.canvas.setFillStyle(fillLG_C1)
+        self.canvas.fillRect(20, 50, 100, 20)
+
+        fillLG_C1V = self.canvas.createLinearGradient(140, 50, 140, 70)
+        fillLG_C1V.addColorStop(0.0, Color.Color("#001000"))
+        fillLG_C1V.addColorStop(0.35, Color.Color("#00f000"))
+        fillLG_C1V.addColorStop(0.35, Color.Color("#f0f0f0"))
+        fillLG_C1V.addColorStop(0.65, Color.Color("#f0f0f0"))
+        fillLG_C1V.addColorStop(0.65, Color.Color("#0000f0"))
+        fillLG_C1V.addColorStop(1.0, Color.Color("#000010"))
+
+        self.canvas.setFillStyle(fillLG_C1V)
+        self.canvas.fillRect(140, 50, 100, 20)
+
+        fillLG_C2 = self.canvas.createLinearGradient(20, 0, 120, 0)
+        fillLG_C2.addColorStop(0.0, Color.Color("#001000"))
+        fillLG_C2.addColorStop(0.35, Color.Color("#00f000"))
+        fillLG_C2.addColorStop(0.5, Color.Color("#f0f0f0"))
+        fillLG_C2.addColorStop(0.65, Color.Color("#0000f0"))
+        fillLG_C2.addColorStop(1.0, Color.Color("#000010"))
+
+        self.canvas.setFillStyle(fillLG_C2)
+        self.canvas.fillRect(20, 80, 100, 20)
+
+        fillLG_C2V = self.canvas.createLinearGradient(140, 80, 140, 100)
+        fillLG_C2V.addColorStop(0.0, Color.Color("#001000"))
+        fillLG_C2V.addColorStop(0.35, Color.Color("#00f000"))
+        fillLG_C2V.addColorStop(0.5, Color.Color("#f0f0f0"))
+        fillLG_C2V.addColorStop(0.65, Color.Color("#0000f0"))
+        fillLG_C2V.addColorStop(1.0, Color.Color("#000010"))
+
+        self.canvas.setFillStyle(fillLG_C2V)
+        self.canvas.fillRect(140, 80, 100, 20)
+
+        fillLG_C3 = self.canvas.createLinearGradient(45, 0, 145, 20)
+        fillLG_C3.addColorStop(0.0, Color.Color("#001000"))
+        fillLG_C3.addColorStop(0.35, Color.Color("#00f000"))
+        fillLG_C3.addColorStop(0.5, Color.Color("#f0f0f0"))
+        fillLG_C3.addColorStop(0.65, Color.Color("#0000f0"))
+        fillLG_C3.addColorStop(1.0, Color.Color("#000010"))
+
+        self.canvas.setFillStyle(fillLG_C3)
+        self.canvas.fillRect(20, 110, 100, 20)
+
+        # DRAW SOME RADIAL GRADIENTS
+        # Demos copied from GradientsDemo for testing
+        self.canvas.saveContext()
+        self.canvas.translate(150, 150)
+        
+        radgrad = self.canvas.createRadialGradient(45, 45, 10, 52, 50, 30)
+        radgrad.addColorStop(0, Color.Color("#A7D30C"))
+        radgrad.addColorStop(0.5, Color.Color("#019F62"))
+        radgrad.addColorStop(1, Color.Color("rgba(1,159,98,0)"))
+
+        """
+        radgrad2 = self.canvas.createRadialGradient(105, 105, 20, 112, 120, 50)
+        radgrad2.addColorStop(0, Color.Color("#FF5F98"))
+        radgrad2.addColorStop(0.75, Color.Color("#FF0188"))
+        radgrad2.addColorStop(1, Color.Color("rgba(255,1,136,0)"))
+        
+        radgrad3 = self.canvas.createRadialGradient(95, 15, 15, 102, 20, 40)
+        radgrad3.addColorStop(0, Color.Color("#00C9FF"))
+        radgrad3.addColorStop(0.8, Color.Color("#00B5E2"))
+        radgrad3.addColorStop(1, Color.Color("rgba(0,201,255,0)"))
+        
+        radgrad4 = self.canvas.createRadialGradient(0, 150, 50, 0, 140, 90)
+        radgrad4.addColorStop(0, Color.Color("#F4F201"))
+        radgrad4.addColorStop(0.8, Color.Color("#E4C700"))
+        radgrad4.addColorStop(1, Color.Color("rgba(228,199,0,0)"))
+        
+        # draw shapes
+        self.canvas.setFillStyle(radgrad4)
+        self.canvas.fillRect(0, 0, 150, 150)
+        self.canvas.setFillStyle(radgrad3)
+        self.canvas.fillRect(0, 0, 150, 150)
+        self.canvas.setFillStyle(radgrad2)
+        self.canvas.fillRect(0, 0, 150, 150)
+        """
+
+        self.canvas.setFillStyle(radgrad)
+        self.canvas.fillRect(0, 0, 150, 150)
+        
+        self.canvas.restoreContext()
+
         self.canvas.restoreContext()
     
     

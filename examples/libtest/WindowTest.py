@@ -49,4 +49,4 @@ class WindowTest(UnitTest):
 
     def testTitle(self):
         self.assertEquals(Window.getTitle(),
-                          'PyJamas Auto-Generated HTML file LibTest')
+                          'LibTest')

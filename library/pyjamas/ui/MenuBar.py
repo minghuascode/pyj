@@ -17,14 +17,17 @@ from pyjamas import DOM
 from pyjamas import Factory
 
 from pyjamas import DeferredCommand
-from Widget import Widget
-from MenuItem import MenuItem
-from MenuBarPopupPanel import MenuBarPopupPanel
+from pyjamas.ui.Widget import Widget
+from pyjamas.ui.MenuItem import MenuItem
+from pyjamas.ui.MenuBarPopupPanel import MenuBarPopupPanel
 from pyjamas.ui import Event
+from pyjamas.ui.MultiListener import MultiListener
+
 
 class MenuBar(Widget):
 
     _props = [("vertical", "Vertical", "Vertical", None),
+              ("itemsPerRow", "ItemsPerRow", "ItemsPerRow", None),
             ]
 
     def __init__(self, vertical=False, **kwargs):
@@ -38,6 +41,7 @@ class MenuBar(Widget):
         self.selectedItem = None
         self.shownChildMenu = None
         self.autoOpen = False
+        self.itemsPerRow = None
 
         if kwargs.has_key('Element'):
             table = kwargs.pop('Element')
@@ -49,6 +53,8 @@ class MenuBar(Widget):
                 DOM.appendChild(table, self.body)
         else:
             table = DOM.createTable()
+            DOM.setAttribute(table, "cellPadding", "0")
+            DOM.setAttribute(table, "cellSpacing", "0")
         self.body = DOM.createTBody()
         DOM.appendChild(table, self.body)
 
@@ -60,6 +66,44 @@ class MenuBar(Widget):
     @classmethod
     def _getProps(self):
         return Widget._getProps() + self._props
+
+    def _setWeirdProps(self, props, builderstate):
+        """ covers creating the sub-menus and linking the event handlers.
+        """
+        self.clearItems() # really tricky to update, so just blow away.
+
+        items = {}
+        for (k, v) in props.items():
+            if not isinstance(k, int):
+                continue
+            items[int(k)] = v
+        items = items.items()
+        items.sort()
+
+        last_level = 0
+        menu = self
+        menus = [menu]
+        for prop in items:
+            print prop
+            level, name, label, handler = prop[1]
+            if level < last_level:
+                menus = menus[:level+1]
+                menu = menus[level]
+            elif level > last_level:
+                menu = MenuBar(vertical=True)
+                lastitem = menus[-1].items[-1]
+                lastitem.setSubMenu(menu)
+                setattr(lastitem, name, menu)
+                menus.append(menu)
+            item = menu.addItem(label)
+            if handler and builderstate is not None and \
+                           builderstate.eventTarget is not None:
+                # add a menu listener callback
+                menuItemListener = MultiListener(builderstate.eventTarget,
+                                                 execute=handler)
+                item.setCommand(menuItemListener)
+
+            last_level = level
 
     def setVertical(self, vertical):
         self.vertical = vertical
@@ -78,11 +122,11 @@ class MenuBar(Widget):
     def getDefaultStyleName(self):
         if self.vertical:
             return "gwt-MenuBar " + "gwt-MenuBar-vertical"
-        return "gwt-MenuBar-horizontal"
+        return "gwt-MenuBar " + "gwt-MenuBar-horizontal"
 
     def setStyleName(self, StyleName, **kwargs):
         if not StyleName or StyleName == 'gwt-MenuBar':
-            StyleName = self.getDefaultStyleName(self.vertical)
+            StyleName = self.getDefaultStyleName()
         super(MenuBar, self).setStyleName(StyleName, **kwargs)
 
     # also callable as:
@@ -99,7 +143,10 @@ class MenuBar(Widget):
             DOM.appendChild(self.body, tr)
         else:
             self._checkVerticalContainer()
-            tr = DOM.getChild(self.body, 0)
+            if len(self.items) == self.itemsPerRow:
+                DOM.appendChild(self.body, DOM.createTR())
+            count = DOM.getChildCount(self.body)
+            tr = DOM.getChild(self.body, count-1)
 
         DOM.appendChild(tr, item.getElement())
 
@@ -109,10 +156,15 @@ class MenuBar(Widget):
         return item
 
     def clearItems(self):
-        container = self.getItemContainerElement()
-        while DOM.getChildCount(container) > 0:
-            DOM.removeChild(container, DOM.getChild(container, 0))
+        while self.items:
+            self.removeItem(0)
         self.items = []
+
+    def setItemsPerRow(self, items):
+        self.itemsPerRow = items
+
+    def getItemsPerRow(self):
+        return self.itemsPerRow
 
     def getAutoOpen(self):
         return self.autoOpen
@@ -144,11 +196,14 @@ class MenuBar(Widget):
         self.popup = None
 
     def removeItem(self, item):
-        try:
-            idx = self.items.index(item)
-        except ValueError:
-            return
-        container = self.getItemContainerElement()
+        if isinstance(item, int):
+            idx = item
+        else:
+            try:
+                idx = self.items.index(item)
+            except ValueError:
+                return
+        container = self.getItemContainerElement(idx)
         DOM.removeChild(container, DOM.getChild(container, idx))
         del self.items[idx]
 
@@ -238,12 +293,16 @@ class MenuBar(Widget):
 
         return None
 
-    def getItemContainerElement(self):
+    def getItemContainerElement(self, item):
         if self.vertical:
             return self.body
         else:
             self._checkVerticalContainer()
-            return DOM.getChild(self.body, 0)
+            if self.itemsPerRow:
+                row = items / self.itemsPerRow
+            else:
+                row = 0
+            return DOM.getChild(self.body, row)
 
     def onHide(self):
         if self.shownChildMenu is not None:

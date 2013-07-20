@@ -1,11 +1,10 @@
 body {
   background-color: white;
   color: black;
-  margin: 0px;
-  padding: 0px;
-  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+  font-family: Arial,Helvetica,sans-serif;
 }
-
 
 a {
   color: darkblue;
@@ -102,7 +101,6 @@ a:visited {
 }
 
 .gwt-TabPanelBottom {
-  border-left: 1px solid #87B3FF;
 }
 
 .gwt-TabBar {
@@ -569,23 +567,49 @@ a:visited {
 
 /* additional site CSS */
 .tabs {
-    margin: 2em;
+    margin: 0 2em 0 2em;
+    position: relative;
+    top: -3.05em;
 }
 
 .faq {
-    margin: 2em;
+    margin: 2em 2em 2em 0.5em;
 }
 
 .sidebar {
     margin-left: 2em;
     margin-right: 1em;
-    font-size:0.8em;
+    font-size: 0.8em;
+}
+
+.sidebar dl dt {
+    float: left;
+    clear: left;
+    font-weight: bold;
+    padding-right: 0.4em;
+}
+
+.sidebar dl dd {
+    margin: 0;
 }
 
 .sidebar ul {
-    list-style:none;
-    margin:0px;
-    padding:0px;
+    list-style: none;
+    margin: 0px;
+    padding: 0px;
+}
+
+dl.concise dt {
+    float: left;
+    clear: left;
+    font-weight: bold;
+    padding-right: 0.4em;
+    height: 1.1em;  /* Chrome oddie! */
+}
+
+dl.concise dt::after {
+    content: ":";
+    font-weight: normal;
 }
 
 .code {
@@ -596,24 +620,106 @@ a:visited {
     padding: 10px;
     border: 1px solid;
 }
+.strong {
+    font-weight: bold;
+}
+
+#bootstrap-loader {
+    position: absolute;
+    z-index: -1;
+    width: 100%;
+    padding-top: 130px;
+    text-align: center;
+}
+#bootstrap-loader p {
+    margin-bottom: 4px;
+}
+
 #content {
-    margin: 2em;
+    margin: 2em 2em 2em 0.5em;
 }
+
 #masthead {
-    padding: 1em; 
-    background-color: rgb(102, 0, 153); 
+    margin: 0;
+    padding: 1em;
+    background-color: #660099; 
     color: white;
-    margin:0;
+    font-weight: bold;
 }
-#nascar {
-    float: right;
+#masthead h1 {
+    /* hide top-level header but still allow web accessibility */
+    position: fixed;
+    top: -999px;
+}
+#mastbottom {
+    background: #d400ba;
+    border-bottom: 3px solid #660099;
+    padding: 0.2em 1em 3em 1em;
+    color: white;
+}
+#mastbottom h2 {
+    display: inline;
+}
+#mastfooter {
+    background: #d400ba;
+    color: white;
+    font-size: smaller;
+    font-weight: bold;
+    border-top: 1px solid #660099;
+    border-bottom: 3px solid #660099;
+    padding: 0.3em 2em 0.3em 2em;
+}
+#mastfooter a {
+    color: white;
 }
 #logo {
-    float:left;
-    margin:0 2em;
+    float: left;
+    margin: 0 2em 2em 2em;
 }
+#title {
+    position: relative;
+    top: 7px;
+}
+#mascot {
+    float: right;
+    position: relative;
+    top: -23px;
+}
+#donation {
+    position: absolute;
+    top: 67px;
+    right: 20px;
+    border: 0;
+}
+#downloadnow {
+    position: relative;
+    top: -0.7em;
+    right: 2.7em;
+    float: right;
+    margin-left: -1.1em;
+    margin-right: -1.1em;
+    padding-left: 0;
+    padding-right: 0;
+    text-align: center;
+}
+#downloadnow a {
+    color: white;
+}
+#downloadnow code {
+    font-weight: bold;
+    position: relative;
+    top: -0.6em;
+    padding: 0.5em 1.5em 0.5em 1.5em;
+    text-shadow: #660099 1px 1px,
+                 #6a0b99 2px 2px,
+                 #773399 3px 3px,
+                 #7d4499 4px 4px,
+                 #d400ba -1px -1px,
+                 #d400ba -1px 1px;
+}
+
 span.p {
-    color: rgb(102, 0, 153)
+    color: #660099
 }
 span.g {
     color: #009f29;
@@ -621,45 +727,61 @@ span.g {
 span.m {
     color: #d400ba;
 }
-#downloadnow {
-    background: #d400ba;
-    border-bottom: 3px solid rgb(102, 0, 153);
-    text-align:center;
-    padding:0.2em 1em 1em 1em;
-}
-#downloadnow a {
-    color:white;
-}
-#downloadnow code {
-    color:white;
-    text-weight:bold;
-}
 .c {
-    text-align: center
+    text-align: center;
 }
 #tabs {
-    text-align:center
+    text-align: center;
 }
 #tabs ul {
-	list-style: none;
-	padding:0;
-	margin:0;
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
 #tabs li {
-	display: inline;
-	border: solid;
-	border-width: 0px 1px 1px 1px;
-	margin: 0 0.5em 0 0;
-    background-color: rgb(102, 0, 153); 	
+    display: inline;
+    border: solid;
+    border-width: 0px 1px 1px 1px;
+    margin: 0 0.5em 0 0;
+    background-color: #660099; 	
 }
 #tabs li a {
-	padding: 0 1em;
-	color:white;
-    text-decoration:  none;
+    padding: 0 1em;
+    color: white;
+    text-decoration: none;
 }
 
 h2 {
-font-weight: bold;
-font-family: Helvetica,Arial,sans-serif;
+    font-weight: bold;
+    font-family: Arial,Helvetica,sans-serif;
 }
 
+p.center {
+    text-align: center;
+}
+
+ul.spaced li,
+ol.spaced li {
+    padding: 0.5em;
+}
+ol.left {
+    padding-left: 0;
+}
+ol li.one,
+ol li.two,
+ol li.three,
+ol li.four {
+    list-style-position: inside;
+}
+ol li.one {
+    list-style-image: url('./img/num1.png');
+}
+ol li.two {
+    list-style-image: url('./img/num2.png');
+}
+ol li.three {
+    list-style-image: url('./img/num3.png');
+}
+ol li.four {
+    list-style-image: url('./img/num4.png');
+}

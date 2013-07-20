@@ -91,6 +91,9 @@ class StaticDemo (SimpleCanvasDemo):
         self.canvas.closePath()
         self.canvas.fill()
         
+        self.canvas.setFont("bold 16px Verdana")
+        self.canvas.fillText("PYJS",20,120)
+
         self.canvas.beginPath()
         self.canvas.rect(180,180,80,80)
         self.canvas.rect(200,200,80,80)

@@ -18,11 +18,12 @@
 
 from __pyjamas__ import INT, JS, setCompilerOptions, debugger
 
-setCompilerOptions("noDebug", "noBoundMethods", "noDescriptors", "noAttributeChecking", "noSourceTracking", "noLineTracking", "noStoreSource")
+setCompilerOptions("noDebug", "noBoundMethods", "noDescriptors", "noGetattrSupport", "noAttributeChecking", "noSourceTracking", "noLineTracking", "noStoreSource")
 
 platform = JS("$pyjs.platform")
 sys = None
 dynamic = None
+Ellipsis = None
 JS("""
 var $max_float_int = 1;
 for (var i = 0; i < 1000; i++) {
@@ -35,18 +36,12 @@ $max_int = 0x7fffffff;
 $min_int = -0x80000000;
 """)
 
-JS("""
-$module['_handle_exception'] = function(err) {
+_handle_exception = JS("""function(err) {
     $pyjs.loaded_modules['sys'].save_exception_stack();
 
     if (!$pyjs.in_try_except) {
-        var $pyjs_msg = '';
-        try {
-            $pyjs_msg = $pyjs.loaded_modules['sys'].trackstackstr();
-        } catch (s) {};
+        var $pyjs_msg = $pyjs.loaded_modules['sys']._get_traceback(err);
         $pyjs.__active_exception_stack__ = null;
-        $pyjs_msg = err + '\\nTraceback:\\n' + $pyjs_msg;
-        @{{printFunc}}([$pyjs_msg], true);
         @{{debugReport}}($pyjs_msg);
     }
     throw err;
@@ -64,21 +59,112 @@ def _create_class(clsname, bases=None, methods=None):
 
 def type(clsname, bases=None, methods=None):
     if bases is None and methods is None:
-        return clsname.__class__
+        # First check for str and bool, since these are not implemented
+        # as real classes, but instances do have a __class__ method
+        if isinstance(clsname, str):
+            return str
+        if isinstance(clsname, bool):
+            return bool
+        if hasattr(clsname, '__class__'):
+            return clsname.__class__
+        if isinstance(clsname, int):
+            return int
+        if isinstance(clsname, float):
+            return float
+        if JS("typeof @{{clsname}} == 'number'"):
+            return float
+        if JS("@{{clsname}} == null"):
+            return NoneType
+        if JS("typeof @{{clsname}} == 'function'"):
+            return FunctionType
+        raise ValueError("Cannot determine type for %r" % clsname)
+
     # creates a class, derived from bases, with methods and variables
     JS(" var mths = {}; ")
     if methods:
         for k in methods.keys():
             mth = methods[k]
-            JS(" mths[k] = @{{mth}}; ")
+            JS(" @{{!mths}}[@{{!k}}] = @{{mth}}; ")
 
     JS(" var bss = null; ")
     if bases:
-        JS("bss = @{{bases}}.__array;")
-    JS(" return $pyjs_type(@{{clsname}}, bss, mths); ")
+        JS("@{{!bss}} = @{{bases}}.__array;")
+    JS(" return $pyjs_type(@{{clsname}}, @{{!bss}}, @{{!mths}}); ")
 
 class object:
+
+    def __setattr__(self, name, value):
+        JS("""
+        if (typeof @{{name}} != 'string') {
+            throw @{{TypeError}}("attribute name must be string");
+        }
+        if (attrib_remap.indexOf(@{{name}}) >= 0) {
+            @{{name}} = '$$' + @{{name}};
+        }
+        if (typeof @{{self}}[@{{name}}] != 'undefined'
+            && @{{self}}.__is_instance__
+            && @{{self}}[@{{name}}] !== null
+            && typeof @{{self}}[@{{name}}].__set__ == 'function') {
+            @{{self}}[@{{name}}].__set__(@{{self}}, @{{value}});
+        } else {
+            @{{self}}[@{{name}}] = @{{value}};
+        }
+        """)
+
+# The __str__ method is not defined as 'def __str__(self):', since
+# we might get all kind of weird invocations. The __str__ is sometimes
+# called from toString()
+object.__str__ = JS("""function (self) {
+    if (typeof self == 'undefined') {
+        self = this;
+    }
+    var s;
+    if (self.__is_instance__ === true) {
+        s = "instance of ";
+    } else if (self.__is_instance__ === false) {
+        s = "class ";
+    } else {
+        s = "javascript " + typeof self + " ";
+    }
+    if (self.__module__) {
+        s += self.__module__ + ".";
+    }
+    if (typeof self.__name__ != 'undefined') {
+        return s + self.__name__;
+    }
+    return s + "<unknown>";
+}""")
+
+
+class basestring(object):
     pass
+
+class TypeClass:
+    def __repr__(cls):
+        return "<type '%s'>" % cls.__name__
+
+class NoneType(TypeClass):
+    pass
+class ModuleType(TypeClass):
+    pass
+class FunctionType(TypeClass):
+    pass
+class CodeType(TypeClass):
+    pass
+class TracebackType(TypeClass):
+    pass
+class FrameType(TypeClass):
+    pass
+class EllipsisType(TypeClass):
+    def __new__(cls):
+        if Ellipsis is None:
+            return object.__new__(cls)
+        else:
+            return Ellipsis
+    def __repr__(self):
+        return 'Ellipsis'
+    def __str__(self):
+        return 'Ellipsis'
 
 def op_is(a,b):
     JS("""
@@ -110,6 +196,12 @@ def op_eq(a,b):
     if (@{{b}} === null) {
         return false;
     }
+    if (@{{a}} === @{{b}}) {
+        if (@{{a}}.__is_instance__ === false &&
+            @{{b}}.__is_instance__ === false) {
+            return true;
+        }
+    }
     switch ((@{{a}}.__number__ << 8) | @{{b}}.__number__) {
         case 0x0101:
         case 0x0401:
@@ -128,24 +220,46 @@ def op_eq(a,b):
         case 0x0402:
             return @{{a}}.__cmp__(new @{{long}}(@{{b}}.valueOf())) == 0;
     }
-    if ((typeof @{{a}} == 'object' || typeof @{{a}} == 'function') && typeof @{{a}}.__cmp__ == 'function') {
-        if (typeof @{{b}}.__cmp__ != 'function') {
+    if (typeof @{{a}} == 'object' || typeof @{{a}} == 'function') {
+        if (typeof @{{a}}.__eq__ == 'function') {
+            if (typeof @{{b}}.__eq__ != 'function') {
+                return false;
+            }
+            if (@{{a}}.__eq__ === @{{b}}.__eq__) {
+                return @{{a}}.__eq__(@{{b}});
+            }
+            if (@{{_isinstance}}(@{{a}}, @{{b}})) {
+                return @{{a}}.__eq__(@{{b}});
+            }
             return false;
         }
-        if (@{{a}}.__cmp__ === @{{b}}.__cmp__) {
-            return @{{a}}.__cmp__(@{{b}}) == 0;
+        if (typeof @{{a}}.__cmp__ == 'function') {
+            if (typeof @{{b}}.__cmp__ != 'function') {
+                return false;
+            }
+            if (@{{a}}.__cmp__ === @{{b}}.__cmp__) {
+                return @{{a}}.__cmp__(@{{b}}) == 0;
+            }
+            if (@{{_isinstance}}(@{{a}}, @{{b}})) {
+                return @{{a}}.__cmp__(@{{b}}) == 0;
+            }
+            return false;
         }
-        if (@{{_isinstance}}(@{{a}}, @{{b}})) {
-            return @{{a}}.__cmp__(@{{b}}) == 0;
+    } else if (typeof @{{b}} == 'object' || typeof @{{b}} == 'function') {
+        if (typeof @{{b}}.__eq__ == 'function') {
+            if (@{{_isinstance}}(@{{a}}, @{{b}})) {
+                return @{{b}}.__eq__(@{{a}});
+            }
+            return false;
         }
-        return false;
-    } else if ((typeof @{{b}} == 'object' || typeof @{{b}} == 'function') && typeof @{{b}}.__cmp__ == 'function') {
-        // typeof @{{b}}.__cmp__ != 'function'
-        // @{{a}}.__cmp__ !== @{{b}}.__cmp__
-        if (@{{_isinstance}}(@{{a}}, @{{b}})) {
-            return @{{b}}.__cmp__(@{{a}}) == 0;
+        if (typeof @{{b}}.__cmp__ == 'function') {
+            // typeof bXXX.__cmp__ != 'function'
+            // aXXX.__cmp__ !== bXXX.__cmp__
+            if (@{{_isinstance}}(@{{a}}, @{{b}})) {
+                return @{{b}}.__cmp__(@{{a}}) == 0;
+            }
+            return false;
         }
-        return false;
     }
     return @{{a}} == @{{b}};
     """)
@@ -180,7 +294,7 @@ def op_usub(v):
 
 def __op_add(x, y):
     JS("""
-        return (typeof (@{{x}})==typeof (@{{y}}) && 
+        return (typeof (@{{x}})==typeof (@{{y}}) &&
                 (typeof @{{x}}=='number'||typeof @{{x}}=='string')?
                 @{{x}}+@{{y}}:
                 @{{op_add}}(@{{x}},@{{y}}));
@@ -223,10 +337,10 @@ def op_add(x, y):
 
 def __op_sub(x, y):
     JS("""
-        return (typeof (@{{x}})==typeof (y) && 
+        return (typeof (@{{x}})==typeof (@{{y}}) &&
                 (typeof @{{x}}=='number'||typeof @{{x}}=='string')?
-                @{{x}}-y:
-                @{{op_sub}}(@{{x}},y));
+                @{{x}}-@{{y}}:
+                @{{op_sub}}(@{{x}},@{{y}}));
     """)
 
 def op_sub(x, y):
@@ -339,6 +453,41 @@ def op_div(x, y):
 """)
     raise TypeError("unsupported operand type(s) for /: '%r', '%r'" % (x, y))
 
+def op_truediv(x, y):
+    JS("""
+    if (@{{x}} !== null && @{{y}} !== null) {
+        switch ((@{{x}}.__number__ << 8) | @{{y}}.__number__) {
+            case 0x0101:
+            case 0x0104:
+            case 0x0401:
+            case 0x0204:
+            case 0x0402:
+            case 0x0404:
+                if (@{{y}} == 0) throw @{{ZeroDivisionError}}('float divmod()');
+                return @{{x}} / @{{y}};
+            case 0x0102:
+                if (@{{y}}.__v == 0) throw @{{ZeroDivisionError}}('float divmod()');
+                return @{{x}} / @{{y}}.__v;
+            case 0x0201:
+                if (@{{y}} == 0) throw @{{ZeroDivisionError}}('float divmod()');
+                return @{{x}}.__v / @{{y}};
+            case 0x0202:
+                if (@{{y}}.__v == 0) throw @{{ZeroDivisionError}}('float divmod()');
+                return @{{x}}.__v / @{{y}}.__v;
+        }
+        if (!@{{x}}.__number__) {
+            if (   !@{{y}}.__number__
+                && @{{x}}.__mro__.length > @{{y}}.__mro__.length
+                && @{{isinstance}}(@{{x}}, @{{y}})
+                && typeof @{{x}}['__truediv__'] == 'function')
+                return @{{y}}.__truediv__(@{{x}});
+            if (typeof @{{x}}['__truediv__'] == 'function') return @{{x}}.__truediv__(@{{y}});
+        }
+        if (!@{{y}}.__number__ && typeof @{{y}}['__rtruediv__'] == 'function') return @{{y}}.__rtruediv__(@{{x}});
+    }
+""")
+    raise TypeError("unsupported operand type(s) for /: '%r', '%r'" % (x, y))
+
 def op_mul(x, y):
     JS("""
     if (@{{x}} !== null && @{{y}} !== null) {
@@ -381,16 +530,20 @@ def op_mod(x, y):
             case 0x0104:
             case 0x0401:
                 if (@{{y}} == 0) throw @{{ZeroDivisionError}}('float divmod()');
-                return @{{x}} % @{{y}};
+                var v = @{{x}} % @{{y}};
+                return (v < 0 && @{{y}} > 0 ? v + @{{y}} : v);
             case 0x0102:
                 if (@{{y}}.__v == 0) throw @{{ZeroDivisionError}}('float divmod()');
-                return @{{x}} % @{{y}}.__v;
+                var v = @{{x}} % @{{y}}.__v;
+                return (v < 0 && @{{y}}.__v > 0 ? v + @{{y}}.__v : v);
             case 0x0201:
                 if (@{{y}} == 0) throw @{{ZeroDivisionError}}('float divmod()');
-                return @{{x}}.__v % @{{y}};
+                var v = @{{x}}.__v % @{{y}};
+                return (v < 0 && @{{y}}.__v > 0 ? v + @{{y}}.__v : v);
             case 0x0202:
                 if (@{{y}}.__v == 0) throw @{{ZeroDivisionError}}('integer division or modulo by zero');
-                return new @{{int}}(@{{x}}.__v % @{{y}}.__v);
+                var v = @{{x}}.__v % @{{y}}.__v;
+                return new @{{int}}(v < 0 && @{{y}}.__v > 0 ? v + @{{y}}.__v : v);
             case 0x0204:
                 return (new @{{long}}(@{{x}}.__v)).__mod(@{{y}});
             case 0x0402:
@@ -578,7 +731,7 @@ def op_bitxor2(x, y):
         if (typeof @{{y}}['__rxor__'] != 'undefined') return @{{y}}.__rxor__(@{{x}});
     }
 """)
-    raise TypeError("unsupported operand type(s) for &: '%r', '%r'" % (x, y))
+    raise TypeError("unsupported operand type(s) for ^: '%r', '%r'" % (x, y))
 
 op_bitxor = JS("""function (args) {
     var a;
@@ -635,7 +788,7 @@ def op_bitor2(x, y):
         }
     }
 """)
-    raise TypeError("unsupported operand type(s) for &: '%r', '%r'" % (x, y))
+    raise TypeError("unsupported operand type(s) for |: '%r', '%r'" % (x, y))
 
 op_bitor = JS("""function (args) {
     var a;
@@ -681,12 +834,18 @@ JS("""
 def ___import___(path, context, module_name=None, get_base=True):
     save_track_module = JS("$pyjs.track.module")
     sys = JS("$pyjs.loaded_modules['sys']")
+    pyjslib = JS("$pyjs.loaded_modules['pyjslib']")
     if JS("@{{sys}}.__was_initialized__ != true"):
         module = JS("$pyjs.loaded_modules[@{{path}}]")
         module()
-        JS("$pyjs.track.module = save_track_module;")
+        JS("$pyjs.track.module = @{{save_track_module}};")
         if path == 'sys':
-            module.modules = dict({'pyjslib': pyjslib, 'sys': module})
+            module.modules = dict({'pyjslib': pyjslib,
+                                   '__builtin__':pyjslib,
+                                   'builtins':pyjslib,
+                                   'sys': module})
+            JS("$pyjs.loaded_modules['__builtin__'] = @{{pyjslib}};")
+            JS("$pyjs.loaded_modules['builtins'] = @{{pyjslib}};")
         return module
     importName = path
     is_module_object = False
@@ -710,10 +869,10 @@ def ___import___(path, context, module_name=None, get_base=True):
         # Check if we already have imported this module in this context
         if depth > 1 and sys.modules.has_key(inContextParentName):
             module = sys.modules[inContextParentName]
-            if JS("typeof @{{module}}[objName] != 'undefined'"):
+            if JS("typeof @{{module}}[@{{objName}}] != 'undefined'"):
                 if get_base:
                     return JS("$pyjs.loaded_modules[@{{inContextTopName}}]")
-                return JS("@{{module}}[objName]")
+                return JS("@{{module}}[@{{objName}}]")
         elif sys.modules.has_key(inContextImportName):
             if get_base:
                 return JS("$pyjs.loaded_modules[@{{inContextTopName}}]")
@@ -794,7 +953,7 @@ def ___import___(path, context, module_name=None, get_base=True):
             if get_base:
                 return JS("$pyjs.loaded_modules[@{{topName}}]")
             return module
-
+    
     # If we are here, the module is not loaded (yet).
     if JS("$pyjs.options.dynamic_loading"):
         module = __dynamic_load__(importName)
@@ -830,6 +989,16 @@ def __dynamic_load__(importName):
             __nondynamic_modules__[importName] = 1.0
     return module
 
+def __import_all__(path, context, namespace, module_name=None, get_base=True):
+    module = ___import___(path, context, module_name, get_base)
+    if JS("""typeof @{{module}}['__all__'] == 'undefined'"""):
+        for name in dir(module):
+            if not name.startswith('_'):
+                JS("""@{{namespace}}[@{{name}}] = @{{module}}[@{{name}}];""")
+    else:
+        for name in module.__all__:
+            JS("""@{{namespace}}[@{{name}}] = @{{module}}[@{{name}}];""")
+
 class BaseException:
 
     def __init__(self, *args):
@@ -853,16 +1022,32 @@ class BaseException:
             return "<type '%s'>" % self.__name__
         return self.__name__ + repr(self.args)
 
+class KeyboardInterrupt(BaseException):
+    pass
+
+class GeneratorExit(BaseException):
+    pass
+
+class SystemExit(BaseException):
+    pass
+
+
 class Exception(BaseException):
     pass
 
 class StandardError(Exception):
     pass
 
-class AssertionError(Exception):
+class ArithmeticError(StandardError):
+    pass
+
+class StopIteration(Exception):
     pass
 
 class GeneratorExit(Exception):
+    pass
+
+class AssertionError(StandardError):
     pass
 
 class TypeError(StandardError):
@@ -886,7 +1071,7 @@ class LookupError(StandardError):
 class RuntimeError(StandardError):
     pass
 
-class ArithmeticError(StandardError):
+class SystemError(StandardError):
     pass
 
 class KeyError(LookupError):
@@ -938,12 +1123,6 @@ def init():
 @{{TryElse}}.prototype = new Error();
 @{{TryElse}}.__name__ = 'TryElse';
 """)
-    # StopIteration is used to get out of an iteration loop
-    JS("""
-@{{StopIteration}} = function () { };
-@{{StopIteration}}.prototype = new Error();
-@{{StopIteration}}.__name__ = 'StopIteration';
-""")
 
     # Patching of the standard javascript String object
     JS("""
@@ -973,6 +1152,41 @@ String.prototype.find = function(sub, start, end) {
     if (pos + sub.length>end) return -1;
     return pos;
 };
+String.prototype.index = function(sub, start, end) {
+    var pos = this.find(sub, start, end);
+    if (pos < 0)
+        throw @{{ValueError}}('substring not found');
+    return pos;
+}
+String.prototype.count = function(sub, start, end) {
+    var pos, count = 0, n = sub.length;
+    if (typeof start == 'undefined') start = 0;
+    if (typeof end == 'undefined') end = this.length;
+    while (start < end) {
+        pos = this.find(sub, start, end);
+        if (pos < 0) break;
+        count ++;
+        start = pos + n;
+    }
+    return count;
+}
+
+String.prototype.format = function() {
+    var args = $p['tuple']($pyjs_array_slice.call(arguments,0,arguments.length-1));
+
+    var kw = arguments.length >= 1 ? arguments[arguments.length-1] : arguments[arguments.length];
+    if (typeof kw != 'object' || kw.__name__ != 'dict' || typeof kw.$pyjs_is_kwarg == 'undefined') {
+        if (typeof kw != 'undefined') args.__array.push(kw);
+        kw = arguments[arguments.length+1];
+    } else {
+        delete kw['$pyjs_is_kwarg'];
+    }
+    if (typeof kw == 'undefined') {
+        kw = $p['__empty_dict']();
+    }
+    return $p['_string_format'](this, args, kw);
+}
+String.prototype.format.__args__ = ['args', ['kw']];
 
 String.prototype.join = function(data) {
     var text="";
@@ -1000,7 +1214,7 @@ String.prototype.join = function(data) {
                 }
             }
             catch (e) {
-                if (e.__name__ != 'StopIteration') throw e;
+                if (!@{{isinstance}}(e, @{{StopIteration}})) throw e;
             }
         }
         return data.join(this);
@@ -1023,6 +1237,10 @@ String.prototype.isalpha = function() {
 
 String.prototype.isupper = function() {
     return (this.match(/[a-z]/g) === null);
+};
+
+String.prototype.islower = function() {
+    return (this.match(/[A-Z]/g) === null);
 };
 
 String.prototype.__replace=String.prototype.replace;
@@ -1092,6 +1310,52 @@ String.prototype.$$split = function(sep, maxsplit) {
     return items;
 };
 
+String.prototype.rsplit = function(sep, maxsplit) {
+    var items=@{{list}}();
+    var do_max=false;
+    var subject=this;
+    var pos=0;
+
+    if (sep === null || typeof sep == 'undefined') {
+        sep=" ";
+        if (subject.length == 0) {
+            return items;
+        }
+        subject=subject.strip();
+        subject=subject.$$replace(/\s+/g, sep);
+    }
+    else if (typeof maxsplit != 'undefined') do_max=true;
+
+    if (subject.length == 0) {
+        items.__array.push('');
+        return items;
+    }
+
+    while (subject.length > 0) {
+        if (do_max && !maxsplit--) break;
+
+        pos=subject.lastIndexOf(sep);
+        if (pos<0) break;
+
+        items.__array.push(subject.substr(pos+sep.lenght));
+        subject = subject.substr(0, pos);
+    }
+    if (subject.length > 0) items.__array.push(subject);
+    items.__array.reverse()
+
+    return items;
+};
+String.prototype.splitlines = function(keepends) {
+    var items = this.$$split("\\n");
+    if (typeof keepends != 'undefined' && keepends)
+    {
+        for (var i=0; i<items.__array.length; i++)
+        {
+            items.__array[i] = items.__array[i] + "\\n";
+        }
+    }
+    return items;
+}
 if (typeof "a"[0] == 'undefined' ) {
     // IE: cannot do "abc"[idx]
     String.prototype.__iter__ = function() {
@@ -1103,7 +1367,7 @@ if (typeof "a"[0] == 'undefined' ) {
                     if (noStop === true) {
                         return;
                     }
-                    throw @{{StopIteration}};
+                    throw @{{StopIteration}}();
                 }
                 return s.charAt(i++);
             },
@@ -1123,7 +1387,7 @@ if (typeof "a"[0] == 'undefined' ) {
                     if (noStop === true) {
                         return;
                     }
-                    throw @{{StopIteration}};
+                    throw @{{StopIteration}}();
                 }
                 return s.charAt(i++);
             },
@@ -1227,9 +1491,9 @@ String.prototype.center = function(width, fillchar) {
         throw @{{TypeError}}("center() argument 2 must be char, not " + typeof(fillchar));
     }
     if (this.length >= width) return this;
-    padlen = width - this.length;
-    right = Math.ceil(padlen / 2);
-    left = padlen - right;
+    var padlen = width - this.length;
+    var right = Math.ceil(padlen / 2);
+    var left = padlen - right;
     return new Array(left+1).join(fillchar) + this + new Array(right+1).join(fillchar);
 };
 
@@ -1261,6 +1525,10 @@ String.prototype.__setitem__ = function(idx, val) {
 
 String.prototype.upper = String.prototype.toUpperCase;
 String.prototype.lower = String.prototype.toLowerCase;
+
+String.prototype.capitalize = function() {
+    return this.charAt(0).toUpperCase() + this.substring(1);
+};
 
 String.prototype.zfill = function(width) {
     return this.rjust(width, '0');
@@ -1296,14 +1564,14 @@ String.prototype.__name__ = 'str';
 String.prototype.__class__ = String.prototype;
 String.prototype.__is_instance__ = null;
 String.prototype.__str__ = function () {
-    if (typeof this == 'string') return this.toString();
-    return "<type 'str'>";
+    if (typeof this == 'function') return "<type '" + this.__name__ + "'>";
+    return this.toString();
 };
 String.prototype.__repr__ = function () {
-    if (typeof this == 'string') return "'" + this.toString() + "'";
-    return "<type 'str'>";
+    if (typeof this == 'function') return "<type '" + this.__name__ + "'>";
+    return "'" + this.toString() + "'";
 };
-
+String.prototype.__mro__ = [@{{basestring}}];
 """)
 
     # Patching of the standard javascript Boolean object
@@ -1313,11 +1581,9 @@ Boolean.prototype.__name__ = 'bool';
 Boolean.prototype.__class__ = Boolean.prototype;
 Boolean.prototype.__is_instance__ = null;
 Boolean.prototype.__str__= function () {
-    if (typeof this == 'string') {
-     	if (this === true) return "True";
-    	return "False";
-    }
-    return "<type 'bool'>";
+    if (typeof this == 'function') return "<type '" + this.__name__ + "'>";
+    if (this == true) return "True";
+    return "False";
 };
 Boolean.prototype.__repr__ = Boolean.prototype.__str__;
 Boolean.prototype.__and__ = function (y) {
@@ -1329,7 +1595,6 @@ Boolean.prototype.__or__ = function (y) {
 Boolean.prototype.__xor__ = function (y) {
     return this ^ y.valueOf();
 };
-
 """)
 
     # Patching of the standard javascript Array object
@@ -1491,9 +1756,15 @@ class float:
     __number__ = JS("0x01")
     def __new__(self, num):
         JS("""
+        if (typeof @{{num}} == 'string') {
+            @{{num}} = @{{num}}.lstrip();
+            if (@{{num}} === "") {
+                throw @{{ValueError}}("empty string for float()");
+            }
+        }
         var v = Number(@{{num}});
         if (isNaN(v)) {
-            throw @{{ValueError}}("invalid literal for float(): " + num);
+            throw @{{ValueError}}("invalid literal for float(): " + @{{!num}});
         }
         return v;
 """)
@@ -1507,13 +1778,13 @@ Number.prototype.__init__ = function (value, radix) {
 };
 
 Number.prototype.__str__ = function () {
-    if (typeof this == 'number') return this.toString();
-    return "<type 'float'>";
+    if (typeof this == 'function') return "<type '" + this.__name__ + "'>";
+    return this.toString();
 };
 
 Number.prototype.__repr__ = function () {
-    if (typeof this == 'number') return this.toString();
-    return "<type 'float'>";
+    if (typeof this == 'function') return "<type '" + this.__name__ + "'>";
+    return this.toString();
 };
 
 Number.prototype.__nonzero__ = function () {
@@ -1623,51 +1894,103 @@ Number.prototype.__pow__ = function (y, z) {
     if (!z.__number__ || isNaN(z = z.valueOf())) return @{{NotImplemented}};
     return Math.pow(this, y) % z;
 };
-
 """)
 
 def float_int(value, radix=None):
     JS("""
     var v;
-    if (value.__number__) {
-        if (radix !== null) {
+    if (typeof @{{value}}['__int__'] != 'undefined') {
+        return @{{value}}['__int__']();
+    }
+    if (@{{value}}.__number__) {
+        if (@{{radix}} !== null) {
             throw @{{TypeError}}("int() can't convert non-string with explicit base");
         }
-        v = value.valueOf();
+        v = @{{value}}.valueOf();
         if (v > 0) {
             v = Math.floor(v);
         } else {
             v = Math.ceil(v);
         }
-    } else if (typeof value == 'string') {
-        if (radix === null) {
-            radix = 10;
+    } else if (typeof @{{value}} == 'string') {
+        if (@{{radix}} === null) {
+            @{{radix}} = 10;
         }
-        switch (value[value.length-1]) {
+        @{{value}} = @{{value}}.lstrip();
+        switch (@{{value}}[@{{value}}.length-1]) {
             case 'l':
             case 'L':
-                v = value.slice(0, value.length-2);
+                v = @{{value}}.slice(0, @{{value}}.length-2);
                 break;
             default:
-                v = value;
+                v = @{{value}};
         }
-        v = parseInt(v, radix);
+        if (v.match($radix_regex[@{{radix}}]) === null) {
+            v = NaN;
+        } else {
+            v = v.$$replace(' ', '');
+            v = parseInt(v, @{{radix}});
+        }
     } else {
         throw @{{TypeError}}("TypeError: int() argument must be a string or a number");
     }
     if (isNaN(v) || !isFinite(v)) {
-        throw @{{ValueError}}("invalid literal for int() with base " + radix + ": '" + value + "'");
+        throw @{{ValueError}}("invalid literal for int() with base " + @{{!radix}} + ": '" + @{{!value}} + "'");
     }
     return v;
 """)
 
 JS("""
+var $radix_regex = [
+    /^$/i,              //  0
+    /^$/i,              //  1
+    /^ *-? *[01]+ *$/i,     //  2
+    /^ *-? *[0-2]+ *$/i,    //  3
+    /^ *-? *[0-3]+ *$/i,    //  4
+    /^ *-? *[0-4]+ *$/i,    //  5
+    /^ *-? *[0-5]+ *$/i,    //  6
+    /^ *-? *[0-6]+ *$/i,    //  7
+    /^ *-? *[0-7]+ *$/i,    //  8
+    /^ *-? *[0-8]+ *$/i,    //  9
+    /^ *-? *[0-9]+ *$/i,    // 10
+    /^ *-? *[0-9a]+ *$/i,   // 11
+    /^ *-? *[0-9ab]+ *$/i,  // 12
+    /^ *-? *[0-9a-c]+ *$/i, // 13
+    /^ *-? *[0-9a-d]+ *$/i, // 14
+    /^ *-? *[0-9a-e]+ *$/i, // 15
+    /^ *-? *[0-9a-f]+ *$/i, // 16
+    /^ *-? *[0-9a-g]+ *$/i, // 17
+    /^ *-? *[0-9a-h]+ *$/i, // 18
+    /^ *-? *[0-9a-i]+ *$/i, // 19
+    /^ *-? *[0-9a-j]+ *$/i, // 20
+    /^ *-? *[0-9a-k]+ *$/i, // 21
+    /^ *-? *[0-9a-l]+ *$/i, // 22
+    /^ *-? *[0-9a-m]+ *$/i, // 23
+    /^ *-? *[0-9a-n]+ *$/i, // 24
+    /^ *-? *[0-9a-o]+ *$/i, // 25
+    /^ *-? *[0-9a-p]+ *$/i, // 26
+    /^ *-? *[0-9a-q]+ *$/i, // 27
+    /^ *-? *[0-9a-r]+ *$/i, // 28
+    /^ *-? *[0-9a-s]+ *$/i, // 29
+    /^ *-? *[0-9a-t]+ *$/i, // 30
+    /^ *-? *[0-9a-u]+ *$/i, // 31
+    /^ *-? *[0-9a-v]+ *$/i, // 32
+    /^ *-? *[0-9a-w]+ *$/i, // 33
+    /^ *-? *[0-9a-x]+ *$/i, // 34
+    /^ *-? *[0-9a-y]+ *$/i, // 35
+    /^ *-? *[0-9a-z]+ *$/i  // 36
+];
+
 (function(){
-    var $int = @{{int}} = function (value, radix) {
+    /* XXX do not convert to @{{int}} - this is correct */
+    var $int = pyjslib['int'] = function (value, radix) {
         var v, i;
         if (typeof radix == 'undefined' || radix === null) {
             if (typeof value == 'undefined') {
                 throw @{{TypeError}}("int() takes at least 1 argument");
+            }
+            if (typeof value['__int__'] != 'undefined') {
+                return value['__int__']();
             }
             switch (value.__number__) {
                 case 0x01:
@@ -1690,18 +2013,24 @@ JS("""
             if (radix === null) {
                 radix = 10;
             }
-            v = parseInt(value, radix);
+            if (value.match($radix_regex[radix]) === null) {
+                value = value.lstrip();
+                v = NaN;
+            } else {
+                value = value.$$replace(' ', '');
+                v = parseInt(value, radix);
+            }
         } else {
             throw @{{TypeError}}("TypeError: int() argument must be a string or a number");
         }
         if (isNaN(v) || !isFinite(v)) {
-            throw @{{ValueError}}("invalid literal for int() with base " + radix + ": '" + value + "'");
+            throw @{{ValueError}}("invalid literal for int() with base " + @{{!radix}} + ": '" + @{{!value}} + "'");
         }
         if ($min_int <= v && v <= $max_int) {
             this.__v = v;
             return this;
         }
-        return new @{{long}}(v);
+        return new pyjslib['long'](v);
     };
     $int.__init__ = function () {};
     $int.__number__ = 0x02;
@@ -1735,13 +2064,15 @@ JS("""
     };
 
     $int.__str__ = function () {
-        if (typeof this == 'object' && this.__number__ == 0x02) return this.__v.toString();
-        return "<type 'int'>";
+        if (typeof this == 'function') return "<type '" + this.__name__ + "'>";
+        if (this.__number__ == 0x02) return this.__v.toString();
+        return this.toString();
     };
 
     $int.__repr__ = function () {
-        if (typeof this == 'object' && this.__number__ == 0x02) return this.__v.toString();
-        return "<type 'int'>";
+        if (typeof this == 'function') return "<type '" + this.__name__ + "'>";
+        if (this.__number__ == 0x02) return this.__v.toString();
+        return this.toString();
     };
 
     $int.__nonzero__ = function () {
@@ -2189,7 +2520,7 @@ JS("""
                 // Not 0, and base not a power of 2.
                 var scratch, pin, scratch_idx, pin_idx;
                 var powbase = base, power = 1, size = size_a;
-               
+
                 while (1) {
                     var newpow = powbase * base;
                     if (newpow >>> PyLong_SHIFT)  /* doesn't fit in a digit */
@@ -2268,7 +2599,7 @@ JS("""
                 prem = long_normalize(prem);
         }
         else {
-                z = x_divrem(a, b, prem);
+                z = @{{!x_divrem}}(a, b, prem);
         }
         if (z === null) {
             pdiv.ob_size = 0;
@@ -2493,8 +2824,8 @@ JS("""
     }
 
     function l_divmod(v, w, pdiv, pmod) {
-        var div = $l_divmod_div, 
-            mod = $l_divmod_mod; 
+        var div = $l_divmod_div,
+            mod = $l_divmod_mod;
 
         if (long_divrem(v, w, div, mod) < 0)
                 return -1;
@@ -2518,8 +2849,8 @@ JS("""
 
 
 
-
-    var $long = @{{long}} = function(value, radix) {
+    /* XXX do not convert to @{{long}} - this is correct */
+    var $long = pyjslib['long'] = function(value, radix) {
         var v, i;
         if (!radix || radix.valueOf() == 0) {
             if (typeof value == 'undefined') {
@@ -2563,7 +2894,7 @@ JS("""
                     neg = true;
                 }
                 // Count the number of Python digits.
-                t = v;
+                var t = v;
                 while (t) {
                     this.ob_digit[ndig] = t & PyLong_MASK;
                     t >>>= PyLong_SHIFT;
@@ -2615,7 +2946,7 @@ JS("""
                 this.ob_size = neg ? -ndig : ndig;
                 return this;
             }
-            throw @{{ValueError}}('cannot convert ' + @{{repr}}(value) + 'to integer');
+            throw @{{ValueError}}('cannot convert ' + @{{repr}}(@{{value}}) + 'to integer');
         } else if (typeof v == 'string') {
             var nchars;
             var text = value.lstrip();
@@ -2721,7 +3052,7 @@ JS("""
 
                 if ($log_base_PyLong_BASE[radix] == 0.0) {
                     var i = 1;
-                    convmax = radix;
+                    var convmax = radix;
                     $log_base_PyLong_BASE[radix] = Math.log(radix) / Math.log(PyLong_BASE);
                     while (1) {
                         var next = convmax * radix;
@@ -2778,12 +3109,12 @@ JS("""
                 return this;
             }
             throw @{{ValueError}}("invalid literal for long() with base " +
-                                     radix + ": " + value);
+                                     @{{!radix}} + ": " + @{{!value}});
         } else {
             throw @{{TypeError}}("TypeError: long() argument must be a string or a number");
         }
         if (isNaN(v) || !isFinite(v)) {
-            throw @{{ValueError}}("invalid literal for long() with base " + radix + ": '" + v + "'");
+            throw @{{ValueError}}("invalid literal for long() with base " + @{{!radix}} + ": '" + @{{!v}} + "'");
         }
         return this;
     };
@@ -2826,10 +3157,12 @@ JS("""
     };
 
     $long.__str__ = function () {
+        if (typeof this == 'function') return "<type '" + this.__name__ + "'>";
         return Format(this, 10, false, false);
     };
 
     $long.__repr__ = function () {
+        if (typeof this == 'function') return "<type '" + this.__name__ + "'>";
         return Format(this, 10, true, false);
     };
 
@@ -2839,7 +3172,7 @@ JS("""
 
     $long.__cmp__ = function (b) {
         var sign;
- 
+
         if (this.ob_size != b.ob_size) {
             if (this.ob_size < b.ob_size) return -1;
             return 1;
@@ -2887,7 +3220,7 @@ JS("""
     };
 
     $long.__lshift = function (y) {
-        var a, z, wordshift, remshift, oldsize, newsize, 
+        var a, z, wordshift, remshift, oldsize, newsize,
             accum, i, j;
         if (y < 0) {
             throw @{{ValueError}}('negative shift count');
@@ -3565,7 +3898,7 @@ JS("""
             }
         }
 
-        if ((c !== null) && negativeOutput && 
+        if ((c !== null) && negativeOutput &&
             (z.ob_size != 0) && (c.ob_size != 0)) {
             z = z.__sub__(c);
         }
@@ -3610,12 +3943,195 @@ JS("""
         $pow_temp_c = new $long(0),
         $pow_temp_z = new $long(0);
 })();
-
 """)
 
 
 """@ATTRIB_REMAP_DECLARATION@"""
 """@CONSTANT_DECLARATION@"""
+
+class tuple:
+    # Depends on CONSTANT_DECLARATION
+    def __init__(self, data=JS("[]")):
+        JS("""
+        if (@{{data}} === null) {
+            throw @{{TypeError}}("'NoneType' is not iterable");
+        }
+        if (@{{data}}.constructor === Array) {
+            @{{self}}.__array = @{{data}}.slice();
+            return null;
+        }
+        if (typeof @{{data}}.__iter__ == 'function') {
+            if (typeof @{{data}}.__array == 'object') {
+                @{{self}}.__array = @{{data}}.__array.slice();
+                return null;
+            }
+            var iter = @{{data}}.__iter__();
+            if (typeof iter.__array == 'object') {
+                @{{self}}.__array = iter.__array.slice();
+                return null;
+            }
+            @{{data}} = [];
+            var item, i = 0;
+            if (typeof iter.$genfunc == 'function') {
+                while (typeof (item=iter.next(true)) != 'undefined') {
+                    @{{data}}[i++] = item;
+                }
+            } else {
+                try {
+                    while (true) {
+                        @{{data}}[i++] = iter.next();
+                    }
+                }
+                catch (e) {
+                    if (!@{{isinstance}}(e, @{{StopIteration}})) throw e;
+                }
+            }
+            @{{self}}.__array = @{{data}};
+            return null;
+        }
+        throw @{{TypeError}}("'" + @{{repr}}(@{{data}}) + "' is not iterable");
+        """)
+
+    def __hash__(self):
+        return '$tuple$' + str(self.__array)
+
+    def __cmp__(self, l):
+        if not isinstance(l, tuple):
+            return 1
+        JS("""
+        var n1 = @{{self}}.__array.length,
+            n2 = @{{l}}.__array.length,
+            a1 = @{{self}}.__array,
+            a2 = @{{l}}.__array,
+            n, c;
+        n = (n1 < n2 ? n1 : n2);
+        for (var i = 0; i < n; i++) {
+            c = @{{cmp}}(a1[i], a2[i]);
+            if (c) return c;
+        }
+        if (n1 < n2) return -1;
+        if (n1 > n2) return 1;
+        return 0;""")
+
+    def __getslice__(self, lower, upper):
+        JS("""
+        if (@{{upper}}==null) return @{{tuple}}(@{{self}}.__array.slice(@{{lower}}));
+        return @{{tuple}}(@{{self}}.__array.slice(@{{lower}}, @{{upper}}));
+        """)
+
+    def __getitem__(self, _index):
+        JS("""
+        var index = @{{_index}}.valueOf();
+        if (typeof index == 'boolean') index = @{{int}}(index);
+        if (index < 0) index += @{{self}}.__array.length;
+        if (index < 0 || index >= @{{self}}.__array.length) {
+            throw @{{IndexError}}("tuple index out of range");
+        }
+        return @{{self}}.__array[index];
+        """)
+
+    def __len__(self):
+        return INT(JS("""@{{self}}.__array.length"""))
+    
+    def index(self, value, _start=0):
+        JS("""
+        var start = @{{_start}}.valueOf();
+        /* if (typeof valueXXX == 'number' || typeof valueXXX == 'string') {
+            start = selfXXX.__array.indexOf(valueXXX, start);
+            if (start >= 0)
+                return start;
+        } else */ {
+            var len = @{{self}}.__array.length >>> 0;
+
+            start = (start < 0)
+                    ? Math.ceil(start)
+                    : Math.floor(start);
+            if (start < 0)
+                start += len;
+
+            for (; start < len; start++) {
+                if ( /*start in selfXXX.__array && */
+                    @{{cmp}}(@{{self}}.__array[start], @{{value}}) == 0)
+                    return start;
+            }
+        }
+        """)
+        raise ValueError("list.index(x): x not in list")    
+
+    def __contains__(self, value):
+        try:
+            self.index(value)
+        except ValueError:
+            return False
+        return True
+        #return JS('@{{self}}.__array.indexOf(@{{value}})>=0')
+
+    def __iter__(self):
+        return JS("new $iter_array(@{{self}}.__array)")
+        JS("""
+        var i = 0;
+        var l = @{{self}}.__array;
+        return {
+            'next': function() {
+                if (i >= l.length) {
+                    throw @{{StopIteration}}();
+                }
+                return l[i++];
+            },
+            '__iter__': function() {
+                return this;
+            }
+        };
+        """)
+
+    def __enumerate__(self):
+        return JS("new $enumerate_array(@{{self}}.__array)")
+
+    def getArray(self):
+        """
+        Access the javascript Array that is used internally by this list
+        """
+        return self.__array
+
+    #def __str__(self):
+    #    return self.__repr__()
+    #See monkey patch at the end of the tuple class definition
+
+    def __repr__(self):
+        if callable(self):
+            return "<type '%s'>" % self.__name__
+        JS("""
+        var s = "(";
+        for (var i=0; i < @{{self}}.__array.length; i++) {
+            s += @{{repr}}(@{{self}}.__array[i]);
+            if (i < @{{self}}.__array.length - 1)
+                s += ", ";
+        }
+        if (@{{self}}.__array.length == 1)
+            s += ",";
+        s += ")";
+        return s;
+        """)
+
+    def __add__(self, y):
+        if not isinstance(y, self):
+            raise TypeError("can only concatenate tuple to tuple")
+        return tuple(self.__array.concat(y.__array))
+
+    def __mul__(self, n):
+        if not JS("@{{n}} !== null && @{{n}}.__number__ && (@{{n}}.__number__ != 0x01 || isFinite(@{{n}}))"):
+            raise TypeError("can't multiply sequence by non-int")
+        a = []
+        while n:
+            n -= 1
+            a.extend(self.__array)
+        return a
+
+    def __rmul__(self, n):
+        return self.__mul__(n)
+JS("@{{tuple}}.__str__ = @{{tuple}}.__repr__;")
+JS("@{{tuple}}.toString = @{{tuple}}.__str__;")
+
 
 class NotImplementedType(object):
     def __repr__(self):
@@ -3636,7 +4152,7 @@ $iter_array.prototype.next = function (noStop) {
         if (noStop === true) {
             return;
         }
-        throw @{{StopIteration}};
+        throw @{{StopIteration}}();
     }
     return this.__array[this.i];
 };
@@ -3652,7 +4168,7 @@ $reversed_iter_array.prototype.next = function (noStop) {
         if (noStop === true) {
             return;
         }
-        throw @{{StopIteration}};
+        throw @{{StopIteration}}();
     }
     return this.___array[this.i];
 };
@@ -3673,7 +4189,7 @@ $enumerate_array.prototype.next = function (noStop, reuseTuple) {
         if (noStop === true) {
             return;
         }
-        throw @{{StopIteration}};
+        throw @{{StopIteration}}();
     }
     this.tl[1] = this.array[this.i];
     if (this.tl[0].__number__ == 0x01) {
@@ -3724,7 +4240,7 @@ class list:
                     }
                 }
                 catch (e) {
-                    if (e.__name__ != 'StopIteration') throw e;
+                    if (!@{{isinstance}}(e, @{{StopIteration}})) throw e;
                 }
             }
             @{{self}}.__array = @{{data}};
@@ -3768,7 +4284,7 @@ class list:
                         }
                     }
                     catch (e) {
-                        if (e.__name__ != 'StopIteration') throw e;
+                        if (!@{{isinstance}}(e, @{{StopIteration}})) throw e;
                     }
                 }
             }
@@ -3796,11 +4312,11 @@ class list:
     def index(self, value, _start=0):
         JS("""
         var start = @{{_start}}.valueOf();
-        if (typeof @{{value}} == 'number' || typeof @{{value}} == 'string') {
-            start = @{{self}}.__array.indexOf(@{{value}}, start);
+        /* if (typeof valueXXX == 'number' || typeof valueXXX == 'string') {
+            start = selfXXX.__array.indexOf(valueXXX, start);
             if (start >= 0)
                 return start;
-        } else {
+        } else */ {
             var len = @{{self}}.__array.length >>> 0;
 
             start = (start < 0)
@@ -3810,7 +4326,7 @@ class list:
                 start += len;
 
             for (; start < len; start++) {
-                if (start in @{{self}}.__array &&
+                if ( /*start in selfXXX.__array && */
                     @{{cmp}}(@{{self}}.__array[start], @{{value}}) == 0)
                     return start;
             }
@@ -3884,6 +4400,7 @@ class list:
     def __getitem__(self, _index):
         JS("""
         var index = @{{_index}}.valueOf();
+        if (typeof index == 'boolean') index = @{{int}}(index);
         if (index < 0) index += @{{self}}.__array.length;
         if (index < 0 || index >= @{{self}}.__array.length) {
             throw @{{IndexError}}("list index out of range");
@@ -3994,158 +4511,100 @@ class list:
 JS("@{{list}}.__str__ = @{{list}}.__repr__;")
 JS("@{{list}}.toString = @{{list}}.__str__;")
 
-
-class tuple:
-    def __init__(self, data=JS("[]")):
-        JS("""
-        if (@{{data}} === null) {
-            throw @{{TypeError}}("'NoneType' is not iterable");
-        }
-        if (@{{data}}.constructor === Array) {
-            @{{self}}.__array = @{{data}}.slice();
-            return null;
-        }
-        if (typeof @{{data}}.__iter__ == 'function') {
-            if (typeof @{{data}}.__array == 'object') {
-                @{{self}}.__array = @{{data}}.__array.slice();
-                return null;
-            }
-            var iter = @{{data}}.__iter__();
-            if (typeof iter.__array == 'object') {
-                @{{self}}.__array = iter.__array.slice();
-                return null;
-            }
-            @{{data}} = [];
-            var item, i = 0;
-            if (typeof iter.$genfunc == 'function') {
-                while (typeof (item=iter.next(true)) != 'undefined') {
-                    @{{data}}[i++] = item;
-                }
-            } else {
-                try {
-                    while (true) {
-                        @{{data}}[i++] = iter.next();
-                    }
-                }
-                catch (e) {
-                    if (e.__name__ != 'StopIteration') throw e;
-                }
-            }
-            @{{self}}.__array = @{{data}};
-            return null;
-        }
-        throw @{{TypeError}}("'" + @{{repr}}(@{{data}}) + "' is not iterable");
-        """)
-
-    def __hash__(self):
-        return '$tuple$' + str(self.__array)
-
-    def __cmp__(self, l):
-        if not isinstance(l, tuple):
-            return 1
-        JS("""
-        var n1 = @{{self}}.__array.length,
-            n2 = @{{l}}.__array.length,
-            a1 = @{{self}}.__array,
-            a2 = @{{l}}.__array,
-            n, c;
-        n = (n1 < n2 ? n1 : n2);
-        for (var i = 0; i < n; i++) {
-            c = @{{cmp}}(a1[i], a2[i]);
-            if (c) return c;
-        }
-        if (n1 < n2) return -1;
-        if (n1 > n2) return 1;
-        return 0;""")
-
-    def __getslice__(self, lower, upper):
-        JS("""
-        if (@{{upper}}==null) return @{{tuple}}(@{{self}}.__array.slice(@{{lower}}));
-        return @{{tuple}}(@{{self}}.__array.slice(@{{lower}}, @{{upper}}));
-        """)
-
-    def __getitem__(self, _index):
-        JS("""
-        var index = @{{_index}}.valueOf();
-        if (index < 0) index += @{{self}}.__array.length;
-        if (index < 0 || index >= @{{self}}.__array.length) {
-            throw @{{IndexError}}("tuple index out of range");
-        }
-        return @{{self}}.__array[index];
-        """)
-
-    def __len__(self):
-        return INT(JS("""@{{self}}.__array.length"""))
-
-    def __contains__(self, value):
-        return JS('@{{self}}.__array.indexOf(@{{value}})>=0')
-
-    def __iter__(self):
-        return JS("new $iter_array(@{{self}}.__array)")
-        JS("""
-        var i = 0;
-        var l = @{{self}}.__array;
-        return {
-            'next': function() {
-                if (i >= l.length) {
-                    throw @{{StopIteration}};
-                }
-                return l[i++];
-            },
-            '__iter__': function() {
-                return this;
-            }
-        };
-        """)
-
-    def __enumerate__(self):
-        return JS("new $enumerate_array(@{{self}}.__array)")
-
-    def getArray(self):
+class slice:
+    def __init__(self, a1, *args):
+        if args:
+            self.start = a1
+            self.stop = args[0]
+            if len(args) > 1:
+                self.step = args[1]
+            else:
+                self.step = None
+        else:
+            self.stop = a1
+            self.start = None
+            self.step = None
+            
+    def __cmp__(self, x):
+        r = cmp(self.start, x.start)
+        if r != 0:
+            return r
+        r = cmp(self.stop, x.stop)
+        if r != 0:
+            return r
+        r = cmp(self.step, x.step)
+        return r        
+            
+    def indices(self, length):
         """
-        Access the javascript Array that is used internally by this list
+        PySlice_GetIndicesEx at ./Objects/sliceobject.c
         """
-        return self.__array
+        step = 0
+        start = 0
+        stop = 0
+        if self.step is None:
+            step = 1
+        else:
+            step = self.step
+            if step == 0:
+                raise ValueError("slice step cannot be zero")
+            
+        if step < 0:
+            defstart = length - 1
+            defstop = -1
+        else:
+            defstart = 0
+            defstop = length
+            
+        if self.start is None:
+            start = defstart
+        else:
+            start = self.start
+            if start < 0:
+                start += length
+            if start < 0:
+                if step < 0:
+                    start = -1
+                else:
+                    start = 0
+            if start >= length:
+                if step < 0:
+                    start = length - 1
+                else:
+                    start = length
+    
+        if self.stop is None:
+            stop = defstop
+        else:
+            stop = self.stop
+            if stop < 0:
+                stop += length
+            if stop < 0:
+                if step < 0:
+                    stop = -1
+                else:
+                    stop = 0
+            if stop >= length:
+                if step < 0:
+                    stop = length - 1
+                else:
+                    stop = length
 
-    #def __str__(self):
-    #    return self.__repr__()
-    #See monkey patch at the end of the tuple class definition
+        if ((step < 0 and stop >= start)
+            or (step > 0 and start >= stop)):
+            slicelength = 0
+        elif step < 0:
+            slicelength = (stop - start + 1)/step + 1;
+        else:
+            slicelength = (stop - start - 1)/step + 1;
+            
+        return (start, stop, step)
 
     def __repr__(self):
-        if callable(self):
-            return "<type '%s'>" % self.__name__
-        JS("""
-        var s = "(";
-        for (var i=0; i < @{{self}}.__array.length; i++) {
-            s += @{{repr}}(@{{self}}.__array[i]);
-            if (i < @{{self}}.__array.length - 1)
-                s += ", ";
-        }
-        if (@{{self}}.__array.length == 1)
-            s += ",";
-        s += ")";
-        return s;
-        """)
+        return "slice(%s, %s, %s)" % (self.start, self.stop, self.step)            
 
-    def __add__(self, y):
-        if not isinstance(y, self):
-            raise TypeError("can only concatenate tuple to tuple")
-        return tuple(self.__array.concat(y.__array))
-
-    def __mul__(self, n):
-        if not JS("@{{n}} !== null && @{{n}}.__number__ && (@{{n}}.__number__ != 0x01 || isFinite(@{{n}}))"):
-            raise TypeError("can't multiply sequence by non-int")
-        a = []
-        while n:
-            n -= 1
-            a.extend(self.__array)
-        return a
-
-    def __rmul__(self, n):
-        return self.__mul__(n)
-JS("@{{tuple}}.__str__ = @{{tuple}}.__repr__;")
-JS("@{{tuple}}.toString = @{{tuple}}.__str__;")
-
+JS("@{{slice}}.__str__ = @{{slice}}.__repr__;")
+JS("@{{slice}}.toString = @{{slice}}.__str__;")
 
 class dict:
     def __init__(self, seq=JS("[]"), **kwargs):
@@ -4156,7 +4615,7 @@ class dict:
             JS("""
         var item, i, n, sKey;
         var data = @{{_data}};
-        //@{{self}}.__object = {};
+        //selfXXX.__object = {};
 
         if (data === null) {
             throw @{{TypeError}}("'NoneType' is not iterable");
@@ -4189,13 +4648,23 @@ class dict:
                         }
                     }
                     catch (e) {
-                        if (e.__name__ != 'StopIteration') throw e;
+                        if (!@{{isinstance}}(e, @{{StopIteration}})) throw e;
                     }
                 }
             }
         } else if (typeof data == 'object' || typeof data == 'function') {
             for (var key in data) {
-                @{{self}}.__object['$'+key] = [key, data[key]];
+                var _key = key;
+                if (key.substring(0,2) == '$$') {
+                    // handle back mapping of name
+                    // d = dict(comment='value')
+                    // comment will be in the object as $$comment
+                    _key = key.substring(2);
+                    if (var_remap.indexOf(_key) < 0) {
+                        _key = key;
+                    }
+                }
+                @{{self}}.__object['$'+_key] = [_key, data[key]];
             }
             return null;
         } else {
@@ -4278,7 +4747,7 @@ class dict:
             other_sKeys = new Array(),
             selfLen = 0,
             otherLen = 0,
-            selfObj = @{{self}}.__object;
+            selfObj = @{{self}}.__object,
             otherObj = @{{other}}.__object;
         for (sKey in selfObj) {
            self_sKeys[selfLen++] = sKey;
@@ -4310,7 +4779,7 @@ class dict:
     def __len__(self):
         size = 0
         JS("""
-        for (var i in @{{self}}.__object) size++;
+        for (var i in @{{self}}.__object) @{{size}}++;
         """)
         return INT(size);
 
@@ -4403,7 +4872,7 @@ class dict:
     def setdefault(self, key, default_value):
         JS("""
         var sKey = (@{{key}}===null?null:(typeof @{{key}}.$H != 'undefined'?@{{key}}.$H:((typeof @{{key}}=='string'||@{{key}}.__number__)?'$'+@{{key}}:@{{__hash}}(@{{key}}))));
-        return typeof @{{self}}.__object[sKey] == 'undefined' ? (@{{self}}.__object[sKey]=[@{{key}}, default_value])[1] : @{{self}}.__object[sKey][1];
+        return typeof @{{self}}.__object[sKey] == 'undefined' ? (@{{self}}.__object[sKey]=[@{{key}}, @{{default_value}}])[1] : @{{self}}.__object[sKey][1];
 """)
 
     def get(self, key, default_value=None):
@@ -4413,17 +4882,25 @@ class dict:
             empty = false;
             break;
         }
-        if (empty) return default_value;
+        if (empty) return @{{default_value}};
         var sKey = (@{{key}}===null?null:(typeof @{{key}}.$H != 'undefined'?@{{key}}.$H:((typeof @{{key}}=='string'||@{{key}}.__number__)?'$'+@{{key}}:@{{__hash}}(@{{key}}))));
-        return typeof @{{self}}.__object[sKey] == 'undefined' ? default_value : @{{self}}.__object[sKey][1];
+        return typeof @{{self}}.__object[sKey] == 'undefined' ? @{{default_value}} : @{{self}}.__object[sKey][1];
 """)
 
     def update(self, *args, **kwargs):
         if args:
             if len(args) > 1:
                 raise TypeError("update expected at most 1 arguments, got %d" % len(args))
-            for k,v in args[0].iteritems():
-                self[k] = v
+            d = args[0]
+            if hasattr(d, "iteritems"):
+                for k,v in d.iteritems():
+                    self[k] = v
+            elif hasattr(d, "keys"):
+                for k in d:
+                    self[k] = d[k]
+            else:
+                for k, v in d:
+                    self[k] = v
         if kwargs:
             for k,v in kwargs.iteritems():
                 self[k] = v
@@ -4491,7 +4968,7 @@ JS("@{{dict}}.iterkeys = @{{dict}}.__iter__;")
 JS("@{{dict}}.__str__ = @{{dict}}.__repr__;")
 
 # __empty_dict is used in kwargs initialization
-# There must me a temporary __init__ function used to prevent infinite 
+# There must me a temporary __init__ function used to prevent infinite
 # recursion
 def __empty_dict():
     JS("""
@@ -4507,77 +4984,99 @@ def __empty_dict():
 
 
 class set(object):
-    def __init__(self, _data=JS("[]")):
-        # Transform data into an array with [key,value] and add set 
-        # self.__object
-        # Input data can be Array(key, val), iteratable (key,val) or 
-        # Object/Function
-        JS("var data = @{{_data}};")
+    def __init__(self, _data=None):
+        """ Transform data into an array with [key,value] and add set
+            self.__object
+            Input data can be Array(key, val), iteratable (key,val) or
+            Object/Function
+        """
+        if _data is None:
+            JS("var data = [];")
+        else:
+            JS("var data = @{{_data}};")
+
         if isSet(_data):
             JS("""
             @{{self}}.__object = {};
             var selfObj = @{{self}}.__object,
-                dataObj = data.__object;
+                dataObj = @{{!data}}.__object;
             for (var sVal in dataObj) {
                 selfObj[sVal] = dataObj[sVal];
             }
             return null;""")
         JS("""
-        var item, i, n;
-        var selfObj = @{{self}}.__object = {};
+        var item,
+            i,
+            n,
+            selfObj = @{{self}}.__object = {};
 
-        if (data === null) {
-            throw @{{TypeError}}("'NoneType' is not iterable");
-        }
-        if (data.constructor === Array) {
-        } else if (typeof data.__object == 'object') {
-            data = data.__object;
-            for (var sKey in data) {
-                selfObj[sKey] = data[sKey][0];
+        if (@{{!data}}.constructor === Array) {
+        // data is already an Array.
+        // We deal with the Array of data after this if block.
+          }
+
+          // We may have some other set-like thing with __object
+          else if (typeof @{{!data}}.__object == 'object') {
+            var dataObj = @{{!data}}.__object;
+            for (var sKey in dataObj) {
+                selfObj[sKey] = dataObj[sKey];
             }
             return null;
-        } else if (typeof data.__iter__ == 'function') {
-            if (typeof data.__array == 'object') {
-                data = data.__array;
-            } else {
-                var iter = data.__iter__();
+          }
+
+          // Something with an __iter__ method
+          else if (typeof @{{!data}}.__iter__ == 'function') {
+
+            // It has an __array member to iterate over. Make that our data.
+            if (typeof @{{!data}}.__array == 'object') {
+                data = @{{!data}}.__array;
+                }
+            else {
+                // Several ways to deal with the __iter__ method
+                var iter = @{{!data}}.__iter__();
+                // iter has an __array member that's an array. Use that.
                 if (typeof iter.__array == 'object') {
                     data = iter.__array;
                 }
-                data = [];
+                var data = [];
                 var item, i = 0;
+                // iter has a .$genfunc
                 if (typeof iter.$genfunc == 'function') {
                     while (typeof (item=iter.next(true)) != 'undefined') {
-                        data[i++] = item;
+                        @{{!data}}[i++] = item;
                     }
                 } else {
+                // actually use the object's __iter__ method
                     try {
                         while (true) {
-                            data[i++] = iter.next();
+                            @{{!data}}[i++] = iter.next();
                         }
                     }
                     catch (e) {
-                        if (e.__name__ != 'StopIteration') throw e;
+                        if (!@{{isinstance}}(e, @{{StopIteration}})) throw e;
                     }
                 }
             }
-        } else if (typeof data == 'object' || typeof data == 'function') {
-            for (var key in data) {
-                selfObj[@{{hash}}(key)] = key;
+          // Check undefined first so isIteratable can do check for __iter__.
+        } else if (!(@{{isUndefined}}(@{{data}})) && @{{isIteratable}}(@{{data}}))
+            {
+            for (var item in @{{data}}) {
+                selfObj[@{{__hash}}(item)] = item;
             }
             return null;
         } else {
-            throw @{{TypeError}}("'" + @{{repr}}(data) + "' is not iterable");
+            throw @{{TypeError}}("'" + @{{repr}}(@{{!data}}) + "' is not iterable");
         }
         // Assume uniform array content...
-        if ((n = data.length) == 0) {
+        if ((n = @{{!data}}.length) == 0) {
             return null;
         }
-        i = 0;
-        while (i < n) {
-            item = data[i++];
-            selfObj[@{{hash}}(item)] = item;
+        i = n-1;
+        do {
+            item = @{{!data}}[i];
+            selfObj[@{{__hash}}(item)] = item;
         }
+        while (i--);
         return null;
         """)
 
@@ -4591,23 +5090,24 @@ class set(object):
             return 2
             #other = frozenset(other)
         JS("""
-        var selfLen = 0,
-            otherLen = 0,
-            selfObj = @{{self}}.__object,
+        var selfObj = @{{self}}.__object,
             otherObj = @{{other}}.__object,
             selfMismatch = false,
             otherMismatch = false;
-        for (var sVal in selfObj) {
-            if (!selfMismatch && typeof otherObj[sVal] == 'undefined') {
-                selfMismatch = true;
+        if (selfObj === otherObj) {
+            throw @{{TypeError}}("Set operations must use two sets.");
             }
-            selfLen++;
+        for (var sVal in selfObj) {
+            if (!(sVal in otherObj)) {
+                selfMismatch = true;
+                break;
+            }
         }
         for (var sVal in otherObj) {
-            if (!otherMismatch && typeof selfObj[sVal] == 'undefined') {
+            if (!(sVal in selfObj)) {
                 otherMismatch = true;
+                break;
             }
-            otherLen++;
         }
         if (selfMismatch && otherMismatch) return 2;
         if (selfMismatch) return 1;
@@ -4619,25 +5119,28 @@ class set(object):
         if isSet(value) == 1: # An instance of set
             # Use frozenset hash
             JS("""
-            var hashes = new Array(), obj = @{{self}}.__object, i = 0;
+            var hashes = new Array(),
+                obj = @{{self}}.__object,
+                i = 0;
             for (var v in obj) {
                 hashes[i++] = v;
             }
             hashes.sort();
             var h = hashes.join("|");
-            return typeof @{{self}}.__object[h] != 'undefined';
+            return (h in obj);
 """)
-        JS("""return typeof @{{self}}.__object[@{{hash}}(@{{value}})] != 'undefined';""")
+        JS("""return @{{__hash}}(@{{value}}) in @{{self}}.__object;""")
 
     def __hash__(self):
         raise TypeError("set objects are unhashable")
 
     def __iter__(self):
         JS("""
-        var items = new Array();
-        var i = 0;
-        for (var key in @{{self}}.__object) {
-            items[i++] = @{{self}}.__object[key];
+        var items = new Array(),
+            i = 0,
+            obj = @{{self}}.__object;
+        for (var key in obj) {
+            items[i++] = obj[key];
         }
         return new $iter_array(items);
         """)
@@ -4645,7 +5148,7 @@ class set(object):
     def __len__(self):
         size=0.0
         JS("""
-        for (var i in @{{self}}.__object) size++;
+        for (var i in @{{self}}.__object) @{{size}}++;
         """)
         return INT(size)
 
@@ -4670,25 +5173,33 @@ class set(object):
         """)
 
     def __and__(self, other):
-        # Return the intersection of two sets as a new set
+        """ Return the intersection of two sets as a new set.
+            only available under --number-classes
+        """
         if not isSet(other):
             return NotImplemented
         return self.intersection(other)
 
     def __or__(self, other):
-        # Return the union of two sets as a new set.
+        """ Return the union of two sets as a new set..
+            only available under --number-classes
+        """
         if not isSet(other):
             return NotImplemented
         return self.union(other)
 
     def __xor__(self, other):
-        # Return the symmetric difference of two sets as a new set.
+        """ Return the symmetric difference of two sets as a new set..
+            only available under --number-classes
+        """
         if not isSet(other):
             return NotImplemented
         return self.symmetric_difference(other)
 
     def  __sub__(self, other):
-        # Return the difference of two sets as a new Set.
+        """ Return the difference of two sets as a new Set..
+            only available under --number-classes
+        """
         if not isSet(other):
             return NotImplemented
         return self.difference(other)
@@ -4713,8 +5224,9 @@ class set(object):
         return new_set
 
     def difference(self, other):
-        # Return the difference of two sets as a new set.
-        # (i.e. all elements that are in this set but not the other.)
+        """ Return the difference of two sets as a new set.
+            (i.e. all elements that are in this set but not the other.)
+        """
         if not isSet(other):
             other = frozenset(other)
         new_set = set()
@@ -4723,7 +5235,7 @@ class set(object):
             selfObj = @{{self}}.__object,
             otherObj = @{{other}}.__object;
         for (var sVal in selfObj) {
-            if (typeof otherObj[sVal] == 'undefined') {
+            if (!(sVal in otherObj)) {
                 obj[sVal] = selfObj[sVal];
             }
         }
@@ -4731,14 +5243,15 @@ class set(object):
         return new_set
 
     def difference_update(self, other):
-        # Remove all elements of another set from this set.
+        """ Remove all elements of another set from this set.
+        """
         if not isSet(other):
             other = frozenset(other)
         JS("""
         var selfObj = @{{self}}.__object,
             otherObj = @{{other}}.__object;
         for (var sVal in otherObj) {
-            if (typeof selfObj[sVal] != 'undefined') {
+            if (sVal in selfObj) {
                 delete selfObj[sVal];
             }
         }
@@ -4752,17 +5265,18 @@ class set(object):
         return None
 
     def intersection(self, other):
-        # Return the intersection of two sets as a new set.
-        # (i.e. all elements that are in both sets.)
+        """ Return the intersection of two sets as a new set.
+            (i.e. all elements that are in both sets.)
+        """
         if not isSet(other):
             other = frozenset(other)
         new_set = set()
         JS("""
-        var obj = new_set.__object,
+        var obj = @{{new_set}}.__object,
             selfObj = @{{self}}.__object,
             otherObj = @{{other}}.__object;
         for (var sVal in selfObj) {
-            if (typeof otherObj[sVal] != 'undefined') {
+            if (sVal in otherObj) {
                 obj[sVal] = selfObj[sVal];
             }
         }
@@ -4770,14 +5284,15 @@ class set(object):
         return new_set
 
     def intersection_update(self, other):
-        # Update a set with the intersection of itself and another.
+        """ Update a set with the intersection of itself and another.
+        """
         if not isSet(other):
             other = frozenset(other)
         JS("""
         var selfObj = @{{self}}.__object,
             otherObj = @{{other}}.__object;
         for (var sVal in selfObj) {
-            if (typeof otherObj[sVal] == 'undefined') {
+            if (!(sVal in otherObj)) {
                 delete selfObj[sVal];
             }
         }
@@ -4785,7 +5300,8 @@ class set(object):
         return None
 
     def isdisjoint(self, other):
-        # Return True if two sets have a null intersection.
+        """ Return True if two sets have a null intersection.
+        """
         if not isSet(other):
             other = frozenset(other)
         JS("""
@@ -4830,16 +5346,17 @@ class set(object):
         else:
             val = value
         JS("""
-        var h;
-        if (typeof @{{self}}.__object[(h = @{{hash}}(@{{val}}))] == 'undefined') {
+        var h = @{{hash}}(@{{val}});
+        if (!(h in @{{self}}.__object)) {
             throw @{{KeyError}}(@{{value}});
         }
-        delete @{{self}}.__object[@{{hash}}(@{{val}})];
+        delete @{{self}}.__object[h];
         """)
 
     def symmetric_difference(self, other):
-        # Return the symmetric difference of two sets as a new set.
-        # (i.e. all elements that are in exactly one of the sets.)
+        """ Return the symmetric difference of two sets as a new set.
+            (i.e. all elements that are in exactly one of the sets.)
+        """
         if not isSet(other):
             other = frozenset(other)
         new_set = set()
@@ -4861,7 +5378,8 @@ class set(object):
         return new_set
 
     def symmetric_difference_update(self, other):
-        # Update a set with the symmetric difference of itself and another.
+        """ Update a set with the symmetric difference of itself and another.
+        """
         if not isSet(other):
             other = frozenset(other)
         JS("""
@@ -4883,8 +5401,9 @@ class set(object):
         return None
 
     def union(self, other):
-        # Return the union of two sets as a new set.
-        # (i.e. all elements that are in either set.)
+        """ Return the union of two sets as a new set.
+            (i.e. all elements that are in either set.)
+        """
         new_set = set()
         if not isSet(other):
             other = frozenset(other)
@@ -4896,7 +5415,7 @@ class set(object):
             obj[sVal] = selfObj[sVal];
         }
         for (var sVal in otherObj) {
-            if (typeof selfObj[sVal] == 'undefined') {
+            if (!(sVal in selfObj)) {
                 obj[sVal] = otherObj[sVal];
             }
         }
@@ -4910,7 +5429,7 @@ class set(object):
         var selfObj = @{{self}}.__object,
             dataObj = @{{data}}.__object;
         for (var sVal in dataObj) {
-            if (typeof selfObj[sVal] == 'undefined') {
+            if (!(sVal in selfObj)) {
                 selfObj[sVal] = dataObj[sVal];
             }
         }
@@ -4920,128 +5439,10 @@ class set(object):
 JS("@{{set}}['__str__'] = @{{set}}['__repr__'];")
 JS("@{{set}}['toString'] = @{{set}}['__repr__'];")
 
-class frozenset(object):
-    def __init__(self, _data=JS("[]")):
-        # Transform data into an array with [key,value] and add set self.__object
-        # Input data can be Array(key, val), iteratable (key,val) or Object/Function
-        if JS("typeof @{{self}}.__object != 'undefined'"):
-            return None
-        JS("var data = @{{_data}};")
-        if isSet(_data):
-            JS("""
-            @{{self}}.__object = {};
-            var selfObj = @{{self}}.__object,
-                dataObj = data.__object;
-            for (var sVal in dataObj) {
-                selfObj[sVal] = dataObj[sVal];
-            }
-            return null;""")
-        JS("""
-        var item, i, n;
-        var selfObj = @{{self}}.__object = {};
-
-        if (data === null) {
-            throw @{{TypeError}}("'NoneType' is not iterable");
-        }
-        if (data.constructor === Array) {
-        } else if (typeof data.__object == 'object') {
-            data = data.__object;
-            for (var sKey in data) {
-                selfObj[sKey] = data[sKey][0];
-            }
-            return null;
-        } else if (typeof data.__iter__ == 'function') {
-            if (typeof data.__array == 'object') {
-                data = data.__array;
-            } else {
-                var iter = data.__iter__();
-                if (typeof iter.__array == 'object') {
-                    data = iter.__array;
-                }
-                data = [];
-                var item, i = 0;
-                if (typeof iter.$genfunc == 'function') {
-                    while (typeof (item=iter.next(true)) != 'undefined') {
-                        data[i++] = item;
-                    }
-                } else {
-                    try {
-                        while (true) {
-                            data[i++] = iter.next();
-                        }
-                    }
-                    catch (e) {
-                        if (e.__name__ != 'StopIteration') throw e;
-                    }
-                }
-            }
-        } else if (typeof data == 'object' || typeof data == 'function') {
-            for (var key in data) {
-                selfObj[@{{hash}}(key)] = key;
-            }
-            return null;
-        } else {
-            throw @{{TypeError}}("'" + @{{repr}}(data) + "' is not iterable");
-        }
-        // Assume uniform array content...
-        if ((n = data.length) == 0) {
-            return null;
-        }
-        i = 0;
-        while (i < n) {
-            item = data[i++];
-            selfObj[@{{hash}}(item)] = item;
-        }
-        return null;
-        """)
-
-    def __cmp__(self, other):
-        # We (mis)use cmp here for the missing __gt__/__ge__/...
-        # if self == other : return 0
-        # if self is subset of other: return -1
-        # if self is superset of other: return 1
-        # else return 2
-        if not isSet(other):
-            return 2
-            #other = frozenset(other)
-        JS("""
-        var selfLen = 0,
-            otherLen = 0,
-            selfObj = @{{self}}.__object,
-            otherObj = @{{other}}.__object,
-            selfMismatch = false,
-            otherMismatch = false;
-        for (var sVal in selfObj) {
-            if (!selfMismatch && typeof otherObj[sVal] == 'undefined') {
-                selfMismatch = true;
-            }
-            selfLen++;
-        }
-        for (var sVal in otherObj) {
-            if (!otherMismatch && typeof selfObj[sVal] == 'undefined') {
-                otherMismatch = true;
-            }
-            otherLen++;
-        }
-        if (selfMismatch && otherMismatch) return 2;
-        if (selfMismatch) return 1;
-        if (otherMismatch) return -1;
-        return 0;
-""")
-
-    def __contains__(self, value):
-        if isSet(value) == 1: # An instance of set
-            # Use frozenset hash
-            JS("""
-            var hashes = new Array(), obj = @{{self}}.__object, i = 0;
-            for (var v in obj) {
-                hashes[i++] = v;
-            }
-            hashes.sort();
-            var h = hashes.join("|");
-            return typeof @{{self}}.__object[h] != 'undefined';
-""")
-        JS("""return typeof @{{self}}.__object[@{{hash}}(@{{value}})] != 'undefined';""")
+class frozenset(set):
+    def __init__(self, _data=None):
+        if JS("(!('__object' in @{{self}}))"):
+            set.__init__(self, _data)
 
     def __hash__(self):
         JS("""
@@ -5053,201 +5454,26 @@ class frozenset(object):
         return (@{{self}}.$H = hashes.join("|"));
 """)
 
-    def __iter__(self):
-        JS("""
-        var items = new Array();
-        var i = 0;
-        for (var key in @{{self}}.__object) {
-            items[i++] = @{{self}}.__object[key];
-        }
-        return new $iter_array(items);
-        """)
-
-    def __len__(self):
-        size=0.0
-        JS("""
-        for (var i in @{{self}}.__object) size++;
-        """)
-        return INT(size)
-
-    #def __str__(self):
-    #    return self.__repr__()
-    #See monkey patch at the end of the set class definition
-
-    def __repr__(self):
-        if callable(self):
-            return "<type '%s'>" % self.__name__
-        JS("""
-        var values = new Array();
-        var i = 0,
-            obj = @{{self}}.__object,
-            s = @{{self}}.__name__ + "([";
-        for (var sVal in obj) {
-            values[i++] = @{{repr}}(obj[sVal]);
-        }
-        s += values.join(", ");
-        s += "])";
-        return s;
-        """)
-
-    def __and__(self, other):
-        # Return the intersection of two sets as a new set
-        if not isSet(other):
-            return NotImplemented
-        return self.intersection(other)
-
-    def __or__(self, other):
-        # Return the union of two sets as a new set.
-        if not isSet(other):
-            return NotImplemented
-        return self.union(other)
-
-    def __xor__(self, other):
-        # Return the symmetric difference of two sets as a new set.
-        if not isSet(other):
-            return NotImplemented
-        return self.symmetric_difference(other)
-
-    def  __sub__(self, other):
-        # Return the difference of two sets as a new Set.
-        if not isSet(other):
-            return NotImplemented
-        return self.difference(other)
+    def add(self, value):
+        raise AttributeError('frozenset is immutable')
 
     def clear(self):
-        JS("""@{{self}}.__object = {};""")
-        return None
+        raise AttributeError('frozenset is immutable')
 
-    def copy(self):
-        new_set = set()
-        JS("""
-        var obj = @{{new_set}}.__object,
-            selfObj = @{{self}}.__object;
-        for (var sVal in selfObj) {
-            obj[sVal] = selfObj[sVal];
-        }
-""")
-        return new_set
+    def difference_update(self, other):
+        raise AttributeError('frozenset is immutable')
 
-    def difference(self, other):
-        # Return the difference of two sets as a new set.
-        # (i.e. all elements that are in this set but not the other.)
-        if not isSet(other):
-            other = frozenset(other)
-        new_set = set()
-        JS("""
-        var obj = @{{new_set}}.__object,
-            selfObj = @{{self}}.__object,
-            otherObj = @{{other}}.__object;
-        for (var sVal in selfObj) {
-            if (typeof otherObj[sVal] == 'undefined') {
-                obj[sVal] = selfObj[sVal];
-            }
-        }
-""")
-        return new_set
+    def discard(self, value):
+        raise AttributeError('frozenset is immutable')
 
-    def intersection(self, other):
-        # Return the intersection of two sets as a new set.
-        # (i.e. all elements that are in both sets.)
-        if not isSet(other):
-            other = frozenset(other)
-        new_set = set()
-        JS("""
-        var obj = @{{new_set}}.__object,
-            selfObj = @{{self}}.__object,
-            otherObj = @{{other}}.__object;
-        for (var sVal in selfObj) {
-            if (typeof otherObj[sVal] != 'undefined') {
-                obj[sVal] = selfObj[sVal];
-            }
-        }
-""")
-        return new_set
-
-    def isdisjoint(self, other):
-        # Return True if two sets have a null intersection.
-        if not isSet(other):
-            other = frozenset(other)
-        JS("""
-        var selfObj = @{{self}}.__object,
-            otherObj = @{{other}}.__object;
-        for (var sVal in selfObj) {
-            if (typeof otherObj[sVal] != 'undefined') {
-                return false;
-            }
-        }
-        for (var sVal in otherObj) {
-            if (typeof selfObj[sVal] != 'undefined') {
-                return false;
-            }
-        }
-""")
-        return True
-
-    def issubset(self, other):
-        if not isSet(other):
-            other = frozenset(other)
-        return JS("@{{self}}.__cmp__(@{{other}}) < 0")
-
-    def issuperset(self, other):
-        if not isSet(other):
-            other = frozenset(other)
-        return JS("(@{{self}}.__cmp__(@{{other}})|1) == 1")
+    def intersection_update(self, other):
+        raise AttributeError('frozenset is immutable')
 
     def pop(self):
-        JS("""
-        for (var sVal in @{{self}}.__object) {
-            var value = @{{self}}.__object[sVal];
-            delete @{{self}}.__object[sVal];
-            return value;
-        }
-        """)
-        raise KeyError("pop from an empty set")
+        raise AttributeError('frozenset is immutable')
 
-    def symmetric_difference(self, other):
-        # Return the symmetric difference of two sets as a new set.
-        # (i.e. all elements that are in exactly one of the sets.)
-        if not isSet(other):
-            other = frozenset(other)
-        new_set = set()
-        JS("""
-        var obj = @{{new_set}}.__object,
-            selfObj = @{{self}}.__object,
-            otherObj = @{{other}}.__object;
-        for (var sVal in selfObj) {
-            if (typeof otherObj[sVal] == 'undefined') {
-                obj[sVal] = selfObj[sVal];
-            }
-        }
-        for (var sVal in otherObj) {
-            if (typeof selfObj[sVal] == 'undefined') {
-                obj[sVal] = otherObj[sVal];
-            }
-        }
-""")
-        return new_set
-
-    def union(self, other):
-        # Return the union of two sets as a new set.
-        # (i.e. all elements that are in either set.)
-        new_set = set()
-        if not isSet(other):
-            other = frozenset(other)
-        JS("""
-        var obj = @{{new_set}}.__object,
-            selfObj = @{{self}}.__object,
-            otherObj = @{{other}}.__object;
-        for (var sVal in selfObj) {
-            obj[sVal] = selfObj[sVal];
-        }
-        for (var sVal in otherObj) {
-            if (typeof selfObj[sVal] == 'undefined') {
-                obj[sVal] = otherObj[sVal];
-            }
-        }
-""")
-        return new_set
+    def symmetric_difference_update(self, other):
+        raise AttributeError('frozenset is immutable')
 
 JS("@{{frozenset}}['__str__'] = @{{frozenset}}['__repr__'];")
 JS("@{{frozenset}}['toString'] = @{{frozenset}}['__repr__'];")
@@ -5343,31 +5569,31 @@ def xrange(start, stop = None, step = 1):
     if stop is None:
         stop = start
         start = 0
-    if not JS("@{{start }}!== null && @{{start}}.__number__ && (@{{start}}.__number__ != 0x01 || isFinite(@{{start}}))"):
+    if not JS("@{{start}}!== null && @{{start}}.__number__ && (@{{start}}.__number__ != 0x01 || isFinite(@{{start}}))"):
         raise TypeError("xrange() integer start argument expected, got %s" % start.__class__.__name__)
-    if not JS("@{{stop }}!== null && @{{stop}}.__number__ && (@{{stop}}.__number__ != 0x01 || isFinite(@{{stop}}))"):
+    if not JS("@{{stop}}!== null && @{{stop}}.__number__ && (@{{stop}}.__number__ != 0x01 || isFinite(@{{stop}}))"):
         raise TypeError("xrange() integer end argument expected, got %s" % stop.__class__.__name__)
-    if not JS("@{{step }}!== null && @{{step}}.__number__ && (@{{step}}.__number__ != 0x01 || isFinite(@{{step}}))"):
+    if not JS("@{{step}}!== null && @{{step}}.__number__ && (@{{step}}.__number__ != 0x01 || isFinite(@{{step}}))"):
         raise TypeError("xrange() integer step argument expected, got %s" % step.__class__.__name__)
     rval = nval = start
     JS("""
-    var nstep = (@{{stop}}-@{{start}})/step;
+    var nstep = (@{{stop}}-@{{start}})/@{{step}};
     nstep = nstep < 0 ? Math.ceil(nstep) : Math.floor(nstep);
-    if ((@{{stop}}-@{{start}}) % step) {
+    if ((@{{stop}}-@{{start}}) % @{{step}}) {
         nstep++;
     }
-    var _stop = @{{start }}+ nstep * @{{step}};
-    if (nstep <= 0) nval = _stop;
+    var _stop = @{{start}}+ nstep * @{{step}};
+    if (nstep <= 0) @{{nval}} = _stop;
     var x = {
         'next': function(noStop) {
-            if (nval == _stop) {
+            if (@{{nval}} == _stop) {
                 if (noStop === true) {
                     return;
                 }
-                throw @{{StopIteration}};
+                throw @{{StopIteration}}();
             }
-            rval = nval;
-            nval += @{{step}};
+            @{{rval}} = @{{nval}};
+            @{{nval}} += @{{step}};
 """)
     return INT(rval);
     JS("""
@@ -5379,15 +5605,15 @@ def xrange(start, stop = None, step = 1):
             return this;
         },
         '__reversed__': function() {
-            return @{{xrange}}(_stop-@{{step}}, @{{start}}-@{{step}}, -@{{step}});
+            return @{{xrange}}(@{{!_stop}}-@{{step}}, @{{start}}-@{{step}}, -@{{step}});
         },
         'toString': function() {
             var s = "xrange(";
-            if (@{{start }}!= 0) {
-                s += @{{start }}+ ", ";
+            if (@{{start}}!= 0) {
+                s += @{{start}}+ ", ";
             }
-            s += _stop;
-            if (@{{step }}!= 1) {
+            s += @{{!_stop}};
+            if (@{{step}}!= 1) {
                 s += ", " + @{{step}};
             }
             return s + ")";
@@ -5396,37 +5622,51 @@ def xrange(start, stop = None, step = 1):
             return "'" + this.toString() + "'";
         }
     };
-    x['__str__'] = x.toString;
-    return x;
+    @{{!x}}['__str__'] = @{{!x}}.toString;
+    return @{{!x}};
     """)
+    
+def get_len_of_range(lo, hi, step):
+    n = 0
+    JS("""
+    var diff = @{{hi}} - @{{lo}} - 1;
+    @{{n}} = Math.floor(diff / @{{step}}) + 1;
+    """);
+    return n
 
 def range(start, stop = None, step = 1):
     if stop is None:
         stop = start
         start = 0
-    i = start
+    ilow = start
     if not JS("@{{start}}!== null && @{{start}}.__number__ && (@{{start}}.__number__ != 0x01 || isFinite(@{{start}}))"):
         raise TypeError("xrange() integer start argument expected, got %s" % start.__class__.__name__)
     if not JS("@{{stop}}!== null && @{{stop}}.__number__ && (@{{stop}}.__number__ != 0x01 || isFinite(@{{stop}}))"):
         raise TypeError("xrange() integer end argument expected, got %s" % stop.__class__.__name__)
     if not JS("@{{step}}!== null && @{{step}}.__number__ && (@{{step}}.__number__ != 0x01 || isFinite(@{{step}}))"):
         raise TypeError("xrange() integer step argument expected, got %s" % step.__class__.__name__)
+    
+    if step == 0:
+        raise ValueError("range() step argument must not be zero")
+    
+    if step > 0:
+        n = get_len_of_range(ilow, stop, step)
+    else:
+        n = get_len_of_range(stop, ilow, -step)
+    r = None
     items = JS("new Array()")
     JS("""
-    var nstep = (@{{stop}}-@{{start}})/@{{step}};
-    nstep = nstep < 0 ? Math.ceil(nstep) : Math.floor(nstep);
-    if ((@{{stop}}-@{{start}}) % step) {
-        nstep++;
+    for (var i = 0; i < @{{n}}; i++) {
+    """)
+    items.push(INT(ilow))
+    JS("""
+        @{{ilow}} += @{{step}};
     }
-    var _stop = @{{start}}+ nstep * @{{step}};
-    if (nstep <= 0) @{{i}}= _stop;
-    for (; @{{i}}!= _stop; @{{i}}+= @{{step}}) {
-""")
-    items.push(INT(i))
-    JS('}')
-    return list(items)
+    @{{r}} = @{{list}}(items);
+    """)
+    return r
 
-def slice(object, lower, upper):
+def __getslice(object, lower, upper):
     JS("""
     if (@{{object}}=== null) {
         return null;
@@ -5468,20 +5708,27 @@ def __setslice(object, lower, upper, value):
     return null;
     """)
 
-def str(text):
-    JS("""
-    if (@{{text}}=== null) {
-        return "None";
-    }
-    if (typeof @{{text}}== 'boolean') {
-        if (@{{text}}) return "True";
-        return "False";
-    }
-    if (@{{hasattr}}(@{{text}},"__str__")) {
-        return @{{text}}.__str__();
-    }
-    return String(@{{text}});
-    """)
+class str(basestring):
+    def __new__(self, text=''):
+        JS("""
+        if (@{{text}}==='') {
+            return @{{text}};
+        }
+        if (@{{text}}===null) {
+            return 'None';
+        }
+        if (typeof @{{text}}=='boolean') {
+            if (@{{text}}) return 'True';
+            return 'False';
+        }
+        if (@{{text}}.__is_instance__ === false) {
+            return @{{object}}.__str__(@{{text}});
+        }
+        if (@{{hasattr}}(@{{text}},'__str__')) {
+            return @{{text}}.__str__();
+        }
+        return String(@{{text}});
+""")
 
 def ord(x):
     if(JS("typeof @{{x}}== 'string'") and len(x) is 1):
@@ -5517,27 +5764,21 @@ def get_pyjs_classtype(x):
 def repr(x):
     """ Return the string representation of 'x'.
     """
-    if hasattr(x, '__repr__'):
-        if callable(x):
-            return x.__repr__(x)
-        return x.__repr__()
+    # First some short cuts for speedup
+    # by avoiding function calls
     JS("""
        if (@{{x}}=== null)
            return "None";
 
-       if (@{{x}}=== undefined)
-           return "undefined";
-
        var t = typeof(@{{x}});
 
-        //alert("repr typeof " + t + " : " + @{{x}});
+       if (t == "undefined")
+           return "undefined";
 
        if (t == "boolean") {
            if (@{{x}}) return "True";
            return "False";
        }
-       if (t == "function")
-           return "<function " + @{{x}}.toString() + ">";
 
        if (t == "number")
            return @{{x}}.toString();
@@ -5551,8 +5792,14 @@ def repr(x):
            return '"' + s + '"';
        }
 
-       if (t == "undefined")
-           return "undefined";
+""")
+    if hasattr(x, '__repr__'):
+        if callable(x):
+            return x.__repr__(x)
+        return x.__repr__()
+    JS("""
+       if (t == "function")
+           return "<function " + @{{x}}.toString() + ">";
 
        // If we get here, x is an object.  See if it's a Pyjamas class.
 
@@ -5582,16 +5829,16 @@ def len(object):
     if (typeof @{{object}}== 'undefined') {
         throw @{{UndefinedValueError}}("obj");
     }
-    if (@{{object}}=== null) 
-        return v;
-    else if (typeof @{{object}}.__array != 'undefined') 
-        v = @{{object}}.__array.length;
-    else if (typeof @{{object}}.__len__ == 'function') 
-        v = @{{object}}.__len__();
+    if (@{{object}}=== null)
+        return @{{v}};
+    else if (typeof @{{object}}.__array != 'undefined')
+        @{{v}} = @{{object}}.__array.length;
+    else if (typeof @{{object}}.__len__ == 'function')
+        @{{v}} = @{{object}}.__len__();
     else if (typeof @{{object}}.length != 'undefined')
-        v = @{{object}}.length;
+        @{{v}} = @{{object}}.length;
     else throw @{{TypeError}}("object has no len()");
-    if (v.__number__ & 0x06) return v;
+    if (@{{v}}.__number__ & 0x06) return @{{v}};
     """)
     return INT(v)
 
@@ -5611,10 +5858,18 @@ def isinstance(object_, classinfo):
             return typeof @{{object_}}== 'number' && @{{object_}}.__number__ == 0x01 && isFinite(@{{object_}});
         case 'int':
         case 'float_int':
-            return @{{object_}}!== null
-                    && @{{object_}}.__number__
-                    && (@{{object_}}.__number__ != 0x01
-                    || isFinite(@{{object_}}));/* XXX TODO: check rounded? */
+            if (@{{object_}}!== null
+                && @{{object_}}.__number__) {
+                if (@{{object_}}.__number__ == 0x02) {
+                    return true;
+                }
+                if (isFinite(@{{object_}}) &&
+                    Math.ceil(@{{object_}}) == @{{object_}}) {
+                    return true;
+                }
+            }
+            return false;
+        case 'basestring':
         case 'str':
             return typeof @{{object_}}== 'string';
         case 'bool':
@@ -5638,7 +5893,7 @@ def isinstance(object_, classinfo):
 
 def _isinstance(object_, classinfo):
     JS("""
-    if (   @{{object_}}.__is_instance__ !== true 
+    if (   @{{object_}}.__is_instance__ !== true
         || @{{classinfo}}.__is_instance__ === null) {
         return false;
     }
@@ -5659,22 +5914,22 @@ def _isinstance(object_, classinfo):
     """)
 
 def issubclass(class_, classinfo):
-    if JS(""" typeof class_ == 'undefined' || class_ === null || class_.__is_instance__ !== false """):
+    if JS(""" typeof @{{class_}} == 'undefined' || @{{class_}} === null || @{{class_}}.__is_instance__ !== false """):
         raise TypeError("arg 1 must be a class")
-        
+
     if isinstance(classinfo, tuple):
         for ci in classinfo:
             if issubclass(class_, ci):
                 return True
         return False
     else:
-        if JS(""" typeof classinfo == 'undefined' || classinfo.__is_instance__ !== false """):
+        if JS(""" typeof @{{classinfo}} == 'undefined' || @{{classinfo}}.__is_instance__ !== false """):
             raise TypeError("arg 2 must be a class or tuple of classes")
         return _issubtype(class_, classinfo)
-    
+
 def _issubtype(object_, classinfo):
     JS("""
-    if (   @{{object_}}.__is_instance__ === null 
+    if (   @{{object_}}.__is_instance__ === null
         || @{{classinfo}}.__is_instance__ === null) {
         return false;
     }
@@ -5702,11 +5957,11 @@ def __getattr_check(attr, attr_left, attr_right, attrstr,
             var $pyjs__testval;
             var v, vl; /* hmm.... */
             if (bound_methods || descriptors) {
-                pyjs__testval = (v=(vl=attr_left)[attr_right]) == null || 
-                                ((vl.__is_instance__) && 
+                pyjs__testval = (v=(vl=attr_left)[attr_right]) == null ||
+                                ((vl.__is_instance__) &&
                                  typeof v == 'function');
                 if (descriptors) {
-                    pyjs_testval = pyjs_testval || 
+                    pyjs_testval = pyjs_testval ||
                             (typeof v['__get__'] == 'function');
                 }
                 pyjs__testval = (pyjs__testval ?
@@ -5730,15 +5985,17 @@ def getattr(obj, name, default_value=None):
         }
         return @{{default_value}};
     }
-    var mapped_name = @{{name}};
-    if (typeof @{{obj}}[@{{name}}] == 'undefined') {
-        mapped_name = '$$' + @{{name}};
-        if (typeof @{{obj}}[mapped_name] == 'undefined' || attrib_remap.indexOf(@{{name}}) < 0) {
-            if (arguments.length != 3) {
-                throw @{{AttributeError}}("'" + @{{repr}}(@{{obj}}) + "' has no attribute '" + @{{name}}+ "'");
+    var mapped_name = attrib_remap.indexOf(@{{name}}) < 0 ? @{{name}}:
+                        '$$'+@{{name}};
+    if (typeof @{{obj}}[mapped_name] == 'undefined') {
+        if (arguments.length != 3) {
+            if (@{{obj}}.__is_instance__ === true &&
+                    typeof @{{obj}}.__getattr__ == 'function') {
+                return @{{obj}}.__getattr__(@{{name}});
             }
-            return @{{default_value}};
+            throw @{{AttributeError}}("'" + @{{repr}}(@{{obj}}) + "' has no attribute '" + @{{name}}+ "'");
         }
+        return @{{default_value}};
     }
     var method = @{{obj}}[mapped_name];
     if (method === null) return method;
@@ -5750,6 +6007,7 @@ def getattr(obj, name, default_value=None):
         return method.__get__(null, @{{obj}}.__class__);
     }
     if (   typeof method != 'function'
+        || typeof method.__is_instance__ != 'undefined'
         || @{{obj}}.__is_instance__ !== true
         || @{{name}}== '__class__') {
         return @{{obj}}[mapped_name];
@@ -5761,16 +6019,22 @@ def getattr(obj, name, default_value=None):
     fnwrap.__name__ = @{{name}};
     fnwrap.__args__ = @{{obj}}[mapped_name].__args__;
     fnwrap.__class__ = @{{obj}}.__class__;
+    fnwrap.__doc__ = method.__doc__ || '';
     fnwrap.__bind_type__ = @{{obj}}[mapped_name].__bind_type__;
+    if (typeof @{{obj}}[mapped_name].__is_instance__ != 'undefined') {
+        fnwrap.__is_instance__ = @{{obj}}[mapped_name].__is_instance__;
+    } else {
+        fnwrap.__is_instance__ = false;
+    }
     return fnwrap;
     """)
 
 def _del(obj):
     JS("""
-    if (typeof obj.__delete__ == 'function') {
-        obj.__delete__(obj);
+    if (typeof @{{obj}}.__delete__ == 'function') {
+        @{{obj}}.__delete__(@{{obj}});
     } else {
-        delete obj;
+        delete @{{obj}};
     }
     """)
 
@@ -5786,12 +6050,11 @@ def delattr(obj, name):
         @{{obj}}.__delattr__(@{{name}});
         return;
     }
-    var mapped_name = attrib_remap.indexOf(@{{name}}) < 0 ? @{{name}}: 
+    var mapped_name = attrib_remap.indexOf(@{{name}}) < 0 ? @{{name}}:
                         '$$'+@{{name}};
     if (   @{{obj}}!== null
         && (typeof @{{obj}}== 'object' || typeof @{{obj}}== 'function')
-        && (typeof(@{{obj}}[mapped_name]) != "undefined")
-        &&(typeof(@{{obj}}[mapped_name]) != "function") ){
+        && (typeof(@{{obj}}[mapped_name]) != "undefined") ){
         if (@{{obj}}.__is_instance__
             && typeof @{{obj}}[mapped_name].__delete__ == 'function') {
             @{{obj}}[mapped_name].__delete__(@{{obj}});
@@ -5802,7 +6065,7 @@ def delattr(obj, name):
     }
     if (@{{obj}}=== null) {
         throw @{{AttributeError}}("'NoneType' object"+
-                                  "has no attribute '"+name+"'");
+                                  "has no attribute '"+@{{name}}+"'");
     }
     if (typeof @{{obj}}!= 'object' && typeof @{{obj}}== 'function') {
        throw @{{AttributeError}}("'"+typeof(@{{obj}})+
@@ -5842,18 +6105,18 @@ def hasattr(obj, name):
     if (typeof @{{obj}}== 'undefined') {
         throw @{{UndefinedValueError}}("obj");
     }
-    if (typeof name != 'string') {
+    if (typeof @{{name}} != 'string') {
         throw @{{TypeError}}("attribute name must be string");
     }
     if (@{{obj}}=== null) return false;
-    if (typeof @{{obj}}[name] == 'undefined' && (
-            typeof @{{obj}}['$$'+name] == 'undefined' ||
-            attrib_remap.indexOf(name) < 0)
+    if (typeof @{{obj}}[@{{name}}] == 'undefined' && (
+            typeof @{{obj}}['$$'+@{{name}}] == 'undefined' ||
+            attrib_remap.indexOf(@{{name}}) < 0)
       ) {
         return false;
     }
-    if (typeof @{{obj}}!= 'object' && typeof @{{obj}}!= 'function')
-        return false;
+    //if (@{{obj}}!= 'object' && typeof @{{obj}}!= 'function')
+    //    return false;
     return true;
     """)
 
@@ -5863,7 +6126,14 @@ def dir(obj):
         throw @{{UndefinedValueError}}("obj");
     }
     var properties=@{{list}}();
-    for (var property in @{{obj}}) properties.append(property);
+    for (var property in @{{obj}}) {
+        if (property.substring(0,2) == '$$') {
+            // handle back mapping of name
+            properties.append(property.substring(2));
+        } else if (attrib_remap.indexOf(property) < 0) {
+            properties.append(property);
+        }
+    }
     return properties;
     """)
 
@@ -6037,6 +6307,28 @@ def sum(iterable, start=None):
         start += i
     return start
 
+class complex:
+    def __init__(self, real, imag):
+        self.real = float(real)
+        self.imag = float(imag)
+        
+    def __repr__(self):
+        if self.real:
+            return "(%s+%sj)" % (self.real, self.imag)
+        else:
+            return "%sj" % self.imag
+    
+    def __add__(self, b):
+        if isinstance(b, complex):
+            return complex(self.real + b.real, self.imag + b.imag)
+        elif JS("typeof @{{b}}.__number__ != 'undefined'"):
+            return complex(self.real + b, self.imag)
+        else:
+            raise TypeError("unsupported operand type(s) for +: '%r', '%r'" % (self, b))
+        
+JS("@{{complex}}['__radd__'] = @{{complex}}['__add__'];")
+JS("@{{complex}}['__str__'] = @{{complex}}['__repr__'];")
+JS("@{{complex}}['toString'] = @{{complex}}['__repr__'];")
 
 JS("@{{next_hash_id}} = 0;")
 
@@ -6122,7 +6414,7 @@ else:
     };
         """)
 
-    #def hash(obj):
+   #def hash(obj):
     JS("""@{{hash}} = function(obj) {
         if (obj === null) return null;
 
@@ -6182,7 +6474,7 @@ def isIteratable(a):
 
 def isNumber(a):
     JS("""
-    return @{{a}}!== null && @{{a}}.__number__ && 
+    return @{{a}}!== null && @{{a}}.__number__ &&
            (@{{a}}.__number__ != 0x01 || isFinite(@{{a}}));
     """)
 
@@ -6190,7 +6482,7 @@ def isInteger(a):
     JS("""
     switch (@{{a}}.__number__) {
         case 0x01:
-            if (a != Math.floor(@{{a}})) break;
+            if (@{{a}} != Math.floor(@{{a}})) break;
         case 0x02:
         case 0x04:
             return true;
@@ -6202,7 +6494,8 @@ def isSet(a):
     JS("""
     if (@{{a}}=== null) return false;
     if (typeof @{{a}}.__object == 'undefined') return false;
-    switch (@{{a}}.__mro__[@{{a}}.__mro__.length-2].__md5__) {
+    var a_mro = @{{a}}.__mro__;
+    switch (a_mro[a_mro.length-2].__md5__) {
         case @{{set}}.__md5__:
             return 1;
         case @{{frozenset}}.__md5__:
@@ -6226,7 +6519,7 @@ def toJSObjects(x):
         return result;
         """)
     if isObject(x):
-        if x.__number__:
+        if getattr(x, '__number__', None):
             return x.valueOf()
         elif isinstance(x, dict):
             JS("""
@@ -6242,6 +6535,8 @@ def toJSObjects(x):
         elif hasattr(x, '__class__'):
             # we do not have a special implementation for custom
             # classes, just pass it on
+            return x
+        elif isFunction(x):
             return x
     if isObject(x):
         JS("""
@@ -6267,7 +6562,7 @@ def sprintf(strng, args):
     var argidx = 0;
     var nargs = 0;
     var result = [];
-    var remainder = strng;
+    var remainder = @{{strng}};
 
     function formatarg(flags, minlen, precision, conversion, param) {
         var subst = '';
@@ -6336,6 +6631,8 @@ def sprintf(strng, args):
                 subst = String(parseFloat(param).toFixed(precision)).toUpperCase();
                 break;
             case 'g':
+                // FIXME: Issue 672 should return double digit exponent
+                // probably can remove code in formatd after that
                 if (precision === null && flags.indexOf('#') >= 0) {
                     precision = 6;
                 }
@@ -6391,7 +6688,7 @@ def sprintf(strng, args):
                 }
                 break;
             default:
-                throw @{{ValueError}}("unsupported format character '" + conversion + "' ("+@{{hex}}(conversion.charCodeAt(0))+") at index " + (strng.length - remainder.length - 1));
+                throw @{{ValueError}}("unsupported format character '" + conversion + "' ("+@{{hex}}(conversion.charCodeAt(0))+") at index " + (@{{strng}}.length - remainder.length - 1));
         }
         if (minlen && subst.length < minlen) {
             if (numeric && left_padding && flags.indexOf('0') >= 0) {
@@ -6498,9 +6795,20 @@ def sprintf(strng, args):
     return result.join("");
 """)
 
+__module_internals = set(['__track_lines__'])
+def _globals(module):
+    """
+    XXX: It should return dictproxy instead!
+    """
+    d = dict()
+    for name in dir(module):
+        if not name in __module_internals:
+            d[name] = JS("@{{module}}[@{{name}}]")
+    return d
+
 def debugReport(msg):
     JS("""
-    alert(msg);
+    @{{printFunc}}([@{{msg}}], true);
     """)
 
 JS("""
@@ -6515,39 +6823,54 @@ if (   typeof $wnd.console != 'undefined'
     $printFunc = function(s) {
         $wnd.opera.postError(s);
     };
+} else if ( typeof console != 'undefined') {
+    if (   typeof console.log == 'function'
+        || typeof console.log == 'object') {
+        $printFunc = function(s){
+            console.log(s);
+        };
+    }
 }
 """)
 
-def printFunc(objs, newline):
+def _print_to_console(s):
     JS("""
     if ($printFunc === null) return null;
+    $printFunc(@{{s}});
+    """)
+
+def printFunc(objs, newline):
+    JS("""
     var s = "";
-    for(var i=0; i < objs.length; i++) {
+    for(var i=0; i < @{{objs}}.length; i++) {
         if(s != "") s += " ";
-        s += objs[i];
+        s += @{{objs}}[i];
     }
-    $printFunc(s);
+    if (newline) {
+      s += '\\n';
+    }
+    @{{sys}}.stdout.write(s);
     """)
 
 def pow(x, y, z = None):
     p = None
-    JS("p = Math.pow(x, y);")
+    JS("@{{p}} = Math.pow(@{{x}}, @{{y}});")
     if z is None:
         return float(p)
     return float(p % z)
 
 def hex(x):
     JS("""
-    if (typeof x == 'number') {
-        if (Math.floor(x) == x) {
-            return '0x' + x.toString(16);
+    if (typeof @{{x}} == 'number') {
+        if (Math.floor(@{{x}}) == @{{x}}) {
+            return '0x' + @{{x}}.toString(16);
         }
     } else {
-        switch (x.__number__) {
+        switch (@{{x}}.__number__) {
             case 0x02:
-                return '0x' + x.__v.toString(16);
+                return '0x' + @{{x}}.__v.toString(16);
             case 0x04:
-                return x.__hex__();
+                return @{{x}}.__hex__();
         }
     }
 """)
@@ -6555,16 +6878,16 @@ def hex(x):
 
 def oct(x):
     JS("""
-    if (typeof x == 'number') {
-        if (Math.floor(x) == x) {
-            return x == 0 ? '0': '0' + x.toString(8);
+    if (typeof @{{x}} == 'number') {
+        if (Math.floor(@{{x}}) == @{{x}}) {
+            return @{{x}} == 0 ? '0': '0' + @{{x}}.toString(8);
         }
     } else {
-        switch (x.__number__) {
+        switch (@{{x}}.__number__) {
             case 0x02:
-                return x.__v == 0 ? '0': '0' + x.__v.toString(8);
+                return @{{x}}.__v == 0 ? '0': '0' + @{{x}}.__v.toString(8);
             case 0x04:
-                return x.__oct__();
+                return @{{x}}.__oct__();
         }
     }
 """)
@@ -6573,47 +6896,47 @@ def oct(x):
 def round(x, n = 0):
     n = pow(10, n)
     r = None
-    JS("r = Math.round(n*x)/n;")
+    JS("@{{r}} = Math.round(@{{n}}*@{{x}})/@{{n}};")
     return float(r)
 
 def divmod(x, y):
     JS("""
-    if (x !== null && y !== null) {
-        switch ((x.__number__ << 8) | y.__number__) {
+    if (@{{x}} !== null && @{{y}} !== null) {
+        switch ((@{{x}}.__number__ << 8) | @{{y}}.__number__) {
             case 0x0101:
             case 0x0104:
             case 0x0401:
-                if (y == 0) throw @{{ZeroDivisionError}}('float divmod()');
-                var f = Math.floor(x / y);
-                return @{{tuple}}([f, x - f * y]);
+                if (@{{y}} == 0) throw @{{ZeroDivisionError}}('float divmod()');
+                var f = Math.floor(@{{x}} / @{{y}});
+                return @{{tuple}}([f, @{{x}} - f * @{{y}}]);
             case 0x0102:
-                if (y.__v == 0) throw @{{ZeroDivisionError}}('float divmod()');
-                var f = Math.floor(x / y.__v);
-                return @{{tuple}}([f, x - f * y.__v]);
+                if (@{{y}}.__v == 0) throw @{{ZeroDivisionError}}('float divmod()');
+                var f = Math.floor(@{{x}} / @{{y}}.__v);
+                return @{{tuple}}([f, @{{x}} - f * @{{y}}.__v]);
             case 0x0201:
-                if (y == 0) throw @{{ZeroDivisionError}}('float divmod()');
-                var f = Math.floor(x.__v / y);
-                return @{{tuple}}([f, x.__v - f * y]);
+                if (@{{y}} == 0) throw @{{ZeroDivisionError}}('float divmod()');
+                var f = Math.floor(@{{x}}.__v / @{{y}});
+                return @{{tuple}}([f, @{{x}}.__v - f * @{{y}}]);
             case 0x0202:
-                if (y.__v == 0) throw @{{ZeroDivisionError}}('integer division or modulo by zero');
-                var f = Math.floor(x.__v / y.__v);
-                return @{{tuple}}([new @{{int}}(f), new @{{int}}(x.__v - f * y.__v)]);
+                if (@{{y}}.__v == 0) throw @{{ZeroDivisionError}}('integer division or modulo by zero');
+                var f = Math.floor(@{{x}}.__v / @{{y}}.__v);
+                return @{{tuple}}([new @{{int}}(f), new @{{int}}(@{{x}}.__v - f * @{{y}}.__v)]);
             case 0x0204:
-                return y.__rdivmod__(new @{{long}}(x.__v));
+                return @{{y}}.__rdivmod__(new @{{long}}(@{{x}}.__v));
             case 0x0402:
-                return x.__divmod__(new @{{long}}(y.__v));
+                return @{{x}}.__divmod__(new @{{long}}(@{{y}}.__v));
             case 0x0404:
-                return x.__divmod__(y);
+                return @{{x}}.__divmod__(@{{y}});
         }
-        if (!x.__number__) {
-            if (   !y.__number__
-                && x.__mro__.length > y.__mro__.length
-                && @{{isinstance}}(x, y)
-                && typeof x['__divmod__'] == 'function')
-                return y.__divmod__(x);
-            if (typeof x['__divmod__'] == 'function') return x.__divmod__(y);
+        if (!@{{x}}.__number__) {
+            if (   !@{{y}}.__number__
+                && @{{x}}.__mro__.length > @{{y}}.__mro__.length
+                && @{{isinstance}}(@{{x}}, @{{y}})
+                && typeof @{{x}}['__divmod__'] == 'function')
+                return @{{y}}.__divmod__(@{{x}});
+            if (typeof @{{x}}['__divmod__'] == 'function') return @{{x}}.__divmod__(@{{y}});
         }
-        if (!y.__number__ && typeof y['__rdivmod__'] == 'function') return y.__rdivmod__(x);
+        if (!@{{y}}.__number__ && typeof @{{y}}['__rdivmod__'] == 'function') return @{{y}}.__rdivmod__(@{{x}});
     }
 """)
     raise TypeError("unsupported operand type(s) for divmod(): '%r', '%r'" % (x, y))
@@ -6630,7 +6953,1135 @@ def any(iterable):
             return True
     return False
 
+### begin from pypy 2.7.1 string formatter (newformat.py)
+# Adaptation of the str format() method from pypy 2.7.1
+# Copyright (C) 2011, Anthon van der Neut <a.van.der.neut@ruamel.eu>
+
+
+class StringBuilder(object):
+    def __init__(self):
+        self.l = []
+        self.tp = str
+
+    def append(self, s):
+        #assert isinstance(s, self.tp)
+        self.l.append(s)
+
+    def append_slice(self, s, start, end):
+        ## these asserts give problems in pyjs
+        #assert isinstance(s, str)
+        #assert 0 <= start <= end <= len(s)
+        self.l.append(s[start:end])
+
+    def append_multiple_char(self, c, times):
+        #assert isinstance(c, self.tp)
+        self.l.append(c * times)
+
+    def build(self):
+        return self.tp("").join(self.l)
+
+#@specialize.argtype(1)
+def _parse_int(s, start, end):
+    """Parse a number and check for overflows"""
+    result = 0
+    i = start
+    while i < end:
+        c = ord(s[i])
+        if ord("0") <= c <= ord("9"):
+            try:
+                result = result * 10
+                if result > 1000000000: # this is not going to overflow in CPython
+                    raise OverflowError
+            except OverflowError:
+                msg = "too many decimal digits in format string"
+                raise ValueError(msg)
+            result += c - ord("0")
+        else:
+            break
+        i += 1
+    if i == start:
+        result = -1
+    return result, i
+
+class TemplateFormatter(object):
+
+    # Auto number state
+    ANS_INIT = 1
+    ANS_AUTO = 2
+    ANS_MANUAL = 3
+
+    def __init__(self, space, template):
+        self.space = space
+        self.empty = ""
+        self.template = template
+        self.parser_list_w = None # used to be a class variable
+
+    def build(self, args, kw):
+        self.args, self.kwargs = args, kw
+        self.auto_numbering = 0
+        self.auto_numbering_state = self.ANS_INIT
+        return self._build_string(0, len(self.template), 2)
+
+    def _build_string(self, start, end, level):
+        out = StringBuilder()
+        if not level:
+            raise ValueError("Recursion depth exceeded")
+        level -= 1
+        s = self.template
+        return self._do_build_string(start, end, level, out, s)
+
+    def _do_build_string(self, start, end, level, out, s):
+        last_literal = i = start
+        while i < end:
+            c = s[i]
+            i += 1
+            if c == "{" or c == "}":
+                at_end = i == end
+                # Find escaped "{" and "}"
+                markup_follows = True
+                if c == "}":
+                    if at_end or s[i] != "}":
+                        raise ValueError("Single '}'")
+                    i += 1
+                    markup_follows = False
+                if c == "{":
+                    if at_end:
+                        raise ValueError("Single '{'")
+                    if s[i] == "{":
+                        i += 1
+                        markup_follows = False
+                # Attach literal data
+                out.append_slice(s, last_literal, i - 1)
+                if not markup_follows:
+                    last_literal = i
+                    continue
+                nested = 1
+                field_start = i
+                recursive = False
+                while i < end:
+                    c = s[i]
+                    if c == "{":
+                        recursive = True
+                        nested += 1
+                    elif c == "}":
+                        nested -= 1
+                        if not nested:
+                            break
+                    i += 1
+                if nested:
+                    raise ValueError("Unmatched '{'")
+                rendered = self._render_field(field_start, i, recursive, level)
+                out.append(rendered)
+                i += 1
+                last_literal = i
+
+        out.append_slice(s, last_literal, end)
+        return out.build()
+
+    # This is only ever called if we're already unrolling _do_build_string
+    def _parse_field(self, start, end):
+        s = self.template
+        # Find ":" or "!"
+        i = start
+        while i < end:
+            c = s[i]
+            if c == ":" or c == "!":
+                end_name = i
+                if c == "!":
+                    i += 1
+                    if i == end:
+                        w_msg = "expected conversion"
+                        raise ValueError(w_msg)
+                    conversion = s[i]
+                    i += 1
+                    if i < end:
+                        if s[i] != ':':
+                            w_msg = "expected ':' after format specifier"
+                            raise ValueError(w_msg)
+                        i += 1
+                else:
+                    conversion = None
+                    i += 1
+                return s[start:end_name], conversion, i
+            i += 1
+        return s[start:end], None, end
+
+    def _get_argument(self, name):
+        # First, find the argument.
+        i = 0
+        end = len(name)
+        while i < end:
+            c = name[i]
+            if c == "[" or c == ".":
+                break
+            i += 1
+        empty = not i
+        if empty:
+            index = -1
+        else:
+            index, stop = _parse_int(name, 0, i)
+            if stop != i:
+                index = -1
+        use_numeric = empty or index != -1
+        if self.auto_numbering_state == self.ANS_INIT and use_numeric:
+            if empty:
+                self.auto_numbering_state = self.ANS_AUTO
+            else:
+                self.auto_numbering_state = self.ANS_MANUAL
+        if use_numeric:
+            if self.auto_numbering_state == self.ANS_MANUAL:
+                if empty:
+                    msg = "switching from manual to automatic numbering"
+                    raise ValueError(msg)
+            elif not empty:
+                msg = "switching from automatic to manual numbering"
+                raise ValueError(msg)
+        if empty:
+            index = self.auto_numbering
+            self.auto_numbering += 1
+        if index == -1:
+            kwarg = name[:i]
+            arg_key = kwarg
+            try:
+                w_arg = self.kwargs[arg_key]
+            except KeyError:
+                raise KeyError(arg_key)
+        else:
+            try:
+                w_arg = self.args[index]
+            except IndexError:
+                w_msg = "index out of range"
+                raise IndexError(w_msg)
+            except:
+                raise
+        return self._resolve_lookups(w_arg, name, i, end)
+
+    def _resolve_lookups(self, w_obj, name, start, end):
+        # Resolve attribute and item lookups.
+        i = start
+        while i < end:
+            c = name[i]
+            if c == ".":
+                i += 1
+                start = i
+                while i < end:
+                    c = name[i]
+                    if c == "[" or c == ".":
+                        break
+                    i += 1
+                if start == i:
+                    w_msg = "Empty attribute in format string"
+                    raise ValueError(w_msg)
+                w_attr = name[start:i]
+                if w_obj is not None:
+                    w_obj = getattr(w_obj, w_attr)
+                else:
+                    self.parser_list_w.append(self.space.newtuple([
+                        self.space.w_True, w_attr]))
+            elif c == "[":
+                got_bracket = False
+                i += 1
+                start = i
+                while i < end:
+                    c = name[i]
+                    if c == "]":
+                        got_bracket = True
+                        break
+                    i += 1
+                if not got_bracket:
+                    raise ValueError("Missing ']'")
+                if name[start] == '{':
+                    # CPython raise TypeError on '{0[{1}]}', pyjs converts
+                    raise TypeError('no replacement on fieldname')
+                index, reached = _parse_int(name, start, i)
+                if index != -1 and reached == i:
+                    w_item = index
+                else:
+                    w_item = name[start:i]
+                i += 1 # Skip "]"
+                if w_obj is not None:
+                    w_obj = w_obj[w_item]
+                else:
+                    self.parser_list_w.append(self.space.newtuple([
+                        self.space.w_False, w_item]))
+            else:
+                msg = "Only '[' and '.' may follow ']'"
+                raise ValueError(msg)
+        return w_obj
+
+    def formatter_field_name_split(self):
+        name = self.template
+        i = 0
+        end = len(name)
+        while i < end:
+            c = name[i]
+            if c == "[" or c == ".":
+                break
+            i += 1
+        if i == 0:
+            index = -1
+        else:
+            index, stop = _parse_int(name, 0, i)
+            if stop != i:
+                index = -1
+        if index >= 0:
+            w_first = index
+        else:
+            w_first = name[:i]
+        #
+        self.parser_list_w = []
+        self._resolve_lookups(None, name, i, end)
+        #
+        return self.space.newtuple([w_first,
+                               self.space.iter(self.space.newlist(self.parser_list_w))])
+
+    def _convert(self, w_obj, conversion):
+        conv = conversion[0]
+        if conv == "r":
+            return repr(w_obj)
+        elif conv == "s":
+            return str(w_obj)
+        else:
+            raise ValueError("invalid conversion")
+
+    def _render_field(self, start, end, recursive, level):
+        name, conversion, spec_start = self._parse_field(start, end)
+        spec = self.template[spec_start:end]
+        # when used from formatter_parser()
+        if self.parser_list_w is not None:
+            if level == 1:    # ignore recursive calls
+                startm1 = start - 1
+                assert startm1 >= self.last_end
+                w_entry = self.space.newtuple([
+                    self.template[self.last_end:startm1],
+                    name,
+                    spec,
+                    conversion])
+                self.parser_list_w.append(w_entry)
+                self.last_end = end + 1
+            return self.empty
+        #
+        w_obj = self._get_argument(name)
+        if conversion is not None:
+            w_obj = self._convert(w_obj, conversion)
+        if recursive:
+            spec = self._build_string(spec_start, end, level)
+        w_rendered = self.space.format(w_obj, spec)
+        return str(w_rendered)
+
+    def formatter_parser(self):
+        self.parser_list_w = []
+        self.last_end = 0
+        self._build_string(0, len(self.template), 2)
+        #
+        if self.last_end < len(self.template):
+            w_lastentry = self.space.newtuple([
+                self.template[self.last_end:],
+                self.space.w_None,
+                self.space.w_None,
+                self.space.w_None])
+            self.parser_list_w.append(w_lastentry)
+        return self.space.iter(self.space.newlist(self.parser_list_w))
+
+
+class NumberSpec(object):
+    pass
+
+class BaseFormatter(object):
+
+    def format_int_or_long(self, w_num, kind):
+        raise NotImplementedError
+
+    def format_float(self, w_num):
+        raise NotImplementedError
+
+    def format_complex(self, w_num):
+        raise NotImplementedError
+
+
+INT_KIND = 1
+LONG_KIND = 2
+
+NO_LOCALE = 1
+DEFAULT_LOCALE = 2
+CURRENT_LOCALE = 3
+
+
+class Formatter(BaseFormatter):
+    """__format__ implementation for builtin types."""
+
+    _grouped_digits = None
+
+    def __init__(self, space, spec):
+        self.space = space
+        self.empty = ""
+        self.spec = spec
+
+    def _is_alignment(self, c):
+        return (c == "<" or
+                c == ">" or
+                c == "=" or
+                c == "^")
+
+    def _is_sign(self, c):
+        return (c == " " or
+                c == "+" or
+                c == "-")
+
+    def _parse_spec(self, default_type, default_align):
+        self._fill_char = self._lit("\0")[0]
+        self._align = default_align
+        self._alternate = False
+        self._sign = "\0"
+        self._thousands_sep = False
+        self._precision = -1
+        the_type = default_type
+        spec = self.spec
+        if not spec:
+            return True
+        length = len(spec)
+        i = 0
+        got_align = True
+        if length - i >= 2 and self._is_alignment(spec[i + 1]):
+            self._align = spec[i + 1]
+            self._fill_char = spec[i]
+            i += 2
+        elif length - i >= 1 and self._is_alignment(spec[i]):
+            self._align = spec[i]
+            i += 1
+        else:
+            got_align = False
+        if length - i >= 1 and self._is_sign(spec[i]):
+            self._sign = spec[i]
+            i += 1
+        if length - i >= 1 and spec[i] == "#":
+            self._alternate = True
+            i += 1
+        if self._fill_char == "\0" and length - i >= 1 and spec[i] == "0":
+            self._fill_char = self._lit("0")[0]
+            if not got_align:
+                self._align = "="
+            i += 1
+        start_i = i
+        self._width, i = _parse_int(spec, i, length)
+        if length != i and spec[i] == ",":
+            self._thousands_sep = True
+            i += 1
+        if length != i and spec[i] == ".":
+            i += 1
+            self._precision, i = _parse_int(spec, i, length)
+            if self._precision == -1:
+                raise ValueError("no precision given")
+        if length - i > 1:
+            raise ValueError("invalid format spec")
+        if length - i == 1:
+            presentation_type = spec[i]
+            the_type = presentation_type
+            i += 1
+        self._type = the_type
+        if self._thousands_sep:
+            tp = self._type
+            if (tp == "d" or
+                tp == "e" or
+                tp == "f" or
+                tp == "g" or
+                tp == "E" or
+                tp == "G" or
+                tp == "%" or
+                tp == "F" or
+                tp == "\0"):
+                # ok
+                pass
+            else:
+                raise ValueError("invalid type with ','")
+        return False
+
+    def _calc_padding(self, string, length):
+        """compute left and right padding, return total width of string"""
+        if self._width != -1 and length < self._width:
+            total = self._width
+        else:
+            total = length
+        align = self._align
+        if align == ">":
+            left = total - length
+        elif align == "^":
+            left = (total - length) / 2
+        elif align == "<" or align == "=":
+            left = 0
+        else:
+            raise AssertionError("shouldn't be here")
+        right = total - length - left
+        self._left_pad = left
+        self._right_pad = right
+        return total
+
+    def _lit(self, s):
+        return s
+
+    def _pad(self, string):
+        builder = self._builder()
+        builder.append_multiple_char(self._fill_char, self._left_pad)
+        builder.append(string)
+        builder.append_multiple_char(self._fill_char, self._right_pad)
+        return builder.build()
+
+    def _builder(self):
+        return StringBuilder()
+
+    def _unknown_presentation(self, tp):
+        msg = "unknown presentation for %s: '%s'"
+        w_msg = msg  % (tp, self._type)
+        raise ValueError(w_msg)
+
+    def format_string(self, string):
+        if self._parse_spec("s", "<"):
+            return string
+        if self._type != "s":
+            self._unknown_presentation("string")
+        if self._sign != "\0":
+            msg = "Sign not allowed in string format specifier"
+            raise ValueError(msg)
+        if self._alternate:
+            msg = "Alternate form not allowed in string format specifier"
+            raise ValueError(msg)
+        if self._align == "=":
+            msg = "'=' alignment not allowed in string format specifier"
+            raise ValueError(msg)
+        length = len(string)
+        precision = self._precision
+        if precision != -1 and length >= precision:
+            assert precision >= 0
+            length = precision
+            string = string[:precision]
+        if self._fill_char == "\0":
+            self._fill_char = self._lit(" ")[0]
+        self._calc_padding(string, length)
+        return self._pad(string)
+
+    def _get_locale(self, tp):
+        if tp == "n":
+            dec, thousands, grouping = numeric_formatting()
+        elif self._thousands_sep:
+            dec = "."
+            thousands = ","
+            grouping = "\3\0"
+        else:
+            dec = "."
+            thousands = ""
+            grouping = "\256"
+        self._loc_dec = dec
+        self._loc_thousands = thousands
+        self._loc_grouping = grouping
+
+    def _calc_num_width(self, n_prefix, sign_char, to_number, n_number,
+                        n_remainder, has_dec, digits):
+        """Calculate widths of all parts of formatted number.
+
+        Output will look like:
+
+            <lpadding> <sign> <prefix> <spadding> <grouped_digits> <decimal>
+            <remainder> <rpadding>
+
+        sign is computed from self._sign, and the sign of the number
+        prefix is given
+        digits is known
+        """
+        spec = NumberSpec()
+        spec.n_digits = n_number - n_remainder - has_dec
+        spec.n_prefix = n_prefix
+        spec.n_lpadding = 0
+        spec.n_decimal = int(has_dec)
+        spec.n_remainder = n_remainder
+        spec.n_spadding = 0
+        spec.n_rpadding = 0
+        spec.n_min_width = 0
+        spec.n_total = 0
+        spec.sign = "\0"
+        spec.n_sign = 0
+        sign = self._sign
+        if sign == "+":
+            spec.n_sign = 1
+            spec.sign = "-" if sign_char == "-" else "+"
+        elif sign == " ":
+            spec.n_sign = 1
+            spec.sign = "-" if sign_char == "-" else " "
+        elif sign_char == "-":
+            spec.n_sign = 1
+            spec.sign = "-"
+        extra_length = (spec.n_sign + spec.n_prefix + spec.n_decimal +
+                        spec.n_remainder) # Not padding or digits
+        if self._fill_char == "0" and self._align == "=":
+            spec.n_min_width = self._width - extra_length
+        if self._loc_thousands:
+            self._group_digits(spec, digits[to_number:])
+            n_grouped_digits = len(self._grouped_digits)
+        else:
+            n_grouped_digits = spec.n_digits
+        n_padding = self._width - (extra_length + n_grouped_digits)
+        if n_padding > 0:
+            align = self._align
+            if align == "<":
+                spec.n_rpadding = n_padding
+            elif align == ">":
+                spec.n_lpadding = n_padding
+            elif align == "^":
+                spec.n_lpadding = n_padding // 2
+                spec.n_rpadding = n_padding - spec.n_lpadding
+            elif align == "=":
+                spec.n_spadding = n_padding
+            else:
+                raise AssertionError("shouldn't reach")
+        spec.n_total = spec.n_lpadding + spec.n_sign + spec.n_prefix + \
+                       spec.n_spadding + n_grouped_digits + \
+                       spec.n_decimal + spec.n_remainder + spec.n_rpadding
+        return spec
+
+    def _fill_digits(self, buf, digits, d_state, n_chars, n_zeros,
+                     thousands_sep):
+        if thousands_sep:
+            for c in thousands_sep:
+                buf.append(c)
+        for i in range(d_state - 1, d_state - n_chars - 1, -1):
+            buf.append(digits[i])
+        for i in range(n_zeros):
+            buf.append("0")
+
+    def _group_digits(self, spec, digits):
+        buf = []
+        grouping = self._loc_grouping
+        min_width = spec.n_min_width
+        grouping_state = 0
+        count = 0
+        left = spec.n_digits
+        n_ts = len(self._loc_thousands)
+        need_separator = False
+        done = False
+        groupings = len(grouping)
+        previous = 0
+        while True:
+            group = ord(grouping[grouping_state])
+            if group > 0:
+                if group == 256:
+                    break
+                grouping_state += 1
+                previous = group
+            else:
+                group = previous
+            final_grouping = min(group, max(left, max(min_width, 1)))
+            n_zeros = max(0, final_grouping - left)
+            n_chars = max(0, min(left, final_grouping))
+            ts = self._loc_thousands if need_separator else None
+            self._fill_digits(buf, digits, left, n_chars, n_zeros, ts)
+            need_separator = True
+            left -= n_chars
+            min_width -= final_grouping
+            if left <= 0 and min_width <= 0:
+                done = True
+                break
+            min_width -= n_ts
+        if not done:
+            group = max(max(left, min_width), 1)
+            n_zeros = max(0, group - left)
+            n_chars = max(0, min(left, group))
+            ts = self._loc_thousands if need_separator else None
+            self._fill_digits(buf, digits, left, n_chars, n_zeros, ts)
+        buf.reverse()
+        self._grouped_digits = self.empty.join(buf)
+
+    def _upcase_string(self, s):
+        buf = []
+        for c in s:
+            index = ord(c)
+            if ord("a") <= index <= ord("z"):
+                c = chr(index - 32)
+            buf.append(c)
+        return self.empty.join(buf)
+
+
+    def _fill_number(self, spec, num, to_digits, to_prefix, fill_char,
+                     to_remainder, upper, grouped_digits=None):
+        out = self._builder()
+        if spec.n_lpadding:
+            out.append_multiple_char(fill_char[0], spec.n_lpadding)
+        if spec.n_sign:
+            sign = spec.sign
+            out.append(sign)
+        if spec.n_prefix:
+            pref = num[to_prefix:to_prefix + spec.n_prefix]
+            if upper:
+                pref = self._upcase_string(pref)
+            out.append(pref)
+        if spec.n_spadding:
+            out.append_multiple_char(fill_char[0], spec.n_spadding)
+        if spec.n_digits != 0:
+            if self._loc_thousands:
+                if grouped_digits is not None:
+                    digits = grouped_digits
+                else:
+                    digits = self._grouped_digits
+                    assert digits is not None
+            else:
+                stop = to_digits + spec.n_digits
+                assert stop >= 0
+                digits = num[to_digits:stop]
+            if upper:
+                digits = self._upcase_string(digits)
+            out.append(digits)
+        if spec.n_decimal:
+            out.append(".")
+        if spec.n_remainder:
+            out.append(num[to_remainder:])
+        if spec.n_rpadding:
+            out.append_multiple_char(fill_char[0], spec.n_rpadding)
+        #if complex, need to call twice - just retun the buffer
+        return out.build()
+
+    def _format_int_or_long(self, w_num, kind):
+        if self._precision != -1:
+            msg = "precision not allowed in integer type"
+            raise ValueError(msg)
+        sign_char = "\0"
+        tp = self._type
+        if tp == "c":
+            if self._sign != "\0":
+                msg = "sign not allowed with 'c' presentation type"
+                raise ValueError(msg)
+            value = w_num
+            result = chr(value)
+            n_digits = 1
+            n_remainder = 1
+            to_remainder = 0
+            n_prefix = 0
+            to_prefix = 0
+            to_numeric = 0
+        else:
+            if tp == "b":
+                base = 2
+                skip_leading = 2
+            elif tp == "o":
+                base = 8
+                skip_leading = 2
+            elif tp == "x" or tp == "X":
+                base = 16
+                skip_leading = 2
+            elif tp == "n" or tp == "d":
+                base = 10
+                skip_leading = 0
+            else:
+                raise AssertionError("shouldn't reach")
+            if kind == INT_KIND:
+                result = self._int_to_base(base, w_num)
+            else:
+                result = self._int_to_base(base, w_num)
+            n_prefix = skip_leading if self._alternate else 0
+            to_prefix = 0
+            if result[0] == "-":
+                sign_char = "-"
+                skip_leading += 1
+                to_prefix += 1
+            n_digits = len(result) - skip_leading
+            n_remainder = 0
+            to_remainder = 0
+            to_numeric = skip_leading
+        self._get_locale(tp)
+        spec = self._calc_num_width(n_prefix, sign_char, to_numeric, n_digits,
+                                    n_remainder, False, result)
+        fill = self._lit(" ") if self._fill_char == "\0" else self._fill_char
+        upper = self._type == "X"
+        return self._fill_number(spec, result, to_numeric,
+                                 to_prefix, fill, to_remainder, upper)
+
+    def _int_to_base(self, base, value):
+        if base == 10:
+            return str(value)
+        # This part is slow.
+        negative = value < 0
+        value = abs(value)
+        buf = ["\0"] * (8 * 8 + 6) # Too much on 32 bit, but who cares?
+        i = len(buf) - 1
+        while True:
+            div = value // base
+            mod = value - div * base
+            digit = abs(mod)
+            digit += ord("0") if digit < 10 else ord("a") - 10
+            buf[i] = chr(digit)
+            value = div
+            i -= 1
+            if not value:
+                break
+        if base == 2:
+            buf[i] = "b"
+            buf[i - 1] = "0"
+        elif base == 8:
+            buf[i] = "o"
+            buf[i - 1] = "0"
+        elif base == 16:
+            buf[i] = "x"
+            buf[i - 1] = "0"
+        else:
+            buf[i] = "#"
+            buf[i - 1] = chr(ord("0") + base % 10)
+            if base > 10:
+                buf[i - 2] = chr(ord("0") + base // 10)
+                i -= 1
+        i -= 1
+        if negative:
+            i -= 1
+            buf[i] = "-"
+        assert i >= 0
+        return self.empty.join(buf[i:])
+
+    def format_int_or_long(self, w_num, kind):
+        if self._parse_spec("d", ">"):
+            return self.space.str(w_num)
+        tp = self._type
+        if (tp == "b" or
+            tp == "c" or
+            tp == "d" or
+            tp == "o" or
+            tp == "x" or
+            tp == "X" or
+            tp == "n"):
+            return self._format_int_or_long(w_num, kind)
+        elif (tp == "e" or
+              tp == "E" or
+              tp == "f" or
+              tp == "F" or
+              tp == "g" or
+              tp == "G" or
+              tp == "%"):
+            w_float = float(w_num)
+            return self._format_float(w_float)
+        else:
+            self._unknown_presentation("int" if kind == INT_KIND else "long")
+
+    def _parse_number(self, s, i):
+        """Determine if s has a decimal point, and the index of the first #
+        after the decimal, or the end of the number."""
+        length = len(s)
+        while i < length and "0" <= s[i] <= "9":
+            i += 1
+        rest = i
+        dec_point = i < length and s[i] == "."
+        if dec_point:
+            rest += 1
+        #differs from CPython method - CPython sets n_remainder
+        return dec_point, rest
+
+    def _format_float(self, w_float):
+        """helper for format_float"""
+        flags = 0
+        default_precision = 6
+        if self._alternate:
+            msg = "alternate form not allowed in float formats"
+            raise ValueError(msg)
+        tp = self._type
+        self._get_locale(tp)
+        if tp == "\0":
+            tp = "g"
+            default_precision = 12
+            flags |= DTSF_ADD_DOT_0
+        elif tp == "n":
+            tp = "g"
+        value = float(w_float)
+        if tp == "%":
+            tp = "f"
+            value *= 100
+            add_pct = True
+        else:
+            add_pct = False
+        if self._precision == -1:
+            self._precision = default_precision
+        result = formatd(value, tp, self._precision, flags)
+        if add_pct:
+            result += "%"
+        n_digits = len(result)
+        if result[0] == "-":
+            sign = "-"
+            to_number = 1
+            n_digits -= 1
+        else:
+            sign = "\0"
+            to_number = 0
+        have_dec_point, to_remainder = self._parse_number(result, to_number)
+        n_remainder = len(result) - to_remainder
+        digits = result
+        spec = self._calc_num_width(0, sign, to_number, n_digits,
+                                    n_remainder, have_dec_point, digits)
+        fill = self._lit(" ") if self._fill_char == "\0" else self._fill_char
+        return self._fill_number(spec, digits, to_number, 0,
+                                  fill, to_remainder, False)
+
+    def format_float(self, w_float):
+        if self._parse_spec("\0", ">"):
+            return self.space.str(w_float)
+        tp = self._type
+        if (tp == "\0" or
+            tp == "e" or
+            tp == "E" or
+            tp == "f" or
+            tp == "F" or
+            tp == "g" or
+            tp == "G" or
+            tp == "n" or
+            tp == "%"):
+            return self._format_float(w_float)
+        self._unknown_presentation("float")
+
+    def _format_complex(self, w_complex):
+        tp = self._type
+        self._get_locale(tp)
+        default_precision = 6
+        if self._align == "=":
+            # '=' alignment is invalid
+            msg = ("'=' alignment flag is not allowed in"
+                   " complex format specifier")
+            raise ValueError(msg)
+        if self._fill_char == "0":
+            #zero padding is invalid
+            msg = "Zero padding is not allowed in complex format specifier"
+            raise ValueError(msg)
+        if self._alternate:
+            #alternate is invalid
+            msg = "Alternate form %s not allowed in complex format specifier"
+            raise ValueError(msg % (self._alternate))
+        skip_re = 0
+        add_parens = 0
+        if tp == "\0":
+            #should mirror str() output
+            tp = "g"
+            default_precision = 12
+            #test if real part is non-zero
+            if (w_complex.realval == 0 and
+                copysign(1., w_complex.realval) == 1.):
+                skip_re = 1
+            else:
+                add_parens = 1
+
+        if tp == "n":
+            #same as 'g' except for locale, taken care of later
+            tp = "g"
+
+        #check if precision not set
+        if self._precision == -1:
+            self._precision = default_precision
+
+        #might want to switch to double_to_string from formatd
+        #in CPython it's named 're' - clashes with re module
+        re_num = formatd(w_complex.realval, tp, self._precision)
+        im_num = formatd(w_complex.imagval, tp, self._precision)
+        n_re_digits = len(re_num)
+        n_im_digits = len(im_num)
+
+        to_real_number = 0
+        to_imag_number = 0
+        re_sign = im_sign = ''
+        #if a sign character is in the output, remember it and skip
+        if re_num[0] == "-":
+            re_sign = "-"
+            to_real_number = 1
+            n_re_digits -= 1
+        if im_num[0] == "-":
+            im_sign = "-"
+            to_imag_number = 1
+            n_im_digits -= 1
+
+        #turn off padding - do it after number composition
+        #calc_num_width uses self._width, so assign to temporary variable,
+        #calculate width of real and imag parts, then reassign padding, align
+        tmp_fill_char = self._fill_char
+        tmp_align = self._align
+        tmp_width = self._width
+        self._fill_char = "\0"
+        self._align = "<"
+        self._width = -1
+
+        #determine if we have remainder, might include dec or exponent or both
+        re_have_dec, re_remainder_ptr = self._parse_number(re_num,
+                                                           to_real_number)
+        im_have_dec, im_remainder_ptr = self._parse_number(im_num,
+                                                           to_imag_number)
+
+        #set remainder, in CPython _parse_number sets this
+        #using n_re_digits causes tests to fail
+        re_n_remainder = len(re_num) - re_remainder_ptr
+        im_n_remainder = len(im_num) - im_remainder_ptr
+        re_spec = self._calc_num_width(0, re_sign, to_real_number, n_re_digits,
+                                       re_n_remainder, re_have_dec,
+                                       re_num)
+
+        #capture grouped digits b/c _fill_number reads from self._grouped_digits
+        #self._grouped_digits will get overwritten in imaginary calc_num_width
+        re_grouped_digits = self._grouped_digits
+        if not skip_re:
+            self._sign = "+"
+        im_spec = self._calc_num_width(0, im_sign, to_imag_number, n_im_digits,
+                                       im_n_remainder, im_have_dec,
+                                       im_num)
+
+        im_grouped_digits = self._grouped_digits
+        if skip_re:
+            re_spec.n_total = 0
+
+        #reassign width, alignment, fill character
+        self._align = tmp_align
+        self._width = tmp_width
+        self._fill_char = tmp_fill_char
+
+        #compute L and R padding - stored in self._left_pad and self._right_pad
+        self._calc_padding(self.empty, re_spec.n_total + im_spec.n_total + 1 +
+                                       add_parens * 2)
+
+        out = self._builder()
+        fill = self._fill_char
+        if fill == "\0":
+            fill = self._lit(" ")[0]
+
+        #compose the string
+        #add left padding
+        out.append_multiple_char(fill, self._left_pad)
+        if add_parens:
+            out.append(self._lit('(')[0])
+
+        #if the no. has a real component, add it
+        if not skip_re:
+            out.append(self._fill_number(re_spec, re_num, to_real_number, 0,
+                                         fill, re_remainder_ptr, False,
+                                         re_grouped_digits))
+
+        #add imaginary component
+        out.append(self._fill_number(im_spec, im_num, to_imag_number, 0,
+                                     fill, im_remainder_ptr, False,
+                                     im_grouped_digits))
+
+        #add 'j' character
+        out.append(self._lit('j')[0])
+
+        if add_parens:
+            out.append(self._lit(')')[0])
+
+        #add right padding
+        out.append_multiple_char(fill, self._right_pad)
+
+        return out.build()
+
+
+    def format_complex(self, w_complex):
+        """return the string representation of a complex number"""
+        #parse format specification, set associated variables
+        if self._parse_spec("\0", ">"):
+            return self.space.str(w_complex)
+        tp = self._type
+        if (tp == "\0" or
+            tp == "e" or
+            tp == "E" or
+            tp == "f" or
+            tp == "F" or
+            tp == "g" or
+            tp == "G" or
+            tp == "n"):
+            return self._format_complex(w_complex)
+        self._unknown_presentation("complex")
+
+class StringFormatSpace(object):
+    def format(self, w_obj, spec):
+        # added test on int, float, basestring CPython has __format__ for them
+        if isinstance(w_obj, object) and \
+           not isinstance(w_obj, (int, float, basestring)):
+            if hasattr(w_obj, '__format__'):
+                return w_obj.__format__(spec)
+        if not spec:
+            return w_obj
+        fmt = Formatter(self, spec)
+        if isinstance(w_obj, basestring):
+            return fmt.format_string(w_obj)
+        elif isinstance(w_obj, int):
+            return fmt.format_int_or_long(w_obj, spec)
+        elif isinstance(w_obj, float):
+            return fmt.format_float(w_obj)
+        if isinstance(w_obj, object):
+            if hasattr(w_obj, '__str__'):
+                return fmt.format_string(w_obj.__str__())
+        print 'type not implemented'
+        return w_obj
+
+
+DTSF_STR_PRECISION = 12
+
+DTSF_SIGN      = 0x1
+DTSF_ADD_DOT_0 = 0x2
+DTSF_ALT       = 0x4
+
+DIST_FINITE   = 1
+DIST_NAN      = 2
+DIST_INFINITY = 3
+
+# Equivalent to CPython's PyOS_double_to_string
+def formatd(x, code, precision, flags=0):
+    if flags & DTSF_ALT:
+        alt = '#'
+    else:
+        alt = ''
+
+    if code == 'r':
+        fmt = "%r"
+    else:
+        fmt = "%%%s.%d%s" % (alt, precision, code)
+    s = fmt % (x,)
+
+    if flags & DTSF_ADD_DOT_0:
+        # We want float numbers to be recognizable as such,
+        # i.e., they should contain a decimal point or an exponent.
+        # However, %g may print the number as an integer;
+        # in such cases, we append ".0" to the string.
+        idx = len(s)
+        for idx in range(len(s),0, -1):
+            c = s[idx-1]
+            # this is to solve Issue #672
+            if c in 'eE':
+                if s[idx] in '+-':
+                    idx += 1
+                s = s[:idx] + '%02d' % (int(s[idx:]))
+                break
+            if c in '.eE':
+                break
+        else:
+            if len(s) < precision:
+                s += '.0'
+            else: # for numbers truncated by javascripts toPrecision()
+                sign = '+'
+                if x < 1:
+                    sign = '-'
+                s = '%s.%se%s%02d' % (s[0], s[1:], sign, len(s) - 1)
+    elif code == 'r' and s.endswith('.0'):
+        s = s[:-2]
+
+    return s
+
+def numeric_formatting():
+    # return decimal, thousands and grouping
+    return '.', ',', "\3\0"
+
+def _string_format(s, args=[], kw={}):
+    space = StringFormatSpace()
+    fm = TemplateFormatter(space, s)
+    res = fm.build(args, kw)
+    return res
+
+def format(val, spec=''):
+    args = [val]
+    space = StringFormatSpace()
+    return str(space.format(val, spec))
+
+
+### end from pypy 2.7.1 string formatter (newformat.py)
+
 __iter_prepare = JS("""function(iter, reuse_tuple) {
+
+    if (typeof iter == 'undefined') {
+        throw @{{TypeError}}("iter is undefined");
+    }
     var it = {};
     it.$iter = iter;
     it.$loopvar = 0;
@@ -6657,7 +8108,7 @@ wrapped_next = JS("""function (iter) {
     try {
         var res = iter.next();
     } catch (e) {
-        if (e === @{{StopIteration}}) {
+        if (@{{isinstance}}(e, @{{StopIteration}})) {
             return;
         }
         throw e;
@@ -6665,7 +8116,82 @@ wrapped_next = JS("""function (iter) {
     return res;
 }""")
 
+# Slice `data` in `count`-long array.
+# If not `extended`, make sure `data` length is same as count
+# Otherwise put all excessive elements in new array at `extended` position
+__ass_unpack = JS("""function (data, count, extended) {
+    if (data === null) {
+        throw @{{TypeError}}("'NoneType' is not iterable");
+    }
+    if (data.constructor === Array) {
+    } else if (typeof data.__iter__ == 'function') {
+        if (typeof data.__array == 'object') {
+            data = data.__array;
+        } else {
+            var iter = data.__iter__();
+            if (typeof iter.__array == 'object') {
+                data = iter.__array;
+            }
+            data = [];
+            var item, i = 0;
+            if (typeof iter.$genfunc == 'function') {
+                while (typeof (item=iter.next(true)) != 'undefined') {
+                    data[i++] = item;
+                }
+            } else {
+                try {
+                    while (true) {
+                        data[i++] = iter.next();
+                    }
+                }
+                catch (e) {
+                    if (e.__name__ != 'StopIteration') throw e;
+                }
+            }
+        }
+    } else {
+        throw @{{TypeError}}("'" + @{{repr}}(data) + "' is not iterable");
+    }
+    var res = new Array();
+    if (typeof extended == 'undefined' || extended === null)
+    {
+        if (data.length != count)
+        if (data.length > count)
+            throw @{{ValueError}}("too many values to unpack");
+        else
+            throw @{{ValueError}}("need more than "+data.length+" values to unpack");
+        return data;
+    }
+    else
+    {
+        throw @{{NotImplemented}}("Extended unpacking is not implemented");
+    }
+}""")
+
+def __with(mgr, func):
+    """
+    Copied verbatim from http://www.python.org/dev/peps/pep-0343/
+    """
+    exit = type(mgr).__exit__  # Not calling it yet
+    value = type(mgr).__enter__(mgr)
+    exc = True
+    try:
+        try:
+            func(value)
+        except:
+            # The exceptional case is handled here
+            exc = False
+            if not exit(mgr, *sys.exc_info()):
+                raise
+            # The exception is swallowed if exit() returns true
+    finally:
+        # The normal and non-local-goto cases are handled here
+        if exc:
+            exit(mgr, None, None, None)
+            
 init()
+
+Ellipsis = EllipsisType()
 
 __nondynamic_modules__ = {}
 
@@ -6677,3 +8203,4 @@ def __import__(name, globals={}, locals={}, fromlist=[], level=-1):
 
 import sys # needed for debug option
 import dynamic # needed for ___import___
+

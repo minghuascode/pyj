@@ -1,9 +1,18 @@
-import translator
 import os
 import sys
 import util
 import logging
 import pyjs
+import subprocess
+from pyjs import translator
+if translator.name == 'proto':
+    builtin_module = 'pyjslib'
+elif translator.name == 'dict':
+    builtin_module = '__builtin__'
+else:
+    raise ValueError("unknown translator engine '%s'" % translator.name)
+translate_cmd = 'translator.py'
+translate_cmd_opts = ['--translator=%s' % translator.name]
 
 
 if pyjs.pyjspth is None:
@@ -17,8 +26,145 @@ else:
     BUILTIN_PATH = os.path.join(pyjs.pyjspth, "pyjs", "src", "pyjs", "builtin")
     PYJAMASLIB_PATH = os.path.join(pyjs.pyjspth, "library")
 
+
+
+translator_opts = [ 'debug', 
+        'print_statements', 
+        'internal_ast', 
+        'function_argument_checking', 
+        'attribute_checking', 
+        'bound_methods', 
+        'descriptors', 
+        'source_tracking', 
+        'stupid_mode', 
+        'line_tracking', 
+        'store_source', 
+        'inline_code', 
+        'operator_funcs ', 
+        'number_classes', 
+        'list_imports',
+        'translator',
+    ]
+non_boolean_opts = ['translator']
+assert set(non_boolean_opts) < set(translator_opts)
+
+def is_modified(in_file,out_file):
+    modified = False
+    in_mtime = os.path.getmtime(in_file)
+    try:
+        out_mtime = os.path.getmtime(out_file)
+        if in_mtime > out_mtime:
+            modified = True
+    except:
+        modified = True
+    return modified
+
+def get_translator_opts(args):
+    opts = []
+    for k in translator_opts:
+        if args.has_key(k):
+            nk = k.replace("_", "-")
+            if k in non_boolean_opts:
+                opts.append("--%s=%s" % (nk, args[k]))
+            elif args[k]:
+                opts.append("--%s" % nk)
+            elif k != 'list_imports':
+                opts.append("--no-%s" % nk)
+    return opts
+
+def parse_outfile(out_file):
+    deps = []
+    jslibs = []
+
+    f = open(out_file)
+    spos = os.path.getsize(out_file) - 200
+    if spos < 0:
+        spos = 0
+    while True:
+        f.seek(spos)
+        txt = f.read(200)
+        p = txt.find('/* end module:')
+        if p >= 0:
+            f.seek(spos + p)
+            txt = f.read()
+            break
+        spos -= 100
+        if spos < 0:
+            raise ValueError("Invalid file: %s" % out_file)
+    for l in txt.split("\n"):
+        if l.startswith("PYJS_DEPS:"):
+            deps = eval(l[10:])
+
+    for l in txt.split("\n"):
+        if l.startswith("PYJS_JS:"):
+            jslibs = eval(l[8:])
+
+    f.close()
+
+    return deps, jslibs
+
+def out_translate(platform, file_names, out_file, module_name,
+                   translator_args, incremental):
+    do_translate = False    # flag for incremental translate mode
+    if translator_args.get('list_imports', None):
+        do_translate = True
+    # see if we can skip this module
+    elif incremental:    # if we are in incremental translate mode
+        # check for any files that need built
+        for file_name in file_names:
+            if is_modified(file_name,out_file):
+                if platform is not None:
+                    platform = "[%s] " % platform
+                else:
+                    platform = ''
+                print "Translating file %s:" % platform, file_name
+                do_translate = True
+                break
+    if not incremental or do_translate:
+        pydir = os.path.abspath(os.path.dirname(__file__))
+        if not os.environ.has_key('PYJS_SYSPATH'):
+            os.environ['PYJS_SYSPATH'] = sys.path[0]
+        opts = ["--module-name", module_name, "-o"]
+        if sys.platform == 'win32':
+            opts.append(out_file)
+            shell = False
+        else:
+            file_names = map(lambda x: x.replace(" ", r"\ "), file_names)
+            opts.append(out_file.replace(" ", r"\ "))
+            shell=True
+
+        opts += get_translator_opts(translator_args) + file_names
+        opts = [pyjs.PYTHON] + [os.path.join(pydir, translate_cmd)] + translate_cmd_opts + opts
+
+        pyjscompile_cmd = '"%s"' % '" "'.join(opts)
+        
+        proc = subprocess.Popen(pyjscompile_cmd,
+                           stdin=subprocess.PIPE,
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE,
+                           shell=shell,
+                           cwd=pydir,
+                           env=os.environ
+                           )
+        stdout_value, stderr_value = proc.communicate('')
+        if stderr_value:
+            raise translator.TranslationError(stderr_value, None)
+
+    if translator_args.get('list_imports', None):
+        print "List Imports %s:" % platform, file_names
+        print stdout_value
+        return [], []
+
+    deps, js_libs = parse_outfile(out_file)
+    # use this to create dependencies for Makefiles.  maybe.
+    #print "translate", out_file, deps, js_libs, stdout_value
+
+    return deps, js_libs
+    
 _path_cache= {}
-def module_path(name, path):
+def module_path(name, path, platform=None):
+    if name == '__pyjamas__' or name == '__javascript__':
+        platform = None
     global _path_cache
     candidates = []
     packages = {}
@@ -27,6 +173,9 @@ def module_path(name, path):
         parts = [name]
     else:
         parts = name.split('.')
+        if platform:
+            parts[-1] = "%s.%s" % (parts[-1], platform)
+            name = "%s/%s" % (name, platform)
     if not name in _path_cache:
         _path_cache[name] = {}
     for p in path:
@@ -34,28 +183,38 @@ def module_path(name, path):
             if _path_cache[name][p] is None:
                 continue
             return _path_cache[name][p]
-        tail = []
-        for pn in parts:
-            tail.append(pn)
-            mn = '.'.join(tail)
-            cp = os.path.join(*([p] + tail))
-            if mn in _path_cache:
-                cache = _path_cache[mn]
+        if platform:
+            cp = os.path.join(*([p] + parts))
+            if name in _path_cache:
+                cache = _path_cache[name]
             else:
                 cache = {}
-                _path_cache[mn] = cache
-            if p in cache:
-                if cache[p] is None:
-                    break
-            elif os.path.isdir(cp) and os.path.exists(
-                os.path.join(cp, '__init__.py')):
-                cache[p] = os.path.join(cp, '__init__.py')
-            elif os.path.exists(cp + '.py'):
+                _path_cache[name] = cache
+            if os.path.exists(cp + '.py'):
                 cache[p] = cp + '.py'
-            elif pn.endswith('.js') and os.path.exists(cp):
-                cache[p] = cp
-            else:
-                cache[p] = None
+        else:
+            tail = []
+            for pn in parts:
+                tail.append(pn)
+                mn = '.'.join(tail)
+                cp = os.path.join(*([p] + tail))
+                if mn in _path_cache:
+                    cache = _path_cache[mn]
+                else:
+                    cache = {}
+                    _path_cache[mn] = cache
+                if p in cache:
+                    if cache[p] is None:
+                        break
+                elif os.path.isdir(cp) and os.path.exists(
+                    os.path.join(cp, '__init__.py')):
+                    cache[p] = os.path.join(cp, '__init__.py')
+                elif os.path.exists(cp + '.py'):
+                    cache[p] = cp + '.py'
+                elif pn.endswith('.js') and os.path.exists(cp):
+                    cache[p] = cp
+                else:
+                    cache[p] = None
         if p in _path_cache[name] and not _path_cache[name][p] is None:
             return _path_cache[name][p]
         _path_cache[name][p] = None
@@ -76,7 +235,8 @@ class BaseLinker(object):
                  platforms=[], path=[],
                  translator_arguments={},
                  compile_inplace=False,
-                 list_imports=False):
+                 list_imports=False,
+                 translator_func=out_translate):
         modules = [mod.replace(os.sep, '.') for mod in modules]
         self.compiler = compiler
         self.js_path = os.path.abspath(output)
@@ -94,6 +254,7 @@ class BaseLinker(object):
         self.platforms = platforms
         self.path = path + [PYLIB_PATH]
         self.translator_arguments = translator_arguments
+        self.translator_func = translator_func
         self.compile_inplace = compile_inplace
         self.top_module_path = None
         self.remove_files = {}
@@ -109,7 +270,7 @@ class BaseLinker(object):
                 self.visit_start_platform(platform)
                 old_path = self.path
                 self.path = [BUILTIN_PATH, PYLIB_PATH, PYJAMASLIB_PATH]
-                self.visit_modules(['pyjslib'], platform)
+                self.visit_modules([builtin_module], platform)
                 self.path = old_path
                 self.visit_modules(self.modules, platform)
                 if not self.list_imports:
@@ -117,7 +278,7 @@ class BaseLinker(object):
             if not self.list_imports:
                 self.visit_end()
         except translator.TranslationError, e:
-            raise e
+            raise
 
     def visit_modules(self, module_names, platform=None, parent_file = None):
         prefix = ''
@@ -131,6 +292,7 @@ class BaseLinker(object):
                     if pn not in all_names:
                         all_names.append(pn)
             all_names.append(mn)
+        #print "MODULES OF", parent_file, ":", module_names
         paths = self.path
         parent_base = None
         abs_name = None
@@ -150,16 +312,17 @@ class BaseLinker(object):
             if not p:
                 p = module_path(mn, paths)
             if not p:
+                if "generic" in mn:
+                    print "Module %r not found, sys.path is %r" % (mn, paths)
                 continue
-                raise RuntimeError, "Module %r not found. Dep of %r" % (
-                    mn, self.dependencies)
+                #raise RuntimeError, "Module %r not found. Dep of %r" % (
+                #    mn, self.dependencies)
             if mn==self.top_module:
                 self.top_module_path = p
             override_paths=[]
             if platform:
                 for pl in self.platform_parents.get(platform, []) + [platform]:
-                    override_path = module_path('__%s__.%s' % (pl, mn),
-                                                paths)
+                    override_path = module_path(mn, paths, pl)
                     # prevent package overrides
                     if override_path and not override_path.endswith('__init__.py'):
                         override_paths.append(override_path)
@@ -183,10 +346,10 @@ class BaseLinker(object):
             plat_suffix = ''
         if self.compile_inplace:
             mod_part, extension = os.path.splitext(file_path)
-            out_file = '%s%s.js' % (mod_part, plat_suffix)
+            out_file = mod_part + plat_suffix + pyjs.MOD_SUFFIX
         else:
             out_file = os.path.join(self.output, 'lib',
-                                    '%s%s.js' % (module_name, plat_suffix))
+                                    module_name + plat_suffix + pyjs.MOD_SUFFIX)
         if out_file in self.done.get(platform, []):
             return
         
@@ -203,19 +366,25 @@ class BaseLinker(object):
                     fp = open(out_file, 'w')
                     fp.write("/* start javascript include: %s */\n" % file_name)
                     fp.write(open(file_path, 'r').read())
-                    fp.write("$pyjs.loaded_modules['%s'] = ")
-                    fp.write("function ( ) {return null;};\n" % file_name)
+                    fp.write("$pyjs.loaded_modules['%s'] = " % file_name)
+                    fp.write("function ( ) {return null;};\n")
                     fp.write("/* end %s */\n" % file_name)
                 deps = []
                 self.dependencies[out_file] = deps
             else:
-                logging.info('Translating module:%s platform:%s out:%r' % (
+                logging.info('MYTranslating module:%s platform:%s out:%r' % (
                     module_name, platform or '-', out_file))
-                deps, js_libs = translator.translate(self.compiler,
-                                            [file_path] +  overrides,
-                                            out_file,
-                                            module_name=module_name,
-                                            **self.translator_arguments)
+                deps, js_libs = self.translator_func(platform,
+                                                     [file_path] +  overrides,
+                                                     out_file,
+                                                     module_name,
+                                                     self.translator_arguments,
+                                                     self.keep_lib_files)
+                #deps, js_libs = translator.translate(self.compiler,
+                #                            [file_path] +  overrides,
+                #                            out_file,
+                #                            module_name=module_name,
+                #                            **self.translator_arguments)
                 self.dependencies[out_file] = deps
                 for path, mode, location in js_libs:
                     if mode == 'default':

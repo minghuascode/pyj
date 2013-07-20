@@ -8,12 +8,14 @@ from pyjamas.ui import HasAlignment
 from pyjamas.ui.Hyperlink import Hyperlink
 from pyjamas.ui.VerticalPanel import VerticalPanel
 from pyjamas import Window
-from SinkList import SinkList
+from pyjamas.ui.Sink import SinkList
 from pyjamas import History
 import IntroTab
 import TooltipTab
 import AutoCompleteTab
+import Canvas2DTab
 import CanvasTab
+
 
 class AddonsGallery:
 
@@ -79,10 +81,11 @@ class AddonsGallery:
         self.curSink.onShow()
         
     def loadSinks(self):
-        self.sink_list.addSink(IntroTab.init())
-        self.sink_list.addSink(TooltipTab.init())
-        self.sink_list.addSink(AutoCompleteTab.init())
-        self.sink_list.addSink(CanvasTab.init())
+        self.sink_list.add(IntroTab.init())
+        self.sink_list.add(TooltipTab.init())
+        self.sink_list.add(AutoCompleteTab.init())
+        self.sink_list.add(Canvas2DTab.init())
+        self.sink_list.add(CanvasTab.init())
 
     def showIntro(self):
         self.show(self.sink_list.find("Intro"))

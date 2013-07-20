@@ -2,18 +2,19 @@
 # Ported by Willie Gollino from Autocomplete component for GWT -
 # Originally by Oliver Albers http://gwt.components.googlepages.com/
 # Copyright (C) 2009 Luke Kenneth Casson Leighton <lkcl@lkcl.net>
+# Copyright (C) 2011 goffi <goffi@goffi.org>
 #
 # Licensed under the LGPL 2.1
 #
 # TODO: textarea autocomplete
 # http://gwt.components.googlepages.com/auto-completiontextbox
 
-from TextBox import TextBox
+from pyjamas.ui.TextBox import TextBox
 from pyjamas import Factory
-from PopupPanel import PopupPanel
-from ListBox import ListBox
+from pyjamas.ui.PopupPanel import PopupPanel
+from pyjamas.ui.ListBox import ListBox
 from pyjamas.ui import KeyboardListener
-from RootPanel import RootPanel
+from pyjamas.ui.RootPanel import RootPanel
 
 class AutoCompleteTextBox(TextBox):
     def __init__(self, **kwargs):
@@ -55,9 +56,8 @@ class AutoCompleteTextBox(TextBox):
         if arg1 == KeyboardListener.KEY_DOWN:
             selectedIndex = self.choices.getSelectedIndex()
             selectedIndex += 1
-            if selectedIndex > self.choices.getItemCount():
+            if selectedIndex >= self.choices.getItemCount():
                 selectedIndex = 0
-        
             self.choices.setSelectedIndex(selectedIndex)           
             return
 
@@ -65,7 +65,7 @@ class AutoCompleteTextBox(TextBox):
             selectedIndex = self.choices.getSelectedIndex()
             selectedIndex -= 1
             if selectedIndex < 0:
-                selectedIndex = self.choices.getItemCount()
+                selectedIndex = self.choices.getItemCount() - 1
             self.choices.setSelectedIndex(selectedIndex)
             return
 
@@ -122,6 +122,7 @@ class AutoCompleteTextBox(TextBox):
         self.choices.clear()
         self.choicesPopup.hide()
         self.setFocus(True)
+        self.visible = False
 
 Factory.registerClass('pyjamas.ui.AutoComplete', 'AutoCompleteTextBox', AutoCompleteTextBox)
 

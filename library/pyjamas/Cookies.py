@@ -1,10 +1,9 @@
 # This is the gtk-dependent Cookies module.
 # For the pyjamas/javascript version, see platform/CookiesPyJS.py
 
-import sys
 from __pyjamas__ import JS, doc
-
-if sys.platform not in ['mozilla', 'ie6', 'opera', 'oldmoz', 'safari']:
+import pyjd
+if pyjd.is_desktop:
     from Cookie import SimpleCookie
     import urllib
     import datetime
@@ -15,7 +14,7 @@ def getCookie(key):
 
 def getCookie2(cookie_name):
     cookiestr = doc().cookie
-    c = SimpleCookie(cookiestr)
+    c = SimpleCookie(str(cookiestr))
     cs = c.get(cookie_name, None)
     print "getCookie2", cookiestr, "name", cookie_name, "val", cs
     if cs:
@@ -25,7 +24,7 @@ def getCookie2(cookie_name):
 # expires can be int or Date
 def setCookie(name, value, expires, domain=None, path=None, secure=False):
     cookiestr = doc().cookie
-    c = SimpleCookie(cookiestr)
+    c = SimpleCookie(str(cookiestr))
     c[name] = value
     m = c[name]
     d = datetime.datetime.now() + datetime.timedelta(0, expires/1000)

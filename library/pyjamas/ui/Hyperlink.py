@@ -16,18 +16,15 @@ from pyjamas import DOM
 from pyjamas import Factory
 from pyjamas import History
 
-from Widget import Widget
+from pyjamas.ui.Widget import Widget
 from pyjamas.ui import Event
-from ClickListener import ClickHandler
+from pyjamas.ui.ClickListener import ClickHandler
 
 class Hyperlink(Widget, ClickHandler):
 
-    def __init__(self, text="", asHTML=False, targetHistoryToken="",
-                       Element=None, **kwargs):
+    def __init__(self, text="", asHTML=False, Element=None, **kwargs):
 
-        self.targetHistoryToken = ""
-
-        if not Element:
+        if Element is None:
             Element = DOM.createDiv()
         self.anchorElem = DOM.createAnchor()
         self.setElement(Element)
@@ -39,8 +36,8 @@ class Hyperlink(Widget, ClickHandler):
                 kwargs['HTML'] = text
             else:
                 kwargs['Text'] = text
-        if targetHistoryToken:
-            kwargs['TargetHistoryToken'] = targetHistoryToken
+        if not kwargs.has_key('TargetHistoryToken'):
+            kwargs['TargetHistoryToken'] = None
 
         Widget.__init__(self, **kwargs)
         ClickHandler.__init__(self)
@@ -50,7 +47,8 @@ class Hyperlink(Widget, ClickHandler):
         event_type = DOM.eventGetType(event)
         if event_type == "click":
             DOM.eventPreventDefault(event)
-            History.newItem(self.targetHistoryToken)
+            if self.targetHistoryToken is not None:
+                History.newItem(self.targetHistoryToken)
 
     def getHTML(self):
         return DOM.getInnerHTML(self.anchorElem)
@@ -69,6 +67,8 @@ class Hyperlink(Widget, ClickHandler):
 
     def setTargetHistoryToken(self, targetHistoryToken):
         self.targetHistoryToken = targetHistoryToken
+        if targetHistoryToken is None:
+            targetHistoryToken = ''
         DOM.setAttribute(self.anchorElem, "href", "#" + targetHistoryToken)
 
 Factory.registerClass('pyjamas.ui.Hyperlink', 'Hyperlink', Hyperlink)

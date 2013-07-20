@@ -1,9 +1,9 @@
 # This is the gtk-dependent History module.
 # For the pyjamas/javascript version, see platform/HistoryPyJS.py
 
-import sys
 from __pyjamas__ import JS, doc, wnd
-if sys.platform not in ['mozilla', 'ie6', 'opera', 'oldmoz', 'safari']:
+import pyjd
+if pyjd.is_desktop:
     from __pyjamas__ import get_main_frame
 
 global historyToken
@@ -38,6 +38,7 @@ historyListeners = []
 
 
 def addHistoryListener(listener):
+    print "add listener", listener
     historyListeners.append(listener)
 
 
@@ -55,7 +56,9 @@ def getToken():
 
 
 def newItem(ht):
-    print "History - new item", ht
+    global historyToken
+    if historyToken == ht:
+        return
     onHistoryChanged(ht)
     return
 
@@ -69,10 +72,6 @@ def newItem(ht):
 
 # TODO - fireHistoryChangedAndCatch not implemented
 def onHistoryChanged(ht):
-    #UncaughtExceptionHandler handler = GWT.getUncaughtExceptionHandler();
-    #if (handler != null)
-    #   fireHistoryChangedAndCatch(historyToken, handler);
-    #else
     fireHistoryChangedImpl(ht)
 
 
@@ -82,6 +81,10 @@ def fireHistoryChangedAndCatch():
 
 
 def fireHistoryChangedImpl(ht):
+    global historyToken
+    if historyToken == ht:
+        return
+    historyToken = ht
     for listener in historyListeners:
         listener.onHistoryChanged(ht)
 
@@ -89,43 +92,23 @@ def fireHistoryChangedImpl(ht):
 def removeHistoryListener(listener):
     historyListeners.remove(listener)
 
+def _first_notify():
+    print "first notify", historyToken
+    onHistoryChanged(historyToken)
 
 def init():
-    print "history: TODO"
+    print "init", get_main_frame(), pyjd.is_desktop
+    if get_main_frame() is None:
+        if pyjd.is_desktop:
+            pyjd.add_setup_callback(init)
+#            pyjd.add_pre_run_callback(_first_notify)
+        return
+
     global historyToken
     historyToken = ''
-    onHistoryChanged(historyToken)
-    return
-    JS("""
-    $wnd.__historyToken = '';
+    hash = wnd().location.hash
 
-    // Get the initial token from the url's hash component.
-    var hash = $wnd.location.hash;
-    if (hash.length > 0)
-        $wnd.__historyToken = decodeURI(hash.substring(1)).replace('%23','#');
-
-    // Create the timer that checks the browser's url hash every 1/4 s.
-    $wnd.__checkHistory = function() {
-        var token = '', hash = $wnd.location.hash;
-        if (hash.length > 0)
-            token = decodeURI(hash.substring(1)).replace('%23','#');
-
-        if (token != $wnd.__historyToken) {
-            $wnd.__historyToken = token;
-            // TODO - move init back into History
-            // this.onHistoryChanged(token);
-            var h = new __History_History();
-            h.onHistoryChanged(token);
-        }
-
-        $wnd.setTimeout('__checkHistory()', 250);
-    };
-
-    // Kick off the timer.
-    $wnd.__checkHistory();
-
-    return true;
-    """)
-
+    if hash and len(hash) > 0:
+        historyToken = hash[1:]
 
 init()

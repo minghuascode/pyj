@@ -16,8 +16,9 @@
     and management of the DOM model of the PyWebkitGtk window.
 """
 
-import sys
-if sys.platform not in ['mozilla', 'ie6', 'opera', 'oldmoz', 'safari']:
+import pyjd
+
+if pyjd.is_desktop:
     from pyjamas.Window import onResize, onClosing, onClosed
     from __pyjamas__ import JS, doc, get_main_frame, wnd
 
@@ -28,6 +29,7 @@ sEventPreviewStack = []
 
 listeners = {}
 
+from pyjamas.ui import Event
 from pyjamas.ui.Event import (
     ONBLUR,
     ONCHANGE,
@@ -46,9 +48,13 @@ from pyjamas.ui.Event import (
     ONMOUSEOUT,
     ONMOUSEOVER,
     ONMOUSEUP,
-    ONSCROLL
+    ONSCROLL,
+    ONINPUT
 )
 
+ELEMENT_NODE = 1
+TEXT_NODE = 3
+DOCUMENT_NODE = 9
 
 def get_listener(item):
     if item is None:
@@ -63,6 +69,8 @@ def get_listener(item):
 def set_listener(item, listener):
     if hasattr(item, "__instance__"):
         listeners[item.__instance__] = listener
+    elif listener is None:
+        listeners.pop(hash(item))
     else:
         listeners[hash(item)] = listener
 
@@ -71,7 +79,6 @@ hack_timer_workaround_bug_button = None
 
 
 def init():
-
     mf = get_main_frame()
     mf._addWindowEventListener("click", browser_event_cb)
     mf._addWindowEventListener("change", browser_event_cb)
@@ -82,10 +89,6 @@ def init():
     mf._addWindowEventListener("keyup", browser_event_cb)
     mf._addWindowEventListener("keydown", browser_event_cb)
     mf._addWindowEventListener("keypress", browser_event_cb)
-    _init_mousewheel()
-
-def _init_mousewheel():
-    mf = get_main_frame()
     mf._addWindowEventListener("mousewheel", browser_event_cb)
 
 def _init_testing():
@@ -121,20 +124,20 @@ def _dispatchEvent(sender, evt, useCap):
     #print "_dispatchEvent", sender, evt, evt.type
     cap = getCaptureElement()
     listener = get_listener(cap)
-    if cap and listener:
+    if cap and (listener is not None):
         #print "capture _dispatchEvent", cap, listener
         dispatchEvent(evt, cap, listener)
         evt.stopPropagation()
         return
 
-    while curElem and not get_listener(curElem):
+    while curElem and (get_listener(curElem) is None):
         #print "no parent listener", curElem, getParent(curElem)
         curElem = getParent(curElem)
     if curElem and getNodeType(curElem) != 1:
         curElem = None
 
     listener = get_listener(curElem)
-    if listener:
+    if listener is not None:
         dispatchEvent(evt, curElem, listener)
 
 
@@ -145,7 +148,7 @@ def _dispatchCapturedMouseEvent(evt):
         return
     cap = getCaptureElement()
     listener = get_listener(cap)
-    if cap and listener:
+    if cap and (listener is not None):
         dispatchEvent(evt, cap, listener)
         #print "dcmsev, stop propagation"
         evt.stopPropagation()
@@ -219,6 +222,14 @@ def appendChild(parent, child):
     #print "appendChild", parent, child
     parent.appendChild(child)
 
+def removeChild(parent, child):
+    #print "removeChild", parent, child
+    parent.removeChild(child)
+    #print "after removeChild", parent, child
+
+def replaceChild(parent, newChild, oldChild):
+    parent.replaceChild(newChild, oldChild)
+
 
 def buttonClick(element):
     evt = doc().createEvent('MouseEvents')
@@ -228,7 +239,7 @@ def buttonClick(element):
 
 
 def compare(elem1, elem2):
-    if hasattr(elem1, "isSameNode"):
+    if hasattr(elem1, "isSameNode") and hasattr(elem2, "isSameNode"):
         return elem1.isSameNode(elem2)
     return elem1 == elem2
 
@@ -274,7 +285,7 @@ def createInputCheck():
 
 
 def createInputElement(elementType):
-    e = createElement("INPUT")
+    e = createElement("input")
     e.type = elementType
     return e
 
@@ -412,32 +423,8 @@ def eventGetToElement(evt):
 def eventGetType(event):
     return event.type
 
-eventmap = {
-      "blur": 0x01000,
-      "change": 0x00400,
-      "click": 0x00001,
-      "dblclick": 0x00002,
-      "focus": 0x00800,
-      "keydown": 0x00080,
-      "keypress": 0x00100,
-      "keyup": 0x00200,
-      "load": 0x08000,
-      "losecapture": 0x02000,
-      "mousedown": 0x00004,
-      "mousemove": 0x00040,
-      "mouseout": 0x00020,
-      "mouseover": 0x00010,
-      "mouseup": 0x00008,
-      "scroll": 0x04000,
-      "error": 0x10000,
-      "contextmenu": 0x20000,
-      "mousewheel": 0x40000,
-      "DOMMouseScroll": 0x40000,
-      }
-
-
 def eventGetTypeInt(event):
-    return eventmap.get(str(event.type), 0)
+    return Event.eventmap.get(str(event.type), 0)
 
 
 def eventGetTypeString(event):
@@ -489,8 +476,10 @@ def getAbsoluteTop(elem):
 
 
 def getAttribute(elem, attr):
-    mf = get_main_frame()
-    return str(getattr(elem, attr))
+    attr = getattr(elem, attr)
+    if attr is None:
+        return None
+    return str(attr)
 
 
 def getElemAttribute(elem, attr):
@@ -595,6 +584,13 @@ def getFirstChild(elem):
     return child
 
 
+def getLastChild(elem):
+    child = elem and elem.lastChild
+    while child and child.nodeType != 1:
+        child = child.previousSibling
+    return child
+
+
 def getInnerHTML(element):
     try:
         return element and element.innerHtml # webkit. erk.
@@ -609,7 +605,7 @@ def getInnerText(element):
     child = element.firstChild
     while child:
         if child.nodeType == 1:
-            text += child.getInnerText()
+            text += getInnerText(child)
         elif child.nodeValue:
             text += child.nodeValue
         child = child.nextSibling
@@ -617,7 +613,6 @@ def getInnerText(element):
 
 
 def getIntAttribute(elem, attr):
-    mf = get_main_frame()
     return int(getattr(elem, attr))
 
 
@@ -629,6 +624,13 @@ def getIntElemAttribute(elem, attr):
 
 def getIntStyleAttribute(elem, attr):
     return getIntAttribute(elem.style, attr)
+
+
+def getPrevSibling(elem):
+    sib = elem.previousSibling
+    while sib and sib.nodeType != 1:
+        sib = sib.previousSibling
+    return sib
 
 
 def getNextSibling(elem):
@@ -653,11 +655,25 @@ def getParent(elem):
 
 def getStyleAttribute(elem, attr):
     try:
-        if hasattr(elem.style, 'getProperty'):
+        if hasattr(elem.style, 'getPropertyValue'):
+            return elem.style.getPropertyValue(mash_name_for_glib(attr))
+        elif hasattr(elem.style, 'getProperty'):
             return elem.style.getProperty(mash_name_for_glib(attr))
         return elem.style.getAttribute(attr)
     except AttributeError:
         return getattr(elem.style, attr, None)
+
+
+def insertAfter(existing_node, new_node):
+    if existing_node.nextSibling:
+        # there is a next sibling. insert before it using the mutual
+        # parent's insertBefore() method.
+        existing_node.parentNode.insertBefore(new_node,
+                                              existing_node.nextSibling)
+    else:
+        # there is no next sibling. append to the end of the parent's
+        # node list.
+        existing_node.parentNode.appendChild(new_node)
 
 
 def insertChild(parent, toAdd, index):
@@ -710,9 +726,13 @@ def iterChildren(elem):
 
 class IterWalkChildren:
 
-    def __init__(self, elem):
+    def __init__(self, elem, all_nodes=False):
         self.parent = elem
-        self.child = getFirstChild(elem)
+        self.all_nodes = all_nodes
+        if all_nodes:
+            self.child = elem.firstChild
+        else:
+            self.child = getFirstChild(elem)
         self.lastChild = None
         self.stack = []
 
@@ -720,8 +740,12 @@ class IterWalkChildren:
         if not self.child:
             raise StopIteration
         self.lastChild = self.child
-        firstChild = getFirstChild(self.child)
-        nextSibling = getNextSibling(self.child)
+        if self.all_nodes:
+            firstChild = self.child.firstChild
+            nextSibling = self.child.nextSibling
+        else:
+            firstChild = getFirstChild(self.child)
+            nextSibling = getNextSibling(self.child)
         if firstChild is not None:
             if nextSibling is not None:
                 self.stack.append((nextSibling, self.parent))
@@ -768,16 +792,11 @@ def releaseCapture(elem):
     global sCaptureElem
     if sCaptureElem and compare(elem, sCaptureElem):
         sCaptureElem = None
+        releaseCapture_impl(elem)
     return
 
-
-def removeChild(parent, child):
-    parent.removeChild(child)
-
-
-def replaceChild(parent, newChild, oldChild):
-    parent.replaceChild(newChild, oldChild)
-
+# browser-specific overrides may implement this
+def releaseCapture_impl(elem): pass
 
 def removeEventPreview(preview):
     sEventPreviewStack.remove(preview)
@@ -842,6 +861,7 @@ def removeAttribute(element, attribute):
 
 
 def setAttribute(element, attribute, value):
+    #print element, attribute, value
     setattr(element, attribute, value)
 
 
@@ -858,7 +878,10 @@ def setCapture(elem):
     global sCaptureElem
     sCaptureElem = elem
     #print "setCapture", sCaptureElem
+    setCapture_impl(elem)
 
+# browser-specific overrides may implement this
+def setCapture_impl(elem): pass
 
 def setEventListener(element, listener):
     """
@@ -871,7 +894,7 @@ def setEventListener(element, listener):
 
 
 def createTextNode(txt):
-    return doc().createTextNode(txt) 
+    return doc().createTextNode(txt)
 
 
 def setInnerHTML(element, html):
@@ -883,7 +906,7 @@ def setInnerHTML(element, html):
 
 def setInnerText(elem, text):
     #Remove all children first.
-    while elem.firstChild:
+    while elem.firstChild is not None:
         elem.removeChild(elem.firstChild)
     elem.appendChild(createTextNode(text or ''))
 
@@ -915,6 +938,15 @@ def setStyleAttribute(element, name, value):
     else:
         element.style.setAttribute(name, value, "")
 
+def setStyleAttributes(element, **kwargs):
+   """ 
+   multi attr: setStyleAttributes(self, {attr1:val1, attr2:val2, ...})
+   """ 
+   for attr, val in kwargs.items():
+        if hasattr(element.style, 'setProperty'):
+                element.style.setProperty(mash_name_for_glib(attr), val, "")
+        else:
+                element.style.setAttribute(attr, val, "")
 
 def sinkEvents(element, bits):
     """
@@ -932,48 +964,26 @@ def sinkEvents(element, bits):
 
     if not bits:
         return
+    mf = get_main_frame()
+    if hasattr(mf, "_addEventListener"):
+        aev = mf._addEventListener
+    else:
+        aev = mf.addEventListener
     #cb = lambda x,y,z: _dispatchEvent(y)
     cb = _dispatchEvent
-    mf = get_main_frame()
-    if (bits & 0x00001):
-        mf.addEventListener(element, "click", cb)
-    if (bits & 0x00002):
-        mf.addEventListener(element, "dblclick", cb)
-    if (bits & 0x00004):
-        mf.addEventListener(element, "mousedown", cb)
-    if (bits & 0x00008):
-        mf.addEventListener(element, "mouseup", cb)
-    if (bits & 0x00010):
-        mf.addEventListener(element, "mouseover", cb)
-    if (bits & 0x00020):
-        mf.addEventListener(element, "mouseout", cb)
-    if (bits & 0x00040):
-        mf.addEventListener(element, "mousemove", cb)
-    if (bits & 0x00080):
-        mf.addEventListener(element, "keydown", cb)
-    if (bits & 0x00100):
-        mf.addEventListener(element, "keypress", cb)
-    if (bits & 0x00200):
-        mf.addEventListener(element, "keyup", cb)
-    if (bits & 0x00400):
-        mf.addEventListener(element, "change", cb)
-    if (bits & 0x00800):
-        mf.addEventListener(element, "focus", cb)
-    if (bits & 0x01000):
-        mf.addEventListener(element, "blur", cb)
-    if (bits & 0x02000):
-        mf.addEventListener(element, "losecapture", cb)
-    if (bits & 0x04000):
-        mf.addEventListener(element, "scroll", cb)
-    if (bits & 0x08000):
-        mf.addEventListener(element, "load", cb)
-    if (bits & 0x10000):
-        mf.addEventListener(element, "error", cb)
-    if (bits & 0x20000):
-        mf.addEventListener(element, "contextmenu", cb)
 
     # mozilla stupidly has DOMMouseScroll...
     sinkEventsMozilla(element, bits)
+
+    bit = 1
+    while bits:
+        if bit > bits:
+            raise RuntimeError("sinkEvents: bit outruns bits")
+        if (bits & bit):
+            for event_name in Event.eventbits[bit][1]:
+                aev(element, event_name, cb)
+            bits ^= bit
+        bit <<= 1
 
 def sinkEventsMozilla(element, bits):
     pass
@@ -1002,8 +1012,9 @@ def previewEvent(evt):
         return True
 
     #print "previewEvent, cancel, prevent default"
-    eventCancelBubble(evt, True)
-    eventPreventDefault(evt)
+    if evt:
+        eventCancelBubble(evt, True)
+        eventPreventDefault(evt)
 
     return ret
 
@@ -1020,7 +1031,7 @@ def dispatchEventImpl(event, element, listener):
     global currentEvent
     if element == sCaptureElem:
         if eventGetType(event) == "losecapture":
-            # print "lose capture"
+            #print "lose capture"
             sCaptureElem = None
     #print "dispatchEventImpl", listener, eventGetType(event)
     prevCurrentEvent = currentEvent
@@ -1057,5 +1068,5 @@ def eventGetMouseWheelVelocityY(evt):
     pass
 
 
-if sys.platform in ['mozilla', 'ie6', 'opera', 'oldmoz', 'safari']:
+if not pyjd.is_desktop:
     init()

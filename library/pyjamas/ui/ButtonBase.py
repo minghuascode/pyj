@@ -14,7 +14,7 @@
 # limitations under the License.
 from pyjamas import DOM
 from pyjamas import Factory
-from FocusWidget import FocusWidget
+from pyjamas.ui.FocusWidget import FocusWidget
 from pyjamas.ui.InnerHTML import InnerHTML
 from pyjamas.ui.InnerText import InnerText
 
@@ -23,9 +23,9 @@ class ButtonBase(FocusWidget, InnerHTML, InnerText):
     def __init__(self, element, **kwargs):
         FocusWidget.__init__(self, element, **kwargs)
 
-    def _setWeirdProps(self, props):
+    def _setWeirdProps(self, props, builderstate):
         if props.has_key("label"):
-            props['text'] = props['label']
+            props['text'] = str(props['label'])
             del props['label']
         if not props.has_key("text"):
             return

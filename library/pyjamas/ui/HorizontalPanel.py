@@ -15,7 +15,7 @@
 from pyjamas import DOM
 from pyjamas import Factory
 
-from CellPanel import CellPanel
+from pyjamas.ui.CellPanel import CellPanel
 
 
 class HorizontalPanel(CellPanel):
@@ -27,14 +27,27 @@ class HorizontalPanel(CellPanel):
         self.tableRow = DOM.createTR()
         DOM.appendChild(self.getBody(), self.tableRow)
 
-    def add(self, widget):
-        self.insert(widget, self.getWidgetCount())
+    def insert(self, widget, container, beforeIndex=None):
+        """ has two modes of operation:
+            widget, beforeIndex
+            widget, container, beforeIndex.
+            if beforeIndex argument is not given, the 1st mode is assumed.
+            this technique is less costly than using *args.
+        """
+        if widget.getParent() == self:
+            return
 
-    def insert(self, widget, beforeIndex):
+        if beforeIndex is None:
+            beforeIndex = container
+            container = self.tableRow
+
+        if widget.getParent() == self:
+            return
+
         widget.removeFromParent()
 
         td = DOM.createTD()
-        DOM.insertChild(self.tableRow, td, beforeIndex)
+        DOM.insertChild(container, td, beforeIndex)
 
         CellPanel.insert(self, widget, td, beforeIndex)
 

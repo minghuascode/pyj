@@ -4,13 +4,11 @@ from pyjamas.ui.Image import Image
 from pyjamas.ui.Anchor import Anchor
 
 if __name__ == '__main__':
-    pyjd.setup("Anchor.html")
+    pyjd.setup("public/Anchor.html")
 
     root = RootPanel()
-    image_url = "http://www.dcuktec.com/static/images/logo.png"
-    image = Image(image_url)
-    anchor = Anchor(Widget=image)
-    anchor.href.set('http://www.dcuktec.com')
+    image = Image('http://pyjs.org/img/pyjamas.128x128.png')
+    anchor = Anchor(Widget=image, Href='http://pyjs.org', Title='Pyjs website')
     root.add(anchor)
 
     pyjd.run()

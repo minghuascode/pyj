@@ -15,7 +15,7 @@
 from pyjamas import DOM
 from pyjamas import Factory
 
-from Label import Label
+from pyjamas.ui.Label import Label
 from pyjamas.ui import Event
 from pyjamas.ui.InnerHTML import InnerHTML
 from pyjamas.ui.Widget import Widget
@@ -38,7 +38,7 @@ class HTML(Label, InnerHTML):
     def _getProps(self):
         return Widget._getProps() + self._props
 
-    def _setWeirdProps(self, props):
+    def _setWeirdProps(self, props, builderstate):
         if props.has_key("label"):
             props['text'] = props['label']
             del props['label']

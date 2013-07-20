@@ -6,6 +6,7 @@ from ClassTest import ExampleMultiSuperclassParent1
 import Factory2
 
 import imports.decors # must be in this form
+import imports.enum.Late
 
 class Handler:
 
@@ -14,6 +15,10 @@ class Handler:
 
     def handle(self, y):
         return self._x is y
+
+class Callable(object):
+    def __call__(self):
+        return 5
 
 def aProcedure():
     x = 1
@@ -110,6 +115,17 @@ class FunctionTest(UnitTest):
             c = ClassWithLambdas2()
             self.assertEqual(c.f2(1), c, 'issue #385 - bound method lambda called as function')
 
+    def test_callable(self):
+        try:
+            self.assertEqual(Callable()(), 5)
+        except:
+            self.fail("Bug #572 Callable()() __call__ not supported")
+        self.assertTrue(callable(Callable))
+        self.assertTrue(
+            callable(Callable()),
+            "Bug #572 callable(Callable()) __call__ not supported",
+        )
+
     def testProcedure(self):
         self.assertTrue(aFunctionReturningNone() is None,
                         "Function should return None")
@@ -129,6 +145,32 @@ class FunctionTest(UnitTest):
         self.assertEqual(aFunctionReturningLocalX(), expected_result2)
         self.assertEqual(aFunctionReturningArgX('test'), 'test')
 
+    def testLookupLate(self):
+        self.assertEqual(late_global, 'late_global')
+
+        def local_lookup1():
+            self.assertEqual(late_local, 'late_local')
+            self.assertTrue(callable(local_lookup2))
+            self.assertEqual(local_lookup2(), 'late_local')
+            try:
+                local_lookup3()
+                self.fail("lookup3")
+            except NotImplementedError, e:
+                self.assertTrue(True)
+
+        def local_lookup2():
+            return late_local
+
+        def local_lookup3():
+            raise NotImplementedError
+
+
+        late_local = 'late_local'
+        local_lookup1()
+
+        late = imports.enum.Late.getLate()
+        self.assertEqual(late.value, 'late')
+
     def testNameMapping(self):
         r = call(1, 2, this=3, label=4)
         self.assertEqual(r[0], 'mapping-test')
@@ -136,6 +178,10 @@ class FunctionTest(UnitTest):
         self.assertEqual(r[2], 2)
         self.assertEqual(r[3], 3)
         self.assertEqual(r[4], 4)
+        try:
+            self.assertEqual(Text('foo'), 'Text: foo')
+        except:
+            self.fail("Bug #574: javascript keywords")
 
     def testFactory(self):
 
@@ -235,7 +281,34 @@ class FunctionTest(UnitTest):
             return "b"
 
         self.assertEqual(fn3("b"), "abc")
+        
+        def shiftdecorator(si):
+            def wrapper(fn):
+                def decorated(*args, **kw):
+                    return fn(*args, **kw) + si
+                return decorated
+            return wrapper
+                
+        def fn4(v):
+            return v
+            
+        @shiftdecorator(1)
+        def fn4d1(v):
+            return v
+        @shiftdecorator(2)
+        def fn4d2(v):
+            return v
+        fn4d3 = shiftdecorator(2)(fn4)
+        
+        self.assertEqual(fn4d1(1), 2)
+        self.assertEqual(fn4d2(1), 3)
+        self.assertEqual(fn4d3(1), 3)
 
     def testTopLevelContionalFunction(self):
         self.assertEqual(imports.conditional_func(), "overridden")
 
+late_global = 'late_global'
+
+# Text is a reserved javascript word
+def Text(x):
+    return str("Text: %s" % x)

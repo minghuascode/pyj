@@ -78,7 +78,7 @@ class AbsolutePanelDemo(SimplePanel):
         wrapper = VerticalPanel()
         wrapper.setBorderWidth(1)
         wrapper.add(HTML(label))
-        DOM.setIntAttribute(wrapper.getTable(), "cellPadding", 10)
+        DOM.setIntAttribute(wrapper.getTable(), "cellPadding", "10")
         DOM.setAttribute(wrapper.getTable(), "bgColor", "#C3D9FF")
 
         return wrapper
@@ -153,7 +153,7 @@ class DialogBoxDemo(SimplePanel):
         self._dialog.setPopupPosition(left, top)
         self._dialog.show()
 
-    def onClose(self):
+    def onClose(self, sender):
         self._dialog.hide()
 }}
 
@@ -306,13 +306,13 @@ class FlexTableDemo(SimplePanel):
 
         self.add(self._table)
 
-    def hideRows(self):
+    def hideRows(self, sender):
         rowFormatter = self._table.getRowFormatter()
         rowFormatter.setVisible(2, False)
         rowFormatter.setVisible(3, False)
         rowFormatter.setVisible(4, True)
 
-    def showRows(self):
+    def showRows(self, sender):
         rowFormatter = self._table.getRowFormatter()
         rowFormatter.setVisible(2, True)
         rowFormatter.setVisible(3, True)
@@ -470,9 +470,9 @@ class GridDemo(SimplePanel):
 
         for row in range(1, 5):
             for col in range(1, 5):
-                grid.setText(row, col, "%d*%d=%d" % (row, col row*col))
+                grid.setText(row, col, "%d*%d=%d" % (row, col, row*col))
 
-        grid.setWidget(4, 4, Button("Peekaboo")
+        grid.setWidget(4, 4, Button("Peekaboo"))
 
         self.add(grid)
 }}
@@ -939,7 +939,7 @@ class ButtonDemo(SimplePanel):
         self.add(btn)
 
         self.btn2 = Button("Tickle me!", self)
-        self.add(btn2)
+        self.add(self.btn2)
 
     def onButtonClick(self):
         Window.alert("Ouch!")
@@ -991,7 +991,7 @@ class CheckBoxDemo(SimplePanel):
         self.add(self.box)
 
     def onClick(self):
-        Window.alert("checkbox status: " + self.box.isChecked())
+        Window.alert("checkbox status: " + str(self.box.isChecked()))
 }}
 
 == ui.FileUpload ==
@@ -1189,7 +1189,7 @@ from pyjamas.ui.VerticalPanel import VerticalPanel
 from pyjamas.ui.HorizontalPanel import HorizontalPanel
 from pyjamas.ui.Hyperlink import Hyperlink
 from pyjamas.ui.Label import Label
-from History import History
+from pyjamas import History
 
 
 class HyperlinkDemo(SimplePanel):

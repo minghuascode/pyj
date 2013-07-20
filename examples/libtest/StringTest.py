@@ -4,6 +4,11 @@ import write
 
 class StringTest(UnitTest):
 
+    def testBasestring(self):
+        s = 'A string'
+        self.assertTrue(isinstance(s, str), "isinstance(s, str)")
+        self.assertTrue(isinstance(s, basestring), "isinstance(s, basestring)")
+
     def testToString(self):
         # TODO: this fails on IE, because we can not override toString
         # in the normal way
@@ -158,6 +163,11 @@ class StringTest(UnitTest):
 
     def testStrList(self):
         self.assertEqual(str([5,6]), "[5, 6]")
+        
+    def testStrFloat(self):
+        f1 = 1.5
+        self.assertEqual(str(f1), "1.5")
+        self.assertEqual(f1.__str__(), "1.5", "float.__str__() returns type instead of value, bug #487")
 
     def testStartsWith(self):
         s = 'abcd'
@@ -304,6 +314,14 @@ class StringTest(UnitTest):
         self.assertFalse("A0c".isupper(), "A0c")
         self.assertTrue("A C".isupper(), "A C")
         self.assertFalse("A c".isupper(), "A c")
+
+    def testIsLower(self):
+        self.assertTrue("abc".islower(), "abc")
+        self.assertFalse("AbC".islower(), "AbC")
+        self.assertTrue("a0c".islower(), "a0c")
+        self.assertFalse("A0c".islower(), "A0c")
+        self.assertTrue("a c".islower(), "a c")
+        self.assertFalse("A c".islower(), "A c")
 
 
 class ClassWithOwnToString(object):

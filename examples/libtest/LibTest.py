@@ -1,5 +1,6 @@
-from UnitTest import IN_BROWSER, IN_JS, IN_BROWSER
+from UnitTest import IN_BROWSER, IN_JS
 from LoopTest import LoopTest
+from NoInlineCodeTest import NoInlineCodeTest
 from StringTest import StringTest
 from ListTest import ListTest
 from TupleTest import TupleTest
@@ -16,7 +17,9 @@ from DictTest import DictTest
 from BuiltinTest import BuiltinTest
 from GeneratorTest import GeneratorTest
 from LongTest import LongTest
-import CompileTest
+from CompileTest import CompileTest
+from TemplateStringTest import TemplateStringTest
+
 if 1L << 31 > 0:
     has_long_type = True
     from LongTypeTest import LongTypeTest
@@ -43,16 +46,21 @@ from DatetimeModuleTest import DatetimeModuleTest
 from TypeCompatibilityTest import TypeCompatibilityTest
 from UrllibModuleTest import UrllibModuleTest
 from Base64ModuleTest import Base64ModuleTest
+from MathModuleTest import MathModuleTest
 from RandomModuleTest import RandomModuleTest
 from ReModuleTest import ReModuleTest
 from CsvModuleTest import CsvModuleTest
+from StringIOModuleTest import StringIOModuleTest
+from HashableTest import HashableTest
 
 from RunTests import RunTests
 
 def main():
 
     t = RunTests()
+    t.add(CompileTest)
     t.add(LoopTest)
+    t.add(NoInlineCodeTest)
     t.add(BoolTest)
     t.add(ListTest)
     t.add(TupleTest)
@@ -60,6 +68,7 @@ def main():
     t.add(ExceptionTest)
     t.add(ClassTest)
     t.add(StringTest)
+    t.add(TemplateStringTest)
     t.add(SetTest)
     t.add(FrozenSetTest)
     t.add(ArgsTest)
@@ -76,15 +85,25 @@ def main():
     t.add(MD5Test)
     t.add(TimeModuleTest)
     t.add(DatetimeModuleTest)
+    t.add(StringIOModuleTest)
     t.add(UrllibModuleTest)
     t.add(Base64ModuleTest)
+    t.add(MathModuleTest)
     t.add(ReModuleTest)
     t.add(RandomModuleTest)
     t.add(CsvModuleTest)
+    t.add(HashableTest)
 
     if IN_BROWSER:
         t.add(JSOTest)
         t.add(WindowTest)
+        
+    if sys.version_info >= (2, 7):
+        from Syntax27Test import Syntax27Test
+        t.add(Syntax27Test)
+        
+        from WithTest import WithTest
+        t.add(WithTest)
 
     t.start_test()
 

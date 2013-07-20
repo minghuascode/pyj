@@ -15,10 +15,10 @@ def noSourceTracking(*args):
     pass
 
 def unescape(str):
-    s = s.replace("&amp;", "&")
     s = s.replace("&lt;", "<")
     s = s.replace("&gt;", ">")
     s = s.replace("&quot;", '"')
+    s = s.replace("&amp;", "&") # must be LAST
     return s
 
 def set_gtk_module(m):
@@ -81,3 +81,5 @@ class console:
 def debugger():
     pass
 
+def INT(i):
+    return int(i)

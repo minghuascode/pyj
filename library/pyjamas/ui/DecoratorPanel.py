@@ -2,10 +2,10 @@
 # Copyright (C) 2009 Luke Kenneth Casson Leighton <lkcl@lkcl.net>
 
 from pyjamas import DOM
-from SimplePanel import SimplePanel
+from pyjamas.ui.SimplePanel import SimplePanel
 from pyjamas import Factory
-from TabPanel import TabPanel
-from TabBar import TabBar
+from pyjamas.ui.TabPanel import TabPanel
+from pyjamas.ui.TabBar import TabBar
 
 """
   
@@ -162,7 +162,11 @@ class DecoratedTabPanel(TabPanel):
 
     def __init__(self, **kwargs):
         if not kwargs.has_key('StyleName'): kwargs['StyleName']=self.DEFAULT_STYLENAME
-        TabPanel.__init__(self, DecoratedTabBar(), **kwargs)
+        if kwargs.has_key('TabBar'):
+            tabbar = kwargs.pop('TabBar')
+        else:
+            tabbar = DecoratedTabBar()
+        TabPanel.__init__(self, tabbar, **kwargs)
 
         self.getTabBar().setStyleName(DecoratedTabBar.STYLENAME_DEFAULT)
 

@@ -5,24 +5,25 @@ Pass "-j fckeditor/fckeditor.js" to build.py in order to include the
 FCKeditor javascript.
 """
 
-from pyjamas import Window
-from pyjamas import DOM
-from pyjamas import log
 from BoundMethod import BoundMethod
+from pyjamas import logging
+from pyjamas import DOM
+from pyjamas import Window
 from pyjamas.ui.Widget import Widget
-
 from __pyjamas__ import JS
+
+log = logging.getAppendLogger(__name__, logging.DEBUG, logging.PLAIN_FORMAT)
 
 
 def createFCK(name):
     JS("""
-       return new FCKeditor(name);
+       return new @{{!FCKeditor}}(@{{name}});
     """)
 
 JS("""
    $wnd.FCKeditor_OnComplete = function(editorInstance )
    {
-       pyjsObject = $doc.getElementById(editorInstance.Name.substr(3)).__listener;
+       var pyjsObject = $doc.getElementById(editorInstance.Name.substr(3)).__listener;
        if(pyjsObject)
            pyjsObject.onFCKLoaded(editorInstance);
    }
@@ -106,22 +107,22 @@ class RichTextEditor(Widget):
             self.pendingHTML = None
 
     def onSelectionChange(self, sender):
-        pass#log.writebr("onSelectionChange!")
+        pass#log.debug("onSelectionChange!")
 
     def onBlur(self, sender):
-        pass#log.writebr("onBlur!")
+        pass#log.debug("onBlur!")
 
     def onFocus(self, sender):
-        pass#log.writebr("onFocus!")
+        pass#log.debug("onFocus!")
 
     def onPaste(self, sender):
-        pass#log.writebr("onPaste!")
+        pass#log.debug("onPaste!")
 
     def onSave(self):
         """
         Handle the save click and pass it onto the listeners.
         """
-        log.writebr("onSave() in %s", Window.getLocation().getHref())
+        log.debug("onSave() in %s", Window.getLocation().getHref())
         for listener in self.saveListeners:
             if hasattr(listener, "onSave"):
                 listener.onSave(self)
@@ -150,4 +151,3 @@ class RichTextEditor(Widget):
 
     def getWindow(self):
         return self.fck.EditorWindow()
-

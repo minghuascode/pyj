@@ -14,13 +14,8 @@
 * the License.
 """
 
-
-
-
 from pyjamas import DOM
-from pyjamas import log
 from pyjamas.ui.Widget import Widget
-
 from pyjamas.Canvas.Color import Color
 
 def cvt(s):
@@ -59,7 +54,9 @@ class GWTCanvasImplDefault:
     def cubicCurveTo(self, cp1x, cp1y, cp2x, cp2y, x, y):
         self.canvasContext.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,x,y)
 
-
+    def setFont(self, font):
+        self.canvasContext.font = font
+    
     def fillText(self, text, sourceX, sourceY, maxWidth=None):
         # TODO: split this dog's dinner into browser-specific
         # and pyjd-specific overrides...
@@ -177,7 +174,7 @@ class GWTCanvasImplDefault:
     def setStrokeStyle(self, gradient):
         if isinstance(gradient, Color): # is it a colorString?
             gradient = str(gradient)
-        elif not isinstance(gradient, str): # is it a colorString?
+        elif not isinstance(gradient, basestring): # is it a colorString?
             gradient = gradient.getObject() # it's a gradient object
         self.canvasContext.strokeStyle = cvt(gradient)
 
@@ -185,7 +182,7 @@ class GWTCanvasImplDefault:
     def setFillStyle(self, gradient):
         if isinstance(gradient, Color): # is it a colorString?
             gradient = str(gradient)
-        elif not isinstance(gradient, str): # is it a colorString?
+        elif not isinstance(gradient, basestring): # is it a colorString?
             gradient = gradient.getObject() # it's a gradient object
         self.canvasContext.fillStyle = cvt(gradient)
 

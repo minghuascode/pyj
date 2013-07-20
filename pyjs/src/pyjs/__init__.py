@@ -1,3 +1,4 @@
+import sys
 import os
 
 # default to None indicates 'relative paths' so that as a self-contained
@@ -12,3 +13,8 @@ if os.environ.has_key('PYJSPATH'):
         if os.path.isdir(p):
             path.append(p)
 
+MOD_SUFFIX = '.js'
+
+PYTHON = os.path.realpath(sys.executable) if sys.executable else None
+if PYTHON is None or not os.access(PYTHON, os.X_OK):
+    PYTHON = 'python'

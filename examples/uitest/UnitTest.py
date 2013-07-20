@@ -51,6 +51,9 @@ class GetTestOutput:
             if hasattr(ec1, 'attributes') and hasattr(ec2, 'attributes'):
                 a1 = ec1.attributes
                 a2 = ec2.attributes
+                ok = hasattr(a1, 'length') and hasattr(a2, 'length')
+                if not ok:
+                    break
                 ok = ok and (a1.length == a2.length)
                 if not ok:
                     break
@@ -146,7 +149,7 @@ class UnitTest:
         self.test_idx = 0
         Timer(1, self)
 
-    def onTimer(self, tid):
+    def onTimer(self, timer):
         print self.test_idx
         if self.test_idx is 'DONE':
             self.check_start_next_test()
@@ -160,7 +163,7 @@ class UnitTest:
 
             self._run_test(self.test_methods[self.test_idx])
             self.test_idx += 1
-        Timer(1, self)
+        timer.schedule(1)
 
     def check_start_next_test(self):
         if self.tests_outstanding is None:
@@ -218,9 +221,9 @@ class UnitTest:
         writebr(title + msg)
         if sys.platform in ['mozilla', 'ie6', 'opera', 'oldmoz', 'safari']:
             from __pyjamas__ import JS
-            JS("""if (typeof console != 'undefined') {
-                if (typeof console.error == 'function') console.error(msg);
-                if (typeof console.trace == 'function') console.trace();
+            JS("""if (typeof @{{!console}} != 'undefined') {
+                if (typeof @{{!console}}.error == 'function') @{{!console}}.error(@{{msg}});
+                if (typeof @{{!console}}.trace == 'function') @{{!console}}.trace();
             }""")
         return False
 
@@ -322,4 +325,3 @@ class UnitTest:
             output+= "\n"
 
         write(output, do_escape=False)
-

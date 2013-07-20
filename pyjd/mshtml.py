@@ -1,3 +1,13 @@
+# MSHTML implementation of pyjd runtime.  Uses ctypes and comtypes to
+# create a Win32 GDI window, embed an IWebBrowser2 OCX and allow access
+# to the DOM functions using Python-DCOM.
+#
+# Copyright (C) 2009, 2010 Luke Kenneth Casson Leighton <lkcl@lkcl.net>
+#
+# get_xml_doc added 2010-09-08,
+# copyright (C) Phil Charlesworth 2010, see Issue 481
+#
+
 #import win32traceutil
 
 import traceback
@@ -18,7 +28,7 @@ from ctypes import *
 from ctypes.wintypes import *
 
 import comtypes
-from comtypes import IUnknown, GUID, COMMETHOD
+from comtypes import IUnknown, GUID, COMMETHOD, CoCreateInstanceEx
 from comtypes.automation import IDispatch, VARIANT
 from comtypes.client import wrap, GetModule
 from comtypes.client.dynamic import Dispatch
@@ -26,7 +36,6 @@ from comtypes.client.dynamic import Dispatch
 import comtypes.gen
 
 if not hasattr(sys, 'frozen'):
-    GetModule('atl.dll')
     GetModule('shdocvw.dll')
     try:
         GetModule('msxml2.dll')
@@ -64,6 +73,14 @@ atl = windll.atl                  # If this fails, you need atl.dll
 import mshtmlevents 
 
 SID_SShellBrowser = GUID("{000214E2-0000-0000-C000-000000000046}")
+
+class IPlayer2(IUnknown):
+    _case_insensitive_ = True
+    _iid_ = GUID('{6BF52A52-394A-11d3-B153-00C04F79FAA6}')
+    _idlflags_ = []
+
+    _methods_ = [
+        ]
 
 class IOleWindow(IUnknown):
     _case_insensitive_ = True
@@ -244,6 +261,12 @@ class Browser(EventSink):
         self.pBrowser.RegisterAsBrowser = True
         self.pBrowser.AddRef()
 
+        print dir(SHDocVw)
+        print SHDocVw.IWebBrowser
+        print SHDocVw.IWebBrowser2
+
+        print dir(MSHTML)
+
         self.conn = mshtmlevents.GetEvents(self.pBrowser, sink=self,
                         interface=SHDocVw.DWebBrowserEvents2)
 
@@ -326,7 +349,7 @@ class Browser(EventSink):
     def mash_attrib(self, attrib_name):
         return attrib_name
 
-    def _addWindowEventListener(self, event_name, event_fn):
+    def _addWindowEventListener(self, event_name, event_fn, wnd=None):
         
         #print "_addWindowEventListener", event_name, event_fn
         #rcvr = mshtmlevents.GetDispEventReceiver(MSHTML.HTMLWindowEvents,
@@ -341,7 +364,8 @@ class Browser(EventSink):
         #setattr(self.getDomWindow(), "on%s" % event_name, v)
         #return ifc
 
-        wnd = self.pBrowser.Document.parentWindow
+        if wnd is None:
+            wnd = self.pBrowser.Document.parentWindow
         if self.window_handler is None:
             self.window_handler = EventHandler(self)
             self.window_conn = mshtmlevents.GetEvents(wnd,
@@ -356,8 +380,18 @@ class Browser(EventSink):
         #print "getXMLHttpRequest", o
         return Dispatch(o)
         
+    def getDOMParser(self):
+        o = comtypes.client.CreateObject('MSXML.DOMDocument')
+        return Dispatch(o)
+    
     def getUri(self):
         return self.application
+
+    def GetPlayer(self, obj):
+        return obj.QueryInterface(IPlayer2)
+
+    def CoCreateInstanceEx(self, clsid):
+        return CoCreateInstanceEx(GUID(clsid))
 
     def _loaded(self):
 

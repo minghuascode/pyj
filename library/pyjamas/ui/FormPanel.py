@@ -12,18 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
 from __pyjamas__ import JS
-from pyjamas import Factory
-if sys.platform not in ['mozilla', 'ie6', 'opera', 'oldmoz', 'safari']:
+from pyjamas import Factory, DOM
+import pyjd
+if pyjd.is_desktop:
     from __pyjamas__ import get_main_frame
 
-from pyjamas import DOM
-from __pyjamas__ import JS
-
-from SimplePanel import SimplePanel
+from pyjamas.ui.SimplePanel import SimplePanel
 from pyjamas.ui import Event
-from EventObject import EventObject
+from pyjamas.ui.EventObject import EventObject
 
 class FormSubmitEvent(EventObject):
     def __init__(self, source):
@@ -131,7 +128,7 @@ class FormPanel(SimplePanel):
         except:
             pass
 
-        if self.iframe:
+        if self.iframe is not None:
             self.__formAction = form.action
         return self._listener.onFormSubmit()
 
@@ -139,7 +136,7 @@ class FormPanel(SimplePanel):
     def hookEvents(self, iframe, form, listener):
         # TODO: might have to fix this, use DOM.set_listener()
         self._listener = listener
-        if iframe:
+        if iframe is not None:
             wf = mf = get_main_frame()
             self._onload_listener = mf.addEventListener(iframe, "load",
                                                         self._onload)
@@ -175,7 +172,7 @@ class FormPanel(SimplePanel):
     def setMethod(self, method):
         DOM.setAttribute(self.getElement(), "method", method)
 
-    def submit(self):
+    def submit(self, sender):
         event = FormSubmitEvent(self)
         for handler in self.formHandlers:
             handler.onSubmit(event)

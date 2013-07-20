@@ -1,5 +1,6 @@
 # Copyright 2006 James Tauber and contributors
 # Copyright (C) 2009 Luke Kenneth Casson Leighton <lkcl@lkcl.net>
+# Copyright (C) 2012 Robert Peters <robertpeters@winterlionsoftware.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,10 +19,10 @@ from __pyjamas__ import console
 from sets import Set
 import pygwt
 
-from Widget import Widget
+from pyjamas.ui.Widget import Widget
 from pyjamas.ui import Event
 from pyjamas.ui import Focus
-from TreeItem import RootTreeItem, TreeItem
+from pyjamas.ui.TreeItem import RootTreeItem, TreeItem
 from pyjamas.ui import MouseListener
 from pyjamas.ui import KeyboardListener
 from pyjamas.ui import FocusListener
@@ -36,7 +37,8 @@ class Tree(Widget):
         self.focusable = None
         self.focusListeners = []
         self.mouseListeners = []
-        self.imageBase = pygwt.getModuleBaseURL()
+        self.images = ka.pop('Images', False)
+        self.imageBase = pygwt.getImageBaseURL(self.images)
         self.keyboardListeners = []
         self.listeners = []
         self.lastEventType = ""
@@ -73,7 +75,7 @@ class Tree(Widget):
         return self.insertItem(item)
 
     def insertItem(self, item, index=None):
-        if isinstance(item, str):
+        if isinstance(item, basestring):
             item = TreeItem(item)
 
         ret = self.root.addItem(item)
@@ -109,6 +111,9 @@ class Tree(Widget):
 
     def getImageBase(self):
         return self.imageBase
+
+    def getImages(self):
+        return self.images
 
     def getItem(self, index):
         return self.root.getChild(index)
@@ -212,6 +217,12 @@ class Tree(Widget):
         self.imageBase = baseUrl
         self.root.updateStateRecursive()
 
+    def setImages(self, images):
+        if self.images == images:
+            return
+        self.images = images
+        self.setImageBase(pygwt.getImageBaseURL(self.images))
+
     def setSelectedItem(self, item, fireEvents=True):
         if item is None:
             if self.curSelection is None:
@@ -287,10 +298,10 @@ class Tree(Widget):
             width = DOM.getIntAttribute(selectedElem, "offsetWidth")
             height = DOM.getIntAttribute(selectedElem, "offsetHeight")
 
-            DOM.setIntStyleAttribute(self.focusable, "left", left)
-            DOM.setIntStyleAttribute(self.focusable, "top", top)
-            DOM.setIntStyleAttribute(self.focusable, "width", width)
-            DOM.setIntStyleAttribute(self.focusable, "height", height)
+            DOM.setIntStyleAttribute(self.focusable, "left", "%spx" % left)
+            DOM.setIntStyleAttribute(self.focusable, "top", "%spx" % top)
+            DOM.setIntStyleAttribute(self.focusable, "width", "%spx" % width)
+            DOM.setIntStyleAttribute(self.focusable, "height", "%spx" % height)
 
             DOM.scrollIntoView(self.focusable)
             Focus.focus(self.focusable)
@@ -327,6 +338,13 @@ class Tree(Widget):
     def onSelection(self, item, fireEvents):
         if item == self.root:
             return
+
+        if fireEvents and len(self.listeners):
+            for listener in self.listeners:
+                onBefore = getattr(listener, "onBeforeTreeItemSelected", None)
+                if onBefore is not None:
+                    if not onBefore(item):
+                        return
 
         if self.curSelection is not None:
             self.curSelection.setSelected(False)

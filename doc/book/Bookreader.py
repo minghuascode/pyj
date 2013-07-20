@@ -56,26 +56,39 @@ class Bookreader:
         #self.nf.setWidth("100%")
         #self.nf.setHeight("10000")
 
-        height = Window.getClientHeight()
-
         self.sp = ScrollPanel(self.sinkContainer)
         #self.sp = VerticalSplitPanel()
-        self.sp.setWidth("98%")
-        self.sp.setHeight("%dpx" % (height-200))
+        self.sp.setWidth("100%")
+        self.sp.setHeight("100%")
 
         #self.sp.setTopWidget(self.sinkContainer)
         #self.sp.setBottomWidget(self.nf)
         #self.sp.setSplitPosition(10000) # deliberately high - max out.
 
         vp = VerticalPanel()
-        vp.setWidth("100%")
+        vp.setWidth("99%")
         vp.setHeight("100%")
         vp.add(self.description)
         vp.add(self.sp)
 
+        authors = [
+            ("2008, 2009", "Kenneth Casson Leighton", "lkcl@lkcl.net")
+        ]
+        for years, name, email in authors:
+            authors_html = \
+            '&copy; %s <a href="mailto:%s">%s</a><br />' %\
+            (years, email, name)
+        authors_panel = HTML()
+        authors_panel.setStyleName("ks-Authors")
+        authors_panel.setHTML(authors_html[:-6])
+
+        left_panel = DockPanel(Height="100%")
+        left_panel.add(self.sink_list, DockPanel.NORTH)
+        left_panel.add(authors_panel, DockPanel.SOUTH)
+
         self.description.setStyleName("ks-Intro")
 
-        self.panel.add(self.sink_list, DockPanel.WEST)
+        self.panel.add(left_panel, DockPanel.WEST)
         self.panel.add(vp, DockPanel.CENTER)
 
         self.panel.setCellVerticalAlignment(self.sink_list,
@@ -92,8 +105,8 @@ class Bookreader:
 
     def onWindowResized(self, width, height):
         self.panel.setWidth(width-20)
-        self.sink_list.resize(width-20, height-200)
-        self.sp.setHeight("%dpx" % (height-200))
+        self.sink_list.resize(width-20, height-130)
+        self.sp.setHeight("%dpx" % (height-130))
 
     def show(self, info, affectHistory):
         if info == self.curInfo:
@@ -108,6 +121,8 @@ class Bookreader:
 
         self.curSink = info.getInstance()
         self.sink_list.setSinkSelection(info.getName())
+        self.sink_list.sp.setScrollPosition(0)
+        self.sink_list.sp.setHorizontalScrollPosition(0)
         self.description.setHTML(info.getDescription())
 
         if (affectHistory):
@@ -142,7 +157,7 @@ class Bookreader:
 
 
 if __name__ == '__main__':
-    pyjd.setup("./public/Bookreader.html")
+    pyjd.setup("http://127.0.0.1/pyjamas/doc/book/public/Bookreader.html")
     app = Bookreader()
     app.onModuleLoad()
     pyjd.run()
