@@ -434,6 +434,20 @@ for a in JavaScript_Reserved_Words:
 for a in ECMAScipt_Reserved_Words:
     pyjs_attrib_remap[a] = '$$' + a
 
+def _n(txt):
+    res = ''
+    while txt:
+        x = txt.find('{^')
+        if x == -1:
+            break
+        y = txt.find('^}', x)
+        if y == -1:
+            break
+        res += "%s['%s']" % (txt[:x], txt[x+2:y])
+        txt = txt[y+2:]
+    return res+txt
+
+
 
 def bracket_fn(s):
     return s # "(%s)" % s
@@ -637,7 +651,7 @@ class __Pyjamas__(object):
         expr = translator.expr(node.args[0], None)
         opt_var = translator.decorator_compiler_options['NumberClasses'][0][0]
         if  getattr(translator, opt_var):
-            return "new $p['int'](%s)" % expr, False
+            return "new $p{^int^}(%s)" % expr, False
         return expr, False
 
 
@@ -1006,6 +1020,7 @@ class Translator(object):
     def w(self, txt, newline=True, output=None, translate=True):
         if translate and txt:
             txt = self.translate_escaped_names(txt, None) # TODO: current_klss
+            txt = _n(txt)
         output = output or self.output
         assert(isinstance(newline, bool))
         if newline:
@@ -1180,12 +1195,12 @@ class Translator(object):
     
     def pyjslib_name(self, name, args=None):
         if args is None:
-            return "$p['" + name + "']"
+            return "$p{^" + name + "^}"
         else:
             if isinstance(args, (tuple, list)):
                 args = map(lambda x: str(x), args)
                 args = ', '.join(args)
-            return "$p['%(name)s'](%(args)s)" % dict(name=name, args=args)
+            return "$p{^%(name)s^}(%(args)s)" % dict(name=name, args=args)
 
     def add_lookup(self, name_type, pyname, jsname, depth = -1):
         jsname = self.jsname(name_type, jsname)
@@ -1217,14 +1232,14 @@ class Translator(object):
             if name in PYJSLIB_BUILTIN_FUNCTIONS:
                 name_type = 'builtin'
                 pyname = name
-                jsname = self.jsname("variable", "$p['%s']" % self.attrib_remap(name))
+                jsname = self.jsname("variable", "$p{^%s^}" % self.attrib_remap(name))
             elif name in PYJSLIB_BUILTIN_CLASSES:
                 name_type = 'builtin'
                 pyname = name
                 if not self.number_classes:
                     if pyname in ['int', 'long']:
                         name = 'float_int'
-                jsname = self.jsname("variable", "$p['%s']" % self.attrib_remap(name))
+                jsname = self.jsname("variable", "$p{^%s^}" % self.attrib_remap(name))
             elif PYJSLIB_BUILTIN_MAPPING.has_key(name):
                 name_type = 'builtin'
                 pyname = name
@@ -1286,9 +1301,9 @@ class Translator(object):
         s = self.spacing()
         lines = []
         for name in self.constant_int:
-            lines.append("%(s)svar $constant_int_%(name)s = new $p['int'](%(name)s);" % locals())
+            lines.append("%(s)svar $constant_int_%(name)s = new $p{^int^}(%(name)s);" % locals())
         for name in self.constant_long:
-            lines.append("%(s)svar $constant_long_%(name)s = new $p['long'](%(name)s);" % locals())
+            lines.append("%(s)svar $constant_long_%(name)s = new $p{^long^}(%(name)s);" % locals())
         return "\n".join(lines)
 
     def is_local_name(self, jsname, pyname, nametype, ignore_py_vars):
@@ -1347,7 +1362,7 @@ class Translator(object):
             self.add_lookup('variable', v, v)
             s = self.spacing()
             return self.__inline_bool_code_str % locals()
-        return "$p['bool'](%(e)s)" % locals()
+        return "$p{^bool^}(%(e)s)" % locals()
 
     __inline_len_code_str1 = """((%(v)s=%(e)s) === null?%(zero)s:
     (typeof %(v)s.__array != 'undefined' ? %(v)s.__array.length:
@@ -1357,9 +1372,9 @@ class Translator(object):
     __inline_len_code_str1 = __inline_len_code_str1.replace("    ", "\t").replace("\n", "\n%(s)s")
 
     __inline_len_code_str2 = """((%(v)s=%(e)s) === null?%(zero)s:
-    (typeof %(v)s.__array != 'undefined' ? new $p['int'](%(v)s.__array.length):
+    (typeof %(v)s.__array != 'undefined' ? new $p{^int^}(%(v)s.__array.length):
         (typeof %(v)s.__len__ == 'function'?%(v)s.__len__():
-            (typeof %(v)s.length != 'undefined'? new $p['int'](%(v)s.length):
+            (typeof %(v)s.length != 'undefined'? new $p{^int^}(%(v)s.length):
                 @{{len}}(%(v)s)))))"""
     __inline_len_code_str2 = __inline_len_code_str2.replace("    ", "\t").replace("\n", "\n%(s)s")
 
@@ -1457,12 +1472,12 @@ throw %(dbg)s_err;
     __generator_code_str = """\
 var $generator_state = [0], $generator_exc = [null], $yield_value = null, $exc = null, $is_executing=false;
 var $generator = function () {};
-$generator['next'] = function (noStop) {
+$generator{^next^} = function (noStop) {
 %(src1)s
     var $res;
     $yield_value = $exc = null;
     try {
-        $res = $generator['$genfunc']();
+        $res = $generator{^$genfunc^}();
         $is_executing=false;
         if (typeof $res == 'undefined') {
             if (noStop === true) {
@@ -1482,13 +1497,13 @@ $generator['next'] = function (noStop) {
     }
     return $res;
 };
-$generator['__iter__'] = function () {return $generator;};
-$generator['send'] = function ($val) {
+$generator{^__iter__^} = function () {return $generator;};
+$generator{^send^} = function ($val) {
 %(src1)s
     $yield_value = $val;
     $exc = null;
     try {
-        var $res = $generator['$genfunc']();
+        var $res = $generator{^$genfunc^}();
         if (typeof $res == 'undefined') throw @{{StopIteration}}();
     } catch (e) {
 %(src2)s
@@ -1499,14 +1514,14 @@ $generator['send'] = function ($val) {
     $is_executing=false;
     return $res;
 };
-$generator['$$throw'] = function ($exc_type, $exc_value) {
+$generator{^$$throw^} = function ($exc_type, $exc_value) {
 %(src1)s
     $yield_value = null;
     $exc=(typeof $exc_value == 'undefined' ? $exc_type() :
                                             (@{{isinstance}}($exc_value, $exc_type)
                                              ? $exc_value : $exc_type($exc_value)));
     try {
-        var $res = $generator['$genfunc']();
+        var $res = $generator{^$genfunc^}();
     } catch (e) {
 %(src2)s
         $generator_state[0] = -1;
@@ -1516,12 +1531,12 @@ $generator['$$throw'] = function ($exc_type, $exc_value) {
     $is_executing=false;
     return $res;
 };
-$generator['close'] = function () {
+$generator{^close^} = function () {
 %(src1)s
     $yield_value = null;
     $exc=@{{GeneratorExit}}();
     try {
-        var $res = $generator['$genfunc']();
+        var $res = $generator{^$genfunc^}();
         $is_executing=false;
         if (typeof $res != 'undefined') throw @{{RuntimeError}}('generator ignored GeneratorExit');
     } catch (e) {
@@ -1533,7 +1548,7 @@ $generator['close'] = function () {
     }
     return null;
 };
-$generator['$genfunc'] = function () {
+$generator{^$genfunc^} = function () {
     var $yielding = false;
     if ($is_executing) throw @{{ValueError}}('generator already executing');
     $is_executing = true;
@@ -1742,7 +1757,7 @@ if (this.__is_instance__ === true) {\
             self.w( """\
 %(s)s\t%(lpself)s%(kwargname)s = arguments[arguments.length+1];
 %(s)s} else {
-%(s)s\tdelete %(lp)s%(kwargname)s['$pyjs_is_kwarg'];
+%(s)s\tdelete %(lp)s%(kwargname)s{^$pyjs_is_kwarg^};
 %(s)s}\
 """ % locals(), output=output)
 
@@ -1785,7 +1800,7 @@ if ($pyjs.options.arg_count && %s) $pyjs__exception_func_param(arguments.callee.
             self.w( """\
 %(s)s\t%(lp)s%(kwargname)s = arguments[arguments.length+1];
 %(s)s} else {
-%(s)s\tdelete %(lp)s%(kwargname)s['$pyjs_is_kwarg'];
+%(s)s\tdelete %(lp)s%(kwargname)s{^$pyjs_is_kwarg^};
 %(s)s}\
 """ % locals(), output=output)
 
@@ -1801,8 +1816,8 @@ if ($pyjs.options.arg_count && %s) $pyjs__exception_func_param(arguments.callee.
             self.w( """\
 %(s)sif ($pyjs.options.arg_instance_type) {
 %(s)s\tif (%(self)s.prototype.__md5__ !== '%(__md5__)s') {
-%(s)s\t\tif (!@{{_isinstance}}(%(self)s, arguments['callee']['__class__'])) {
-%(s)s\t\t\t$pyjs__exception_func_instance_expected(arguments['callee']['__name__'], arguments['callee']['__class__']['__name__'], %(self)s);
+%(s)s\t\tif (!@{{_isinstance}}(%(self)s, arguments{^callee^}{^__class__^})) {
+%(s)s\t\t\t$pyjs__exception_func_instance_expected(arguments{^callee^}{^__name__^}, arguments{^callee^}{^__class__^}{^__name__^}, %(self)s);
 %(s)s\t\t}
 %(s)s\t}
 %(s)s}\
@@ -1859,7 +1874,7 @@ if ($pyjs.options.arg_count && %s) $pyjs__exception_func_param(arguments.callee.
             self.w( """\
 %(s)s\t%(lp)s%(kwargname)s = arguments[arguments.length+1];
 %(s)s} else {
-%(s)s\tdelete %(lp)s%(kwargname)s['$pyjs_is_kwarg'];
+%(s)s\tdelete %(lp)s%(kwargname)s{^$pyjs_is_kwarg^};
 %(s)s}\
 """ % locals(), output=output)
 
@@ -1934,7 +1949,7 @@ var %s = arguments.length >= %d ? arguments[arguments.length-1] : arguments[argu
             for v in revargs:
                 self.w( """\
 %(s)s\tif (typeof %(lp)s%(v)s != 'undefined') {
-%(s)s\t\tif (%(lp)s%(v)s !== null && typeof %(lp)s%(v)s['$pyjs_is_kwarg'] != 'undefined') {
+%(s)s\t\tif (%(lp)s%(v)s !== null && typeof %(lp)s%(v)s{^$pyjs_is_kwarg^} != 'undefined') {
 %(s)s\t\t\t%(lp)s%(k)s = %(lp)s%(v)s;
 %(s)s\t\t\t%(lp)s%(v)s = arguments[%(a)d];
 %(s)s\t\t}
@@ -1964,7 +1979,7 @@ var %s = arguments.length >= %d ? arguments[arguments.length-1] : arguments[argu
         if not lp:
             lp = 'var '
         self.w( """\
-%(s)s%(lp)s%(v)s = $p['tuple']($pyjs_array_slice.call(arguments,%(b)d,%(e)s));
+%(s)s%(lp)s%(v)s = $p{^tuple^}($pyjs_array_slice.call(arguments,%(b)d,%(e)s));
 """ % {'s': self.spacing(), 'v': varargname, 'b': start, 'e': end, 'lp': lp})
 
     def _kwargs_parser(self, node, function_name, arg_names, current_klass, method_ = False):
@@ -2021,7 +2036,7 @@ var %s = arguments.length >= %d ? arguments[arguments.length-1] : arguments[argu
 %(s)s}
 """ % {'s': self.spacing()})
         if node.kwargs:
-            self.w( self.spacing() + "__r.push($p['dict'](__kwargs));")
+            self.w( self.spacing() + "__r.push($p{^dict^}(__kwargs));")
         self.w( self.spacing() + "return __r;")
         if not method_:
             self.w( self.dedent() + "};")
@@ -2109,7 +2124,7 @@ var %s = arguments.length >= %d ? arguments[arguments.length-1] : arguments[argu
                 else:
                     mod_name = ass_name
                 if import_stmt is None:
-                    #stmt = "%s = $pyjs.__modules__['%s'];"% (lhs, "']['".join(mod_name.split('.')))
+                    #stmt = "%s = $pyjs.__modules__{^%s^};"% (lhs, "']['".join(mod_name.split('.')))
                     parent_mod_name = mod_name.split('.')
                     if len(parent_mod_name) == 1:
                         stmt = "%s = $pyjs.loaded_modules['%s'];"% (lhs, mod_name)
@@ -2508,7 +2523,7 @@ var %s = arguments.length >= %d ? arguments[arguments.length-1] : arguments[argu
                                   + ")")
         else:
             if not method_name is None:
-                call_name = "%s['%s']" % (call_name, method_name)
+                call_name = "%s{^%s^}" % (call_name, method_name)
             call_code = call_name + "(" + ", ".join(call_args) + ")"
         return call_code
 
@@ -2893,9 +2908,9 @@ var %(e)s_name = (typeof %(e)s.__name__ == 'undefined' ? %(e)s.name : %(e)s.__na
 %(s)sreturn $pyjs_type('%(n)s', $bases, %(local_prefix)s);"""
         else:
             create_class += """
-%(s)svar $data = $p['dict']();
+%(s)svar $data = $p{^dict^}();
 %(s)sfor (var $item in %(local_prefix)s) { $data.__setitem__($item, %(local_prefix)s[$item]); }
-%(s)sreturn @{{_create_class}}('%(n)s', $p['tuple']($bases), $data);"""
+%(s)sreturn @{{_create_class}}('%(n)s', $p{^tuple^}($bases), $data);"""
         create_class %= {'n': node.name, 's': self.spacing(), 'local_prefix': local_prefix, 'bases': ",".join(map(lambda x: x[1], base_classes))}
         create_class += """
 %s})();""" % self.dedent()
@@ -2937,7 +2952,7 @@ var %(e)s_name = (typeof %(e)s.__name__ == 'undefined' ? %(e)s.name : %(e)s.__na
 %(s)sif ($pyjs__raise_expr2 !== null && $pyjs__raise_expr1.__is_instance__ === true) {
 %(s)s\tthrow @{{TypeError}}('instance exception may not have a separate value');
 %(s)s}
-%(s)sif (@{{isinstance}}($pyjs__raise_expr2, $p['tuple'])) {
+%(s)sif (@{{isinstance}}($pyjs__raise_expr2, $p{^tuple^})) {
 %(s)s\tthrow ($pyjs__raise_expr1.apply($pyjs__raise_expr1, $pyjs__raise_expr2.getArray()));
 %(s)s} else {
 %(s)s\tthrow ($pyjs__raise_expr1($pyjs__raise_expr2));
@@ -4065,7 +4080,7 @@ var %(e)s_name = (typeof %(e)s.__name__ == 'undefined' ? %(e)s.name : %(e)s.__na
                 "unsupported flag (in _assign)", v, self.module_name)
 
     def _list(self, node, current_klass):
-        return self.track_call("$p['list']([" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + "])", node.lineno)
+        return self.track_call("$p{^list^}([" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + "])", node.lineno)
 
     def _dict(self, node, current_klass):
         items = []
@@ -4073,13 +4088,13 @@ var %(e)s_name = (typeof %(e)s.__name__ == 'undefined' ? %(e)s.name : %(e)s.__na
             key = self.expr(x[0], current_klass)
             value = self.expr(x[1], current_klass)
             items.append("[" + key + ", " + value + "]")
-        return self.track_call("$p['dict']([" + ", ".join(items) + "])")
+        return self.track_call("$p{^dict^}([" + ", ".join(items) + "])")
 
     def _tuple(self, node, current_klass):
-        return self.track_call("$p['tuple']([" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + "])", node.lineno)
+        return self.track_call("$p{^tuple^}([" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + "])", node.lineno)
     
     def _set(self, node, current_klass):
-        return self.track_call("$p['set']([" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + "])", node.lineno)        
+        return self.track_call("$p{^set^}([" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + "])", node.lineno)        
     
     def _sliceobj(self, node, current_klass):
         args = ", ".join([self.expr(x, current_klass) for x in node.nodes])
@@ -4331,9 +4346,9 @@ var %(e)s_name = (typeof %(e)s.__name__ == 'undefined' ? %(e)s.name : %(e)s.__na
             self.add_lookup('variable', v, v)
             self.add_lookup('variable', vl, vl)
             if self.bound_methods or self.descriptors:
-                getattr_condition = """(%(v)s=(%(vl)s=%(attr_left)s)['%(attr_right)s']) == null || ((%(vl)s.__is_instance__) && typeof %(v)s == 'function')"""
+                getattr_condition = """(%(v)s=(%(vl)s=%(attr_left)s){^%(attr_right)s^}) == null || ((%(vl)s.__is_instance__) && typeof %(v)s == 'function')"""
                 if self.descriptors:
-                    getattr_condition += """ || (typeof %(v)s['__get__'] == 'function')"""
+                    getattr_condition += """ || (typeof %(v)s{^__get__^} == 'function')"""
                 attr_code = """\
 (""" + getattr_condition + """?
 \t@{{getattr}}(%(vl)s, '%(attr_right)s'):
