@@ -45,6 +45,7 @@ class RichTextAreaImplStandard (RichTextAreaImpl):
         * False.  See issue 1897 for details.
         """
         self.initializing = False
+        self.isPendingFocus = False
         self.css_styling = False
 
     def createElement(self):
@@ -81,7 +82,7 @@ class RichTextAreaImplStandard (RichTextAreaImpl):
         # the iframe becomes attached to the DOM. Any non-zero timeout will do
         # just fine.
         print "initElement"
-        self.initializing = True
+        self.onElementInitializing()
         Timer(50, self)
 
     def insertHorizontalRule(self):
@@ -139,6 +140,9 @@ class RichTextAreaImplStandard (RichTextAreaImpl):
         self.execCommand("BackColor", color)
 
     def setFocus(self, focused):
+        if self.initializing:
+            isPendingFocus = focused
+            return
         if focused:
             self.elem.contentWindow.focus()
         else:
@@ -284,6 +288,14 @@ class RichTextAreaImplStandard (RichTextAreaImpl):
         if self.beforeInitPlaceholder is not None:
             self.setHTMLImpl(DOM.getInnerHTML(self.beforeInitPlaceholder))
             self.beforeInitPlaceholder = None
+
+        if self.isPendingFocus:
+            self.isPendingFocus = False
+            self.setFocus(True)
+
+    def onElementInitializing(self):
+        self.initializing = True
+        self.isPendingFocus = False
 
     def setHTMLImpl(self, html):
         self.elem.contentWindow.document.body.innerHTML = html;
