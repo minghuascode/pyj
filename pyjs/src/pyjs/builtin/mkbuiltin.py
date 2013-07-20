@@ -82,7 +82,7 @@ switch (v) {
 if (typeof v == 'number' || typeof v == 'string') {
     return ${true};
 }
-if (${value}['$inst'] === true) {
+if (${value}{^$inst^} === true) {
     var mro$, attr, attrs = ['__nonzero__', '__len__'];
     for (var i = 0; i < attrs.length; i++) {
         attr = attrs[i];
@@ -127,7 +127,7 @@ for (var i = 0; i < args.length; i++) {
     }
 }
 if (module !== null && lineno !== null) {
-    if (module['__class__'] !== @{{module}}) {
+    if (module{^__class__^} !== @{{module}}) {
         debugger;
     }
     $pyjs.track.lineno = lineno;
@@ -142,9 +142,9 @@ if (typeof o == "undefined") {
     def repl_call_method(self):
         return self.substitute("""\
 } else if (method !== null) {
-    if (method['$inst'] === true) {
+    if (method{^$inst^} === true) {
         o = method;
-    } else if (typeof o['$inst'] == 'boolean') {
+    } else if (typeof o{^$inst^} == 'boolean') {
         // as in getattr
         var mro$;
 ${2, getattributes, o, obj, method, null}$
@@ -156,33 +156,33 @@ ${2, getattributes, o, obj, method, null}$
         return self.substitute("""\
 }
 for (;;) {
-    switch (o['__class__']) {
+    switch (o{^__class__^}) {
         case @{{function}}:
             f = o;
             break;
         case @{{instancemethod}}:
-            f = o['im_func'];
-            if (o['im_self'] !== null){
-                args = [o['im_self']].concat(args);
+            f = o{^im_func^};
+            if (o{^im_self^} !== null){
+                args = [o{^im_self^}].concat(args);
             } else if (base !== null) {
                 args = [base].concat(args);
-            } else if (obj['$inst'] === true) {
+            } else if (obj{^$inst^} === true) {
                 args = [obj].concat(args);
             } else {
-                if (args.length > 0 && args[0]['$inst'] === true) {
+                if (args.length > 0 && args[0]{^$inst^} === true) {
                     // check if args[0].__class__.__mro__ contains im_class
-                    var mro = args[0]['__class__']['__mro__'];
+                    var mro = args[0]{^__class__^}{^__mro__^};
                     for (var j = 0; j < mro.length; j++) {
-                        if (mro[j] === o['im_class']) {
+                        if (mro[j] === o{^im_class^}) {
                             mro = true;
                             break;
                         }
                     }
                     if (mro !== true) {
-                        @{{_issubtype}}(o['im_class'], args[0]);
+                        @{{_issubtype}}(o{^im_class^}, args[0]);
                         return @{{raise}}($new(@{{TypeError}}, B$str(
                             "unbound method " + f.__name__ + "() " +
-                            "must be called with " + _typeof(o['im_class']) +
+                            "must be called with " + _typeof(o{^im_class^}) +
                             " instance as first argument (got " +
                             _typeof(args[0]) + " instance instead)")));
                     }
@@ -190,7 +190,7 @@ for (;;) {
                 }
                 return @{{raise}}($new(@{{TypeError}}, B$str(
                     "unbound method " + f.__name__ + "()" +
-                    " must be called with " + _typeof(o['im_class']) +
+                    " must be called with " + _typeof(o{^im_class^}) +
                     " instance as first argument (got nothing instead)")));
             }
             break;
@@ -198,12 +198,12 @@ for (;;) {
             if (typeof o != 'function') {
                 return @{{raise}}($new(@{{TypeError}}, B$str("javascript '" + typeof obj + "' object is not callable")));
             }
-            if (typeof o['$inst'] === "boolean") {
+            if (typeof o{^$inst^} === "boolean") {
                 obj = o;
                 method = '__call__';
-                //o = o['__call__'];
+                //o = o{^__call__^};
                 o = @{{_getattr}}(obj, method);
-            } else if (o['$inst'] === true) {
+            } else if (o{^$inst^} === true) {
                 o = @{{_getattr}}(obj, method);
             } else {
                 f = o;
@@ -267,13 +267,13 @@ if (dstar !== null) {
         var k, v, d = {};
         if (dstar.__class__ === @{{dict}}) {
             for (var h in dstar.__object_hash) {
-                k = dstar.__object_hash[h]['key'];
+                k = dstar.__object_hash[h]{^key^};
                 if (typeof k != "string" && k.__class__ != @{{str}}) {
                     @{{raise}}($new(@{{TypeError}}, B$str(f.__name__ + "() keywords must be strings")));
                 }
                 d[k.valueOf()] = dstar.__object[h];
             }
-        } else if (dstar['$inst'] == "undefined") {
+        } else if (dstar{^$inst^} == "undefined") {
             for (var k in dstar) {
                 d[k] = dstar[k];
             }
@@ -402,14 +402,14 @@ if (typeof f.func_args != "undefined") {
         args.push(null); // no named args
     }
 }
-if (typeof obj['$inst'] != "undefined" || typeof obj['func_type'] != "undefined") {
+if (typeof obj{^$inst^} != "undefined" || typeof obj{^func_type^} != "undefined") {
     rval = f.apply(module, args);
 } else {
     // obj is an ordinary javascript object
     rval = f.apply(obj, args);
 }
 if (typeof rval == "undefined") {
-    if (typeof f['__name__'] == 'undefined') {
+    if (typeof f{^__name__^} == 'undefined') {
         return ${0,None}$;
     } else {
         @{{raise}}($new(@{{ValueError}}, B$str("return value of call is undefined")));
@@ -435,18 +435,18 @@ return rval;""", locals())
 if (typeof ${cls} == "undefined") {
     debugger;
 }
-if (typeof ${cls}['__slots__'] == "undefined" || ${cls}['__slots__'].length > 0) {
-    ${instance}['__dict__'] = B$dict();
-    ${instance}['$dict'] = ${instance}['__dict__']['__object'];
+if (typeof ${cls}{^__slots__^} == "undefined" || ${cls}{^__slots__^}.length > 0) {
+    ${instance}{^__dict__^} = B$dict();
+    ${instance}{^$dict^} = ${instance}{^__dict__^}{^__object^};
 }"""
         else:
             add_dict = ''
         return self.substitute("""\
 var ${instance} = function ( ) {
     var args = Array.prototype.slice.call(arguments);
-    if (arguments.callee['__class__'] === @{{instancemethod}}) {
-        if (arguments.callee['im_self'] !== null) {
-            return @{{fcall}}.apply(this, [this, null, arguments.callee['im_func'], null, arguments.callee['im_self']].concat(args));
+    if (arguments.callee{^__class__^} === @{{instancemethod}}) {
+        if (arguments.callee{^im_self^} !== null) {
+            return @{{fcall}}.apply(this, [this, null, arguments.callee{^im_func^}, null, arguments.callee{^im_self^}].concat(args));
         }
     }
     var a = @{{_getattr}}(arguments.callee, '__call__');
@@ -455,15 +455,15 @@ var ${instance} = function ( ) {
     }
     if (args.length >= 3) {
         var len = args.length;
-        if ((args[len-3] === null || args[len-3]['__class__'] === @{{tuple}}) &&
-            (args[len-2] === null || args[len-3]['__class__'] === @{{dict}}) &&
-            (args[len-1] === null || typeof args[len-1]['__class__'] == "undefined")) {
+        if ((args[len-3] === null || args[len-3]{^__class__^} === @{{tuple}}) &&
+            (args[len-2] === null || args[len-3]{^__class__^} === @{{dict}}) &&
+            (args[len-1] === null || typeof args[len-1]{^__class__^} == "undefined")) {
             return @{{fcallext}}.apply(this, [this, null, a, arguments.callee].concat(args));
         }
     }
     return @{{fcall}}.apply(this, [this, null, a, arguments.callee].concat(args));
 }
-${instance}['toString'] = function ( ) {
+${instance}{^toString^} = function ( ) {
     try {
         return @{{mcall}}(this, null, this, '__str__').valueOf();
     } catch (e) {
@@ -474,26 +474,26 @@ ${instance}['toString'] = function ( ) {
     }
     return "<instance>";
 };
-${instance}['$inst'] = true;%(add_dict)s
-${instance}['__class__'] = ${cls};""" % locals(), locals())
+${instance}{^$inst^} = true;%(add_dict)s
+${instance}{^__class__^} = ${cls};""" % locals(), locals())
 
     def repl_create_instance(self, args, cls, mcall, fcall):
         return self.substitute("""\
-var method$, instance, mro$, module = this['__class__'] === @{{module}} ? this : null;
+var method$, instance, mro$, module = this{^__class__^} === @{{module}} ? this : null;
 ${0, getattribute, mro$, method$, ${cls}, '__new__'}$
 if (method$ === B$__new__) {
 ${1, __new__, instance, ${cls}}$
 } else {
     instance = ${fcall}.apply(module, [module, null, method$, ${cls}, ${cls}].concat(${args}));
 }
-if (instance['$inst'] === true) {
+if (instance{^$inst^} === true) {
 ${1, getattribute, mro$, method$, ${cls}, '__init__'}$
     if (method$ !== B$__init__) {
 ${2, bind_method, method$, method$, instance, _meth_src}$
         var ret = ${fcall}.apply(module, [module, null, method$, null].concat(${args}));
         if (ret !== @{{None}} && ret !== null) {
-            if (ret['__class__'] != "undefined") {
-                return @{{raise}}($new(@{{TypeError}}, B$str("__init__() should return None, not '" + ret['__class__']['__name__'] + "'")));
+            if (ret{^__class__^} != "undefined") {
+                return @{{raise}}($new(@{{TypeError}}, B$str("__init__() should return None, not '" + ret{^__class__^}{^__name__^} + "'")));
             }
             return @{{raise}}($new(@{{TypeError}}, B$str("__init__() should return None")));
         }
@@ -503,23 +503,23 @@ return instance;""", locals())
 
     def repl_bind_method(self, dst, src, obj, meth_src):
         return self.substitute("""\
-if (${meth_src}['$inst'] === false && ${obj}['__class__'] !== @{{module}} && typeof ${src} != "undefined" && typeof ${src}['$inst'] != "undefined") {
-    switch (${dst}['__class__']) {
+if (${meth_src}{^$inst^} === false && ${obj}{^__class__^} !== @{{module}} && typeof ${src} != "undefined" && typeof ${src}{^$inst^} != "undefined") {
+    switch (${dst}{^__class__^}) {
         case @{{function}}:
 ${3, __new__, _new_dst$, @{{instancemethod}}}$
-            _new_dst$['im_class'] = ${obj}['$inst'] === true ? ${obj}['__class__'] : ${obj};
-            _new_dst$['im_func'] = ${dst};
-            _new_dst$['im_self'] = ${obj}['$inst'] === true ? ${obj} : null;
+            _new_dst${^im_class^} = ${obj}{^$inst^} === true ? ${obj}{^__class__^} : ${obj};
+            _new_dst${^im_func^} = ${dst};
+            _new_dst${^im_self^} = ${obj}{^$inst^} === true ? ${obj} : null;
             ${dst} = _new_dst$;
             break;
         case @{{staticmethod}}:
-            ${dst} = ${dst}['im_func'];
+            ${dst} = ${dst}{^im_func^};
             break;
         case @{{classmethod}}:
 ${3, __new__, _new_dst$, @{{instancemethod}}}$
-            _new_dst$['im_class'] = ${obj}['$inst'] === true ? ${obj}['__class__'] : ${obj};
-            _new_dst$['im_func'] = ${dst}['im_func'];
-            _new_dst$['im_self'] = ${obj}['$inst'] === true ? ${obj}['__class__'] : ${obj};
+            _new_dst${^im_class^} = ${obj}{^$inst^} === true ? ${obj}{^__class__^} : ${obj};
+            _new_dst${^im_func^} = ${dst}{^im_func^};
+            _new_dst${^im_self^} = ${obj}{^$inst^} === true ? ${obj}{^__class__^} : ${obj};
             ${dst} = _new_dst$;
             break;
         case @{{bool}}: // Some known to be non-descriptors
@@ -529,10 +529,10 @@ ${3, __new__, _new_dst$, @{{instancemethod}}}$
             break;
         default:
             // check for __get__ method in ${dst}
-            if (${dst}['$inst'] === true) {
+            if (${dst}{^$inst^} === true) {
                 var get$ = @{{_getattr}}(${dst}, '__get__');
                 if (typeof get$ != 'undefined') {
-                    ${dst} = @{{fcall}}(this, null, get$, ${dst}, ${obj}, ${obj}['__class__']);
+                    ${dst} = @{{fcall}}(this, null, get$, ${dst}, ${obj}, ${obj}{^__class__^});
                 }
             }
             break;
@@ -541,10 +541,10 @@ ${3, __new__, _new_dst$, @{{instancemethod}}}$
 
     def repl_attr_args_validate(self, _self, name):
         return self.substitute("""\
-if ($self['$inst'] !== true) {
+if ($self{^$inst^} !== true) {
     @{{raise}}($new(@{{TypeError}}, B$str("can't apply this __getattribute__ to type object")));
 }
-if (${name}['__class__'] !== @{{str}} && typeof ${name} != 'string') {
+if (${name}{^__class__^} !== @{{str}} && typeof ${name} != 'string') {
     @{{raise}}($new(@{{TypeError}}, B$str("attribute name must be string")));
 }""", locals())
 
@@ -555,14 +555,14 @@ if (${name}['__class__'] !== @{{str}} && typeof ${name} != 'string') {
             break_after_instance = ''
         return self.substitute("""\
 ${dst} = [][1];
-var ${mro} = ${src}['__mro__'];
+var ${mro} = ${src}{^__mro__^};
 var _meth_src = ${src};
-switch (${src}['$inst']) {
+switch (${src}{^$inst^}) {
     case true:
-        if (${src}['__class__'] === @{{module}}) {
-            ${dst} = ${src}['$dict'][${name}];
+        if (${src}{^__class__^} === @{{module}}) {
+            ${dst} = ${src}{^$dict^}[${name}];
             break;
-        } else if (${src}['__class__'] === @{{function}}) {
+        } else if (${src}{^__class__^} === @{{function}}) {
             switch (${name}.charAt(0)) {
                 case 'i':
                 case '_':
@@ -572,30 +572,30 @@ switch (${src}['$inst']) {
         }
         var _noraise$ = @{{noraise}};
         var ga;
-        ${mro} = ${src}['__class__']['__mro__'];
+        ${mro} = ${src}{^__class__^}{^__mro__^};
         for (var mro_i$ = 0; mro_i$ < ${mro}.length - 1; mro_i$++) {
             var _mro$ = ${mro}[mro_i$];
-            var ga = _mro$['__getattribute__'];
+            var ga = _mro${^__getattribute__^};
             if (typeof ga == "undefined") {
-                if (typeof _mro$ == "undefined" || typeof _mro$['$dict']['__getattribute__'] == "undefined") {
+                if (typeof _mro$ == "undefined" || typeof _mro${^$dict^}{^__getattribute__^} == "undefined") {
                     continue;
                 }
-                ga = _mro$['$dict']['__getattribute__'];
+                ga = _mro${^$dict^}{^__getattribute__^};
             }
-${3, bind_method, ga, ${src}, ${src}, ${src}['__class__']}$
+${3, bind_method, ga, ${src}, ${src}, ${src}{^__class__^}}$
             @{{noraise}} = @{{AttributeError}};
             ${dst} = @{{fcall}}(this, null, ga, _mro$, ${name});
             @{{noraise}} = _noraise$;
             if (${dst} === @{{AttributeError}}) {
                 ${dst} = [][1];
             }
-            _meth_src = ${src}['__class__'];
-            ${src} = ${src}['__class__'];
+            _meth_src = ${src}{^__class__^};
+            ${src} = ${src}{^__class__^};
             break;
         }
         if (typeof ${dst} == "undefined") {
-            if (typeof ${src}['$dict'] != "undefined") {
-                ${dst} = ${src}['$dict'][${name}];
+            if (typeof ${src}{^$dict^} != "undefined") {
+                ${dst} = ${src}{^$dict^}[${name}];
                 if (typeof ${dst} != "undefined") {
                     if (${dst} !== {}[${name}]) {
                         break;
@@ -615,8 +615,8 @@ ${3, bind_method, ga, ${src}, ${src}, ${src}['__class__']}$
     case false:
         if (typeof ${dst} == "undefined") {
             var _mro$, ga;
-            if (${src}['$inst'] === true) {
-                _meth_src = ${src}['__class__'];
+            if (${src}{^$inst^} === true) {
+                _meth_src = ${src}{^__class__^};
             } else {
                 switch (${name}.charAt(0)) {
                     case 'i':
@@ -631,7 +631,7 @@ ${3, bind_method, ga, ${src}, ${src}, ${src}['__class__']}$
             if (typeof ${dst} == "undefined") {
                 for (var mro_i$ = 0; mro_i$ < ${mro}.length; mro_i$++) {
                     _mro$ = ${mro}[mro_i$];
-                    ${dst} = _mro$['$dict'][${name}];
+                    ${dst} = _mro${^$dict^}[${name}];
                     if (typeof ${dst} != "undefined") {
                         if (${dst} !== {}[${name}]) {
                             break;
@@ -651,11 +651,11 @@ ${3, bind_method, ga, ${src}, ${src}, ${src}['__class__']}$
             if (typeof ${dst} == "undefined" && ${name} !== '__get__') {
                 for (var mro_i$ = 0; mro_i$ < ${mro}.length - 1; mro_i$++) {
                     _mro$ = ${mro}[mro_i$];
-                    if (typeof _mro$['$dict'] == "undefined" || typeof _mro$['$dict']['__getattr__'] == "undefined") {
+                    if (typeof _mro${^$dict^} == "undefined" || typeof _mro${^$dict^}{^__getattr__^} == "undefined") {
                         continue;
                     }
-                    ga = _mro$['$dict']['__getattr__'];
-${5, bind_method, ga, ${src}, ${src}, ${src}['__class__']}$
+                    ga = _mro${^$dict^}{^__getattr__^};
+${5, bind_method, ga, ${src}, ${src}, ${src}{^__class__^}}$
                     @{{noraise}} = @{{AttributeError}};
                     ${dst} = @{{fcall}}(this, null, ga, _mro$, ${name});
                     @{{noraise}} = _noraise$;
@@ -670,8 +670,8 @@ ${5, bind_method, ga, ${src}, ${src}, ${src}['__class__']}$
         break;
     default:
         ${dst} = ${src}[${name}];
-        if (typeof ${dst} == "undefined" && typeof ${src}['$dict'] != "undefined") {
-            ${dst} = ${src}['$dict'][${name}];
+        if (typeof ${dst} == "undefined" && typeof ${src}{^$dict^} != "undefined") {
+            ${dst} = ${src}{^$dict^}[${name}];
         }
 }""", locals())
 
@@ -687,18 +687,18 @@ find_attr:
 for (var attri = 0; attri < attrnames.length; attri++) {
     attrname = attrnames[attri];
     if (typeof attrname != 'string') {
-        if (typeof attrname['__s'] != "undefined") {
-            attrname = attrname['__s'];
+        if (typeof attrname{^__s^} != "undefined") {
+            attrname = attrname{^__s^};
         } else {
             @{{raise}}($new(@{{TypeError}}, B$str("attribute name must be string, not '" + _typeof(attrname) + "'")));
         }
     }
 ${1, getattribute, mro, ${dst}, _${src}, attrname}$
     if (typeof ${dst} == "undefined") {
-        if (_${src}['$inst'] === true && _${src}['__class__'] !== @{{module}} && _${src}['__class__'] !== @{{function}}) {
+        if (_${src}{^$inst^} === true && _${src}{^__class__^} !== @{{module}} && _${src}{^__class__^} !== @{{function}}) {
             if (typeof ${dst} == "undefined") {
                 if (${value} === null || typeof ${value} == "undefined") {
-                    @{{raise}}($new(@{{AttributeError}}, B$str("'" + _${src}['__class__']['__name__'] + "' object has no attribute '" + attrname + "'")));
+                    @{{raise}}($new(@{{AttributeError}}, B$str("'" + _${src}{^__class__^}{^__name__^} + "' object has no attribute '" + attrname + "'")));
                 } else {
                     ${dst} = ${value};
                     break find_attr;
@@ -706,8 +706,8 @@ ${1, getattribute, mro, ${dst}, _${src}, attrname}$
             }
         }
         if (${value} === null || typeof ${value} == "undefined") {
-            if (_${src}['$inst'] === false) {
-                @{{raise}}($new(@{{AttributeError}}, B$str("type object '" + _${src}['__name__'] + "' object has no attribute '" + attrname + "'")));
+            if (_${src}{^$inst^} === false) {
+                @{{raise}}($new(@{{AttributeError}}, B$str("type object '" + _${src}{^__name__^} + "' object has no attribute '" + attrname + "'")));
             }
             @{{raise}}($new(@{{AttributeError}}, B$str(attrname)));
         }
@@ -718,10 +718,10 @@ ${1, getattribute, mro, ${dst}, _${src}, attrname}$
 ${2, bind_method, ${dst}, _${src}, ${src}, _meth_src}$
     } else {
         // check for __get__ method in ${dst}
-        if (${dst}['$inst'] === true) {
+        if (${dst}{^$inst^} === true) {
             var get$ = @{{_getattr}}(${dst}, '__get__');
             if (typeof get$ != 'undefined') {
-                ${dst} = @{{fcall}}(this, null, get$, ${dst}, _${src}, _${src}['__class__']);
+                ${dst} = @{{fcall}}(this, null, get$, ${dst}, _${src}, _${src}{^__class__^});
             }
         }
     }
@@ -738,23 +738,23 @@ var ${cls},
         var args = Array.prototype.slice.call(arguments);
         if (args.length >= 3) {
             var len = args.length;
-            if ((args[len-3] === null || args[len-3]['__class__'] === @{{tuple}}) &&
-                (args[len-2] === null || args[len-3]['__class__'] === @{{dict}}) &&
-                (args[len-1] === null || typeof args[len-1]['__class__'] == "undefined")) {
+            if ((args[len-3] === null || args[len-3]{^__class__^} === @{{tuple}}) &&
+                (args[len-2] === null || args[len-3]{^__class__^} === @{{dict}}) &&
+                (args[len-1] === null || typeof args[len-1]{^__class__^} == "undefined")) {
                 return $newext.apply(this, [arguments.callee].concat(args));
             }
         }
         return $new.apply(this, [arguments.callee].concat(args));
 };
-${cls}['$inst'] = false;
-${cls}['__name__'] = typeof ${clsname} == "string" ? B$str(${clsname}) : ${clsname};
+${cls}{^$inst^} = false;
+${cls}{^__name__^} = typeof ${clsname} == "string" ? B$str(${clsname}) : ${clsname};
 if (${bases} instanceof Array) {
-    ${cls}['__bases__'] = B$tuple(${bases});
+    ${cls}{^__bases__^} = B$tuple(${bases});
 } else {
-    ${cls}['__bases__'] = ${bases};
-    _bases = ${bases}['__array'];
+    ${cls}{^__bases__^} = ${bases};
+    _bases = ${bases}{^__array^};
 }
-if (typeof ${dict}['mro'] != "undefined") {
+if (typeof ${dict}{^mro^} != "undefined") {
     // The mro method (?) exists. Use that.
     // TODO
     @{{raise}}(@{{NotImplemented}});
@@ -762,33 +762,33 @@ if (typeof ${dict}['mro'] != "undefined") {
     for (var i = 0; i < _bases.length; i++) {
         mro$.push(new Array().concat(_bases[i].__mro__));
     }
-    ${cls}['__mro__'] = [${cls}].concat(mro_merge(mro$));
+    ${cls}{^__mro__^} = [${cls}].concat(mro_merge(mro$));
 }
-${cls}['$dict'] = {};
-if (${module}['__class__'] !== @{{module}}) {
+${cls}{^$dict^} = {};
+if (${module}{^__class__^} !== @{{module}}) {
     debugger;
 }
-var __module__ = typeof ${module}['$dict'] != "undefined" ? ${module}['$dict']['__name__'] : ${module}['__name__'];
+var __module__ = typeof ${module}{^$dict^} != "undefined" ? ${module}{^$dict^}{^__name__^} : ${module}{^__name__^};
 if (typeof __module__ != "undefined") {
-    cls['$dict']['__module__'] = __module__;
+    cls{^$dict^}{^__module__^} = __module__;
 }
-if (typeof ${dict} != "undefined" && ${dict}['__class__'] === @{{dict}}) {
+if (typeof ${dict} != "undefined" && ${dict}{^__class__^} === @{{dict}}) {
     for (var k in ${dict}.__object) {
-        cls['$dict'][k] = ${dict}.__object[k];
+        cls{^$dict^}[k] = ${dict}.__object[k];
     }
 }
-${cls}['__dict__'] = @{{dictproxy}};
-${cls}['__dict__']['__object'] = ${cls}['$dict'];
+${cls}{^__dict__^} = @{{dictproxy}};
+${cls}{^__dict__^}{^__object^} = ${cls}{^$dict^};
 func(${0,module}$, null, ${cls}, '__call__', ${0, classmethod}$, null, 'args', 'kwargs', null, $newext, true);
-${cls}['__class__'] = @{{type}};""", locals())
+${cls}{^__class__^} = @{{type}};""", locals())
 
     def repl_hash(self, obj, dst):
         return self.substitute("""\
-if (typeof ${obj}['$inst'] != "undefined") {
+if (typeof ${obj}{^$inst^} != "undefined") {
     ${dst} = ${obj}[$hash_id_name$];
     if (typeof ${dst} == "undefined") {
-        if (${obj}['__class__'] === @{{str}}) {
-            ${dst} = ${obj}['__s'].charAt(0) == '#' ? '#string#' + ${obj}['__s'] : ${obj}['__s'];
+        if (${obj}{^__class__^} === @{{str}}) {
+            ${dst} = ${obj}{^__s^}.charAt(0) == '#' ? '#string#' + ${obj}{^__s^} : ${obj}{^__s^};
         } else {
             ${dst} = @{{mcall}}(this, null, ${obj}, '__hash__');
         }
@@ -812,7 +812,7 @@ if (${a} !== null && ${b} !== null) {
         case 0x0202:
             return $a.__v == $b.__v ? ${val1} : ${val2};
         case 0x0404:
-            return @{{long}}['$dict'].__cmp__(${a}, ${b}) == 0 ? ${val1} : ${val2};
+            return @{{long}}{^$dict^}.__cmp__(${a}, ${b}) == 0 ? ${val1} : ${val2};
     }
 }
 return ${val2}""" % locals(), locals())
@@ -865,11 +865,11 @@ for (;;) {
         case 0x0204:
             ${a} = $new(@{{long}}, ${a}.valueOf());
         case 0x0404:
-            if (${a}['__class__'] !== @{{long}}) break;
-            return @{{long}}['$dict']['__cmp__'](${a}, ${b}).valueOf() ${op} 0 ? ${val1} : ${val2};
+            if (${a}{^__class__^} !== @{{long}}) break;
+            return @{{long}}{^$dict^}{^__cmp__^}(${a}, ${b}).valueOf() ${op} 0 ? ${val1} : ${val2};
         case 0x0402:
-            if (${a}['__class__'] !== @{{long}}) break;
-            return @{{long}}['$dict']['__cmp__'](${a}, $new(@{{long}}, ${b}.valueOf())).valueOf() ${op} 0 ? ${val1} : ${val2};
+            if (${a}{^__class__^} !== @{{long}}) break;
+            return @{{long}}{^$dict^}{^__cmp__^}(${a}, $new(@{{long}}, ${b}.valueOf())).valueOf() ${op} 0 ? ${val1} : ${val2};
     }
     var v = @{{fcall}}(this, null, @{{cmp}}, null, ${a}, ${b}).valueOf();
     return v === null ? %(valnull)s : (v ${op} 0 ? ${val1} : ${val2});
@@ -905,15 +905,15 @@ return ${val2};""" % locals(), locals())
             var x_v = ${x}.valueOf(), y_v = ${y}.valueOf();
             return $new(@{{float}}, %(opnumber)s);
         case 0x0202:
-            return @{{int}}['$dict'].__%(opname)s__(${x}, ${y});
+            return @{{int}}{^$dict^}.__%(opname)s__(${x}, ${y});
         case 0x0204:
-            return @{{long}}['$dict'].__%(opname)s($new(@{{long}}, ${x}.__v), ${y});
+            return @{{long}}{^$dict^}.__%(opname)s($new(@{{long}}, ${x}.__v), ${y});
         case 0x0402:
-            return @{{long}}['$dict'].__%(opname)s(${x}, $new(@{{long}}, ${y}.__v));
+            return @{{long}}{^$dict^}.__%(opname)s(${x}, $new(@{{long}}, ${y}.__v));
         case 0x0404:
-            return @{{long}}['$dict'].__%(opname)s(${x}, ${y});
+            return @{{long}}{^$dict^}.__%(opname)s(${x}, ${y});
     }
-    if (${x}['$inst'] === true && ${y}['$inst'] === true) {
+    if (${x}{^$inst^} === true && ${y}{^$inst^} === true) {
         var op, v;
         op = @{{_getattr}}(${x}, m);
         if (typeof op != "undefined") {
@@ -953,23 +953,23 @@ return ${val2};""" % locals(), locals())
 if (${x} !== null && ${y} !== null) {
     switch ((${x}.__number__ << 8) | ${y}.__number__) {
         case 0x0202:
-            if (${x}['__class__'] === @{{int}}) {
-                return ${x}['__class__']['$dict']['__%(opname)s__'](${x}, ${y});
+            if (${x}{^__class__^} === @{{int}}) {
+                return ${x}{^__class__^}{^$dict^}{^__%(opname)s__^}(${x}, ${y});
             }
             break
         case 0x0204:
-            if (${y}['__class__'] === @{{long}}) {
-                return ${y}['__class__']['$dict']['__r%(opname)s__'](${y}, $new(@{{long}}, ${x}));
+            if (${y}{^__class__^} === @{{long}}) {
+                return ${y}{^__class__^}{^$dict^}{^__r%(opname)s__^}(${y}, $new(@{{long}}, ${x}));
             }
             break
         case 0x0402:
-            if (${x}['__class__'] === @{{long}}) {
-                return ${x}['__class__']['$dict']['__%(opname)s'](${x}, $new(@{{long}}, ${y}.__v));
+            if (${x}{^__class__^} === @{{long}}) {
+                return ${x}{^__class__^}{^$dict^}{^__%(opname)s^}(${x}, $new(@{{long}}, ${y}.__v));
             }
             break
         case 0x0404:
-            if (${x}['__class__'] === @{{long}}) {
-                return ${x}['__class__']['$dict']['__%(opname)s'](${x}, ${y});
+            if (${x}{^__class__^} === @{{long}}) {
+                return ${x}{^__class__^}{^$dict^}{^__%(opname)s^}(${x}, ${y});
             }
             break
     }
