@@ -1,4 +1,4 @@
-Michele Comitini michele.comitini@gmail.com via pyjs.org to pyjamasdev
+Michele Comitini michele.comitini@gmail.com via pyj.be to pyjamasdev
     
 show details 3:09 PM (1 hour ago)
     

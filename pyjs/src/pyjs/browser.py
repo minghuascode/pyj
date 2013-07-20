@@ -43,7 +43,7 @@ APP_HTML_TEMPLATE = """\
 <html>
 <!-- auto-generated html - You should consider editing and adapting this
  to suit your requirements. No doctype used here to force quirks mode; see
- wiki for details: http://pyjs.org/wiki/csshellandhowtodealwithit/
+ wiki for details: http://pyj.be/wiki/csshellandhowtodealwithit/
 -->
 <head>
 %(css)s
@@ -448,7 +448,7 @@ def build_script():
 
     This is the command line builder for the pyjamas project, which can
     be used to build Ajax applications from Python.
-    For more information, see the website at http://pyjs.org/
+    For more information, see the website at http://pyj.be
     """
     global app_platforms
     parser = OptionParser(usage = usage)

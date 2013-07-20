@@ -18,7 +18,7 @@ Test plan:
 * Test examples in browsers (needs further research)
 * Test examples in pyjd
 
-Should be also reflected at http://pyjs.org/wiki/githowto/
+Should be also reflected at http://pyj.be/wiki/githowto/
 
 """
 
