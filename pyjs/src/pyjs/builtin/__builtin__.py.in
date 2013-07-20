@@ -180,29 +180,29 @@ function tmp_type(module, clsname, bases, dict) {
         var args = Array.prototype.slice.call(arguments);
         if (args.length >= 3) {
             var len = args.length;
-            if ((args[len-3] === null || args[len-3]['__class__'] === @{{tuple}}) &&
-                (args[len-2] === null || args[len-3]['__class__'] === @{{dict}}) &&
-                (args[len-1] === null || typeof args[len-1]['__class__'] == "undefined")) {
+            if ((args[len-3] === null || args[len-3]{^__class__^} === @{{tuple}}) &&
+                (args[len-2] === null || args[len-3]{^__class__^} === @{{dict}}) &&
+                (args[len-1] === null || typeof args[len-1]{^__class__^} == "undefined")) {
                 return $newext.apply(this, [arguments.callee].concat(args));
             }
         }
         return $new.apply(this, [arguments.callee].concat(args));
 };
-    cls['$inst'] = false;
-    cls['__name__'] = clsname;
-    cls['__bases__'] = bases;
+    cls{^$inst^} = false;
+    cls{^__name__^} = clsname;
+    cls{^__bases__^} = bases;
     for (var i = 0; i < bases.length; i++) {
         mro.push(new Array().concat(bases[i].__mro__));
     }
-    cls['__mro__'] = [cls].concat(mro_merge(mro));
-    cls['$dict'] = {};
-    var __module__ = typeof module['$dict'] != "undefined" ? module['$dict']['__name__'] : module['__name__'];
+    cls{^__mro__^} = [cls].concat(mro_merge(mro));
+    cls{^$dict^} = {};
+    var __module__ = typeof module{^$dict^} != "undefined" ? module{^$dict^}{^__name__^} : module{^__name__^};
     if (typeof __module__ != "undefined") {
-        cls['$dict']['__module__'] = __module__;
+        cls{^$dict^}{^__module__^} = __module__;
     }
-    cls['__slots__'] = [];
-    cls['__dict__'] = {
-        '__object': cls['$dict']
+    cls{^__slots__^} = [];
+    cls{^__dict__^} = {
+        '__object': cls{^$dict^}
     };
     cls.toString = function () { return "<class " + clsname + ">";};
     return cls;
@@ -219,7 +219,7 @@ function tmp_type(module, clsname, bases, dict) {
 function type(module, clsname, bases, dict, slots) {
 ${1, type_class, cls, module, clsname, bases, dict}$
     if (typeof slots != "undefined") {
-        cls['__slots__'] = slots;
+        cls{^__slots__^} = slots;
     }
     cls.toString = function () { return "<class " + clsname + ">";};
     return cls;
@@ -261,18 +261,18 @@ ${1, call_tail}$
 var func = @{{func}} = function (module, lineno, obj, name, type, args, starargs, dstarargs, defaults, def, tobase) {
     // obj is class or local scope
     var o, new_def = def;
-    def['__name__'] = B$str(name);
-    def['__module__'] = module['__name__'];
-    def['func_defaults'] = defaults;
+    def{^__name__^} = B$str(name);
+    def{^__module__^} = module{^__name__^};
+    def{^func_defaults^} = defaults;
     // non-python func_...
     if (args === null) args = [];
-    def['func_args'] = args;
-    def['func_starargs'] = starargs;
-    def['func_dstarargs'] = dstarargs;
-    def['func_minargs'] = (defaults === null? args.length : args.length - defaults.length);
-    def['func_type'] = type;
-    def['_module'] = module;
-    def['_lineno'] = lineno;
+    def{^func_args^} = args;
+    def{^func_starargs^} = starargs;
+    def{^func_dstarargs^} = dstarargs;
+    def{^func_minargs^} = (defaults === null? args.length : args.length - defaults.length);
+    def{^func_type^} = type;
+    def{^_module^} = module;
+    def{^_lineno^} = lineno;
     switch (type) {
         case ${0, jsmethod}$:
             // javascript
@@ -280,19 +280,19 @@ var func = @{{func}} = function (module, lineno, obj, name, type, args, starargs
         case ${0, staticmethod}$:
             // staticmethod
             new_def = B$__new__(@{{staticmethod}});
-            new_def['im_func'] = def;
+            new_def{^im_func^} = def;
             // continue to patch the function
         case ${0, function}$:
             // function
-            def['$inst'] = true;
-            def['__class__'] = @{{function}};
-            def['__slots__'] = [];
+            def{^$inst^} = true;
+            def{^__class__^} = @{{function}};
+            def{^__slots__^} = [];
             break;
         case ${0, classmethod}$:
             // classmethod
             new_def = B$__new__(@{{classmethod}});
-            new_def['im_func'] = def;
-            new_def['im_class'] = obj;
+            new_def{^im_func^} = def;
+            new_def{^im_class^} = obj;
             break;
         case ${0, wrappermethod}$:
             // slot wrapper look alike
@@ -307,15 +307,15 @@ var func = @{{func}} = function (module, lineno, obj, name, type, args, starargs
             throw "Translator error. Unknown function creation type.";
             break;
     }
-    if (typeof obj['$dict'] == "undefined" || tobase === true) {
+    if (typeof obj{^$dict^} == "undefined" || tobase === true) {
         obj[name] = new_def;
     } else {
-        obj['$dict'][name] = new_def;
+        obj{^$dict^}[name] = new_def;
     }
     return new_def;
 }
 
-var $new = ${0, module}$['$new'] = @{{$new}} = function (cls/*, args*/) {
+var $new = ${0, module}${^$new^} = @{{$new}} = function (cls/*, args*/) {
     var args = Array.prototype.slice.call(arguments, 1);
 ${1, create_instance, args, cls, @{{mcall}}, @{{fcall}}}$
 }
@@ -348,16 +348,16 @@ ${0, booljs}$ = @{{B$booljs}} = B$booljs;
 
 function B$dict($v, ignore_undef) {
 ${1, __new__, instance, @{{dict}}, false}$
-    instance['__object'] = {};
-    instance['__object_hash'] = {};
-    instance['__object_head'] = null;
-    instance['__object_tail'] = null;
-    instance['_length'] = 0;
-    instance['valueOf'] = function() {return this.__object;};
-    instance['getObject'] = function() {return this.__object;}; // backwards compatability TODO: remove this method
-    instance['toString'] = function() {return this.__object.toString();};
+    instance{^__object^} = {};
+    instance{^__object_hash^} = {};
+    instance{^__object_head^} = null;
+    instance{^__object_tail^} = null;
+    instance{^_length^} = 0;
+    instance{^valueOf^} = function() {return this.__object;};
+    instance{^getObject^} = function() {return this.__object;}; // backwards compatability TODO: remove this method
+    instance{^toString^} = function() {return this.__object.toString();};
     if (typeof $v != "undefined") {
-        var h, k, v, node, head, tail, obj = instance['__object'], objH = instance['__object_hash'];
+        var h, k, v, node, head, tail, obj = instance{^__object^}, objH = instance{^__object_hash^};
         head = tail = {'prev': null, 'next': null, 'key': null}
         for (k in $v) {
             v = $v[k];
@@ -389,18 +389,18 @@ ${1, __new__, instance, @{{dict}}, false}$
 function B$dictproxy($v) {
     if (typeof $v == "undefined") $v = {};
 ${1, __new__, instance, @{{dictproxy}}, false}$
-    instance['__object'] = $v;
-    instance['valueOf'] = function() {return this.__object;};
-    instance['toString'] = function() {return this.__object.toString();};
+    instance{^__object^} = $v;
+    instance{^valueOf^} = function() {return this.__object;};
+    instance{^toString^} = function() {return this.__object.toString();};
     return instance;
 };
 
 function B$list($v) {
     if (typeof $v == "undefined") $v = [];
 ${1, __new__, instance, @{{list}}, false}$
-    instance['__array'] = $v;
-    instance['valueOf'] = function() {return this.__array;};
-    instance['toString'] = function() {return this.__array.toString();};
+    instance{^__array^} = $v;
+    instance{^valueOf^} = function() {return this.__array;};
+    instance{^toString^} = function() {return this.__array.toString();};
     return instance;
 };
 @{{B$list}} = B$list;
@@ -408,9 +408,9 @@ ${1, __new__, instance, @{{list}}, false}$
 function B$str($v) {
     if (typeof $v == "undefined") $v = "";
 ${1, __new__, instance, @{{str}}, false}$
-    instance['__s'] =  $v;
-    instance['valueOf'] =  function() {return this.__s;};
-    instance['toString'] =  function() {return this.__s.toString();};
+    instance{^__s^} =  $v;
+    instance{^valueOf^} =  function() {return this.__s;};
+    instance{^toString^} =  function() {return this.__s.toString();};
     return instance;
 };
 @{{B$str}} = B$str;
@@ -418,9 +418,9 @@ ${1, __new__, instance, @{{str}}, false}$
 function B$tuple($v) {
     if (typeof $v == "undefined") $v = [];
 ${1, __new__, instance, @{{tuple}}, false}$
-    instance['__array'] =  $v;
-    instance['valueOf'] =  function() {return this.__array;};
-    instance['toString'] =  function() {return this['__class__']['$dict']['__str__'](this).valueOf();};
+    instance{^__array^} =  $v;
+    instance{^valueOf^} =  function() {return this.__array;};
+    instance{^toString^} =  function() {return this{^__class__^}{^$dict^}{^__str__^}(this).valueOf();};
     return instance;
 };
 @{{B$tuple}} = B$tuple;
@@ -469,7 +469,7 @@ ${1, __new__, instance, $cls}$
 @{{tuple}} = tmp_type(${0,module}$, 'tuple', [@{{object}}], {});
 @{{dictproxy}} = tmp_type(${0,module}$, 'dictproxy', [@{{object}}], {});
 @{{type}} = tmp_type(${0,module}$, 'type', [@{{object}}], {});
-${0,module}$['__class__'] = @{{module}} = tmp_type(${0,module}$, 'module', [@{{object}}], {});
+${0,module}${^__class__^} = @{{module}} = tmp_type(${0,module}$, 'module', [@{{object}}], {});
 @{{basestring}} = tmp_type(${0,module}$, 'basestring', [@{{object}}], {});
 @{{str}} = tmp_type(${0,module}$, 'str', [@{{basestring}}], {});
 @{{classmethod}} = tmp_type(${0,module}$, 'classmethod', [@{{object}}], {});
@@ -484,7 +484,7 @@ func(${0,module}$, null, ${0,g}$, 'raise', 1, ['cls', 'value', 'tb'], null, null
     var exc = null;
     if (@{{stopiter}}) {
         @{{stopiter}} = false;
-        if ($cls === @{{StopIteration}} || $cls['__class__'] === @{{StopIteration}}) {
+        if ($cls === @{{StopIteration}} || $cls{^__class__^} === @{{StopIteration}}) {
             return @{{StopIter}};
         }
     }
@@ -495,7 +495,7 @@ func(${0,module}$, null, ${0,g}$, 'raise', 1, ['cls', 'value', 'tb'], null, null
         $tb = null;
     }
     if (@{{noraise}} !== null) {
-        if (@{{noraise}} === $cls || @{{noraise}} === $cls['__class__']) {
+        if (@{{noraise}} === $cls || @{{noraise}} === $cls{^__class__^}) {
             $cls = @{{noraise}};
             @{{noraise}} = null;
             return $cls;
@@ -504,23 +504,23 @@ func(${0,module}$, null, ${0,g}$, 'raise', 1, ['cls', 'value', 'tb'], null, null
     if ($cls === null || typeof $cls == "undefined") {
         // re-raise last exception
     } else if ($value === null || $value.valueOf() === null) {
-        if ($cls['$inst'] === true) {
+        if ($cls{^$inst^} === true) {
             $pyjs.__last_exception__=  $cls;
         } else {
             $pyjs.__last_exception__ = $new($cls);
         }
-    } else if ($cls['$inst'] === true) {
+    } else if ($cls{^$inst^} === true) {
         if ($value.valueOf() === null) {
             $pyjs.__last_exception__= $cls;
         }
         $pyjs.__last_exception__ = $new(@{{TypeError}}, B$str("instance exception may not have a separate value"));
-    } else if ($cls['$inst'] !== false) {
+    } else if ($cls{^$inst^} !== false) {
         $pyjs.__last_exception__ = $new(@{{TypeError}}, B$str("exceptions must be old-style classes or derived from BaseException"));
     } else {
         var mro;
         $pyjs.__last_exception__ = null;
-        if ($value['$inst'] === true) {
-            mro = $value['__class__']['__mro__'];
+        if ($value{^$inst^} === true) {
+            mro = $value{^__class__^}{^__mro__^};
             for (var i = 0; i < mro.length; i++) {
                 if (mro[i] === @{{tuple}}) {
                     mro = [$cls];
@@ -538,7 +538,7 @@ func(${0,module}$, null, ${0,g}$, 'raise', 1, ['cls', 'value', 'tb'], null, null
 
 func(${0,module}$, null, ${0,g}$, 'setattr', ${0, function}$, ['obj', 'name', 'value'], null, null, null, function($obj, $name, $value) {
     var attr, __setattr__, __set__, mro, slots, retval, obj,
-        attrname = typeof $name['__s'] != "undefined" ? attrname = $name['__s'] : attrname = $name.valueOf();
+        attrname = typeof $name{^__s^} != "undefined" ? attrname = $name{^__s^} : attrname = $name.valueOf();
     if (attrname instanceof Array) {
         // internal use : setattr(obj, [attr, ...], value)
         // return value in stead of None
@@ -555,20 +555,20 @@ func(${0,module}$, null, ${0,g}$, 'setattr', ${0, function}$, ['obj', 'name', 'v
     if (typeof attrname != 'string') {
         return @{{raise}}($new(@{{TypeError}}, B$str("attribute name must be string, not '" + _typeof($name) + "'")));
     }
-    if ($obj['$inst'] === false ||  $obj['__class__'] === @{{module}}) {
-        obj = $obj['$dict'];
-        if ($value['__class__'] === @{{instancemethod}}) {
-            $value = $value['im_func'];
+    if ($obj{^$inst^} === false ||  $obj{^__class__^} === @{{module}}) {
+        obj = $obj{^$dict^};
+        if ($value{^__class__^} === @{{instancemethod}}) {
+            $value = $value{^im_func^};
         }
-    } else if ($obj['$inst'] === true) {
-        mro = $obj['__class__']['__mro__'];
+    } else if ($obj{^$inst^} === true) {
+        mro = $obj{^__class__^}{^__mro__^};
         // Check for __set__ (@property)
-        attr = typeof $obj['$dict'] != "undefined" ? $obj['$dict'][$name] : [][1];
+        attr = typeof $obj{^$dict^} != "undefined" ? $obj{^$dict^}[$name] : [][1];
         if (typeof attr == "undefined") {
             for (var i = 0; i < mro.length; i++) {
                 attr = mro[i][$name];
                 if (typeof attr == "undefined") {
-                    attr = mro[i]['$dict'][$name];
+                    attr = mro[i]{^$dict^}[$name];
                     if (typeof attr == "undefined") {
                         continue;
                     }
@@ -576,13 +576,13 @@ func(${0,module}$, null, ${0,g}$, 'setattr', ${0, function}$, ['obj', 'name', 'v
                 break;
             }
         }
-        if (typeof attr != "undefined" && attr['$inst'] === true) {
+        if (typeof attr != "undefined" && attr{^$inst^} === true) {
             attr = @{{_getattr}}(attr, '__set__');
             if (typeof attr != "undefined") {
                 return @{{fcall}}(this, null, attr, null, $obj, $value);
             }
         }
-        slots = mro[0]['__slots__'];
+        slots = mro[0]{^__slots__^};
         if (typeof slots != "undefined") {
             if (!(slots instanceof Array)) {
                 slots = slots.__array instanceof Array ? slots.__array : [];
@@ -590,23 +590,23 @@ func(${0,module}$, null, ${0,g}$, 'setattr', ${0, function}$, ['obj', 'name', 'v
             if (slots.indexOf(attrname) < 0) {
                 return @{{raise}}($new(@{{AttributeError}}, B$str("'" + $obj.__class__.__name__ + "' object has no attribute '" + attrname + "'")));
             }
-            if (typeof $obj['__class__']['$dict'][attrname] != 'undefined') {
+            if (typeof $obj{^__class__^}{^$dict^}[attrname] != 'undefined') {
                 return @{{raise}}($new(@{{AttributeError}}, B$str("'" + $obj.__class__.__name__ + "' object attribute '" + attrname + "' is read-only")));
             }
-            obj = $obj['$dict'];
+            obj = $obj{^$dict^};
         } else {
             // Check for __setattr__
             for (var i = 0; i < mro.length - 1; i++) { // length - 1: last is always object, which we won't call but handle here
-                __setattr__ = mro[i]['__setattr__'];
+                __setattr__ = mro[i]{^__setattr__^};
                 if (typeof __setattr__ == "undefined") {
-                    __setattr__ = mro[i]['$dict']['__setattr__'];
+                    __setattr__ = mro[i]{^$dict^}{^__setattr__^};
                     if (typeof __setattr__ == "undefined") {
                         continue;
                     }
                 }
                 return mcall(this, null, $obj, '__setattr__', $name, $value);
             }
-            dict$setitem($obj['__dict__'], attrname, $value);
+            dict$setitem($obj{^__dict__^}, attrname, $value);
             return retval;
         }
     }
@@ -616,21 +616,21 @@ func(${0,module}$, null, ${0,g}$, 'setattr', ${0, function}$, ['obj', 'name', 'v
 
 func(${0,module}$, null, ${0,g}$, 'delattr', ${0, function}$, ['obj', 'name'], null, null, null, function($obj, $name) {
     var attr, __delattr__,  __delete__, mro, obj,
-        attrname = typeof $name['__s'] != "undefined" ? attrname = $name['__s'] : attrname = $name.valueOf();
+        attrname = typeof $name{^__s^} != "undefined" ? attrname = $name{^__s^} : attrname = $name.valueOf();
     if (typeof attrname != 'string') {
         return @{{raise}}($new(@{{TypeError}}, B$str("attribute name must be string, not '" + _typeof($name) + "'")));
     }
-    if ($obj['$inst'] === false ||  $obj['__class__'] === @{{module}}) {
-        obj = $obj['$dict'];
-    } else if ($obj['$inst'] === true) {
-        mro = $obj['__class__']['__mro__'];
+    if ($obj{^$inst^} === false ||  $obj{^__class__^} === @{{module}}) {
+        obj = $obj{^$dict^};
+    } else if ($obj{^$inst^} === true) {
+        mro = $obj{^__class__^}{^__mro__^};
         // Check for __delete__ (@property)
-        attr = typeof $obj['$dict'] != "undefined" ? $obj['$dict'][$name] : [][1];
+        attr = typeof $obj{^$dict^} != "undefined" ? $obj{^$dict^}[$name] : [][1];
         if (typeof attr == "undefined") {
             for (var i = 0; i < mro.length; i++) {
                 attr = mro[i][$name];
                 if (typeof attr == "undefined") {
-                    attr = mro[i]['$dict'][$name];
+                    attr = mro[i]{^$dict^}[$name];
                     if (typeof attr == "undefined") {
                         continue;
                     }
@@ -638,13 +638,13 @@ func(${0,module}$, null, ${0,g}$, 'delattr', ${0, function}$, ['obj', 'name'], n
                 break;
             }
         }
-        if (typeof attr != "undefined" && attr['$inst'] === true) {
+        if (typeof attr != "undefined" && attr{^$inst^} === true) {
             attr = @{{_getattr}}(attr, '__delete__');
             if (typeof attr != "undefined") {
                 return @{{fcall}}(this, null, attr, null, $obj);
             }
         }
-        slots = mro[0]['__slots__'];
+        slots = mro[0]{^__slots__^};
         if (typeof slots != "undefined") {
             if (!(slots instanceof Array)) {
                 slots = slots.__array instanceof Array ? slots.__array : [];
@@ -652,32 +652,32 @@ func(${0,module}$, null, ${0,g}$, 'delattr', ${0, function}$, ['obj', 'name'], n
             if (slots.indexOf(attrname) < 0) {
                 return @{{raise}}($new(@{{AttributeError}}, B$str("'" + $obj.__class__.__name__ + "' object has no attribute '" + attrname + "'")));
             }
-            if (typeof $obj['__class__']['$dict'][attrname] != 'undefined') {
+            if (typeof $obj{^__class__^}{^$dict^}[attrname] != 'undefined') {
                 return @{{raise}}($new(@{{AttributeError}}, B$str("'" + $obj.__class__.__name__ + "' object attribute '" + attrname + "' is read-only")));
             }
-            obj = $obj['$dict'];
+            obj = $obj{^$dict^};
         } else {
             // Check for __delattr__
             for (var i = 0; i < mro.length - 1; i++) { // length - 1: last is always object, which we won't call but handle here
-                __delattr__ = mro[i]['__delattr__'];
+                __delattr__ = mro[i]{^__delattr__^};
                 if (typeof __delattr__ == "undefined") {
-                    __delattr__ = mro[i]['$dict']['__delattr__'];
+                    __delattr__ = mro[i]{^$dict^}{^__delattr__^};
                     if (typeof __delattr__ == "undefined") {
                         continue;
                     }
                 }
                 return mcall(this, null, $obj, '__delattr__', $name, $value);
             }
-            if (typeof $obj['$dict'][attrname] == "undefined") {
-                return @{{raise}}($new(@{{AttributeError}}, B$str($obj['__class__']['__name__'] + " instance has no attribute '" + $name + "'")));
+            if (typeof $obj{^$dict^}[attrname] == "undefined") {
+                return @{{raise}}($new(@{{AttributeError}}, B$str($obj{^__class__^}{^__name__^} + " instance has no attribute '" + $name + "'")));
             }
-            dict$delitem($obj['__dict__'], attrname);
+            dict$delitem($obj{^__dict__^}, attrname);
             return ${0,None}$;
         }
     }
     if (typeof obj == "undefined" || typeof obj[attrname] == "undefined") {
-        if ($obj['$inst'] === true) {
-            return @{{raise}}($new(@{{AttributeError}}, B$str("'" + $obj['__class__']['__name__'] + "' object has no attribute '" + $name + "'")));
+        if ($obj{^$inst^} === true) {
+            return @{{raise}}($new(@{{AttributeError}}, B$str("'" + $obj{^__class__^}{^__name__^} + "' object has no attribute '" + $name + "'")));
         }
         return @{{raise}}($new(@{{AttributeError}}, B$str(attrname)));
     }
@@ -720,7 +720,7 @@ ${1, getattribute, mro$, meth, $obj, '__setitem__'}$
 ${2, bind_method, meth, meth, $obj, _meth_src}$
         return @{{fcall}}(this, null, meth, $obj, $name, $value);
     }
-    if (typeof $obj['$inst'] != "undefined") {
+    if (typeof $obj{^$inst^} != "undefined") {
         return @{{raise}}($new(@{{TypeError}}, B$str("'" + _typeof($obj) +"' object does not support item assignment")));
     }
     if (typeof $obj instanceof Array) {
@@ -759,7 +759,7 @@ ${3, bind_method, meth, meth, $obj, _meth_src}$
             return @{{fcall}}(null, null, meth, $obj, $slice, $value);
         }
     }
-    if (typeof $obj['$inst'] != "undefined") {
+    if (typeof $obj{^$inst^} != "undefined") {
         return @{{raise}}($new(@{{TypeError}}, B$str("'" + _typeof($obj) + "' object does not support item assignment")));
     }
     return @{{raise}}($new(@{{TypeError}}, B$str("'" + _typeof($obj) + "' does not support slice assignment")));
@@ -772,7 +772,7 @@ ${1, getattribute, mro$, meth, $obj, '__delitem__'}$
 ${2, bind_method, meth, meth, $obj, _meth_src}$
         return @{{fcall}}(this, null, meth, $obj, $name);
     }
-    if (typeof $obj['$inst'] != "undefined") {
+    if (typeof $obj{^$inst^} != "undefined") {
         return @{{raise}}($new(@{{TypeError}}, B$str("'" + _typeof($obj) + "' object does not support item deletion")));
     }
     if (typeof $obj instanceof Array) {
@@ -812,7 +812,7 @@ ${3, bind_method, meth, meth, $obj, _meth_src}$
             return @{{fcall}}(null, null, meth, $obj, $slice);
         }
     }
-    if (typeof $obj['$inst'] != "undefined") {
+    if (typeof $obj{^$inst^} != "undefined") {
         return @{{raise}}($new(@{{TypeError}}, B$str("'" + _typeof($obj) + "' object does not support item deletion")));
     }
     return @{{raise}}($new(@{{TypeError}}, B$str("'" + _typeof($obj) + "' does not support slice deletion")));
@@ -825,7 +825,7 @@ ${1, getattribute, mro$, meth, $obj, '__getitem__'}$
 ${2, bind_method, meth, meth, $obj, _meth_src}$
         return @{{fcall}}(this, null, meth, $obj, $name);
     }
-    if (typeof $obj['$inst'] != "undefined") {
+    if (typeof $obj{^$inst^} != "undefined") {
         return @{{raise}}($new(@{{TypeError}}, B$str("'" + _typeof($obj) + "' object is unsubscriptable")));
     }
     if (typeof $obj instanceof Array) {
@@ -863,7 +863,7 @@ ${3, bind_method, meth, meth, $obj, _meth_src}$
             return @{{fcall}}(null, null, meth, $obj, $slice);
         }
     }
-    if (typeof $obj['$inst'] != "undefined") {
+    if (typeof $obj{^$inst^} != "undefined") {
         return @{{raise}}($new(@{{TypeError}}, B$str("'" + _typeof($obj) + "' object is unsubscriptable")));
     }
     return @{{raise}}($new(@{{TypeError}}, B$str("'" + _typeof($obj) +"' does not support slices")));
@@ -879,48 +879,48 @@ ${2, type_class, cls, this, $clsname, $bases, $dict}$
         return cls;
     }
     if (narg == 1) {
-        return $clsname['__class__'];
+        return $clsname{^__class__^};
     }
     @{{raise}}($new(@{{TypeError}}, B$str("type() takes 1 or 3 arguments")));
 });
 
 
 
-@{{object}}['__bases__'] = B$tuple(@{{object}}['__bases__']);
-@{{tuple}}['__bases__'] = B$tuple(@{{tuple}}['__bases__']);
-@{{dictproxy}}['__bases__'] = B$tuple(@{{dictproxy}}['__bases__']);
-@{{type}}['__bases__'] = B$tuple(@{{type}}['__bases__']);
-@{{module}}['__bases__'] = B$tuple(@{{module}}['__bases__']);
-@{{basestring}}['__bases__'] = B$tuple(@{{basestring}}['__bases__']);
-@{{str}}['__bases__'] = B$tuple(@{{str}}['__bases__']);
-@{{classmethod}}['__bases__'] = B$tuple(@{{classmethod}}['__bases__']);
+@{{object}}{^__bases__^} = B$tuple(@{{object}}{^__bases__^});
+@{{tuple}}{^__bases__^} = B$tuple(@{{tuple}}{^__bases__^});
+@{{dictproxy}}{^__bases__^} = B$tuple(@{{dictproxy}}{^__bases__^});
+@{{type}}{^__bases__^} = B$tuple(@{{type}}{^__bases__^});
+@{{module}}{^__bases__^} = B$tuple(@{{module}}{^__bases__^});
+@{{basestring}}{^__bases__^} = B$tuple(@{{basestring}}{^__bases__^});
+@{{str}}{^__bases__^} = B$tuple(@{{str}}{^__bases__^});
+@{{classmethod}}{^__bases__^} = B$tuple(@{{classmethod}}{^__bases__^});
 
-@{{object}}['__dict__'] = B$dictproxy(@{{object}}['$dict']);
-@{{tuple}}['__dict__'] = B$dictproxy(@{{tuple}}['$dict']);
-@{{dictproxy}}['__dict__'] = B$dictproxy(@{{dictproxy}}['$dict']);
-@{{type}}['__dict__'] = B$dictproxy(@{{type}}['$dict']);
-@{{module}}['__dict__'] = B$dictproxy(@{{module}}['$dict']);
-@{{basestring}}['__dict__'] = B$dictproxy(@{{basestring}}['$dict']);
-@{{str}}['__dict__'] = B$dictproxy(@{{str}}['$dict']);
-@{{classmethod}}['__dict__'] = B$dictproxy(@{{classmethod}}['$dict']);
+@{{object}}{^__dict__^} = B$dictproxy(@{{object}}{^$dict^});
+@{{tuple}}{^__dict__^} = B$dictproxy(@{{tuple}}{^$dict^});
+@{{dictproxy}}{^__dict__^} = B$dictproxy(@{{dictproxy}}{^$dict^});
+@{{type}}{^__dict__^} = B$dictproxy(@{{type}}{^$dict^});
+@{{module}}{^__dict__^} = B$dictproxy(@{{module}}{^$dict^});
+@{{basestring}}{^__dict__^} = B$dictproxy(@{{basestring}}{^$dict^});
+@{{str}}{^__dict__^} = B$dictproxy(@{{str}}{^$dict^});
+@{{classmethod}}{^__dict__^} = B$dictproxy(@{{classmethod}}{^$dict^});
 
-@{{object}}['__name__'] = B$str("object");
-@{{tuple}}['__name__'] = B$str("tuple");
-@{{dictproxy}}['__name__'] = B$str("dictproxy");
-@{{type}}['__name__'] = B$str("type");
-@{{module}}['__name__'] = B$str("module");
-@{{basestring}}['__name__'] = B$str("basestring");
-@{{str}}['__name__'] = B$str("str");
-@{{classmethod}}['__name__'] = B$str("classmethod");
+@{{object}}{^__name__^} = B$str("object");
+@{{tuple}}{^__name__^} = B$str("tuple");
+@{{dictproxy}}{^__name__^} = B$str("dictproxy");
+@{{type}}{^__name__^} = B$str("type");
+@{{module}}{^__name__^} = B$str("module");
+@{{basestring}}{^__name__^} = B$str("basestring");
+@{{str}}{^__name__^} = B$str("str");
+@{{classmethod}}{^__name__^} = B$str("classmethod");
 
-@{{object}}['__class__'] = @{{type}};
-@{{tuple}}['__class__'] = @{{type}};
-@{{dictproxy}}['__class__'] = @{{type}};
-@{{type}}['__class__'] = @{{type}};
-@{{module}}['__class__'] = @{{type}};
-@{{basestring}}['__class__'] = @{{type}};
-@{{str}}['__class__'] = @{{type}};
-@{{classmethod}}['__class__'] = @{{type}};
+@{{object}}{^__class__^} = @{{type}};
+@{{tuple}}{^__class__^} = @{{type}};
+@{{dictproxy}}{^__class__^} = @{{type}};
+@{{type}}{^__class__^} = @{{type}};
+@{{module}}{^__class__^} = @{{type}};
+@{{basestring}}{^__class__^} = @{{type}};
+@{{str}}{^__class__^} = @{{type}};
+@{{classmethod}}{^__class__^} = @{{type}};
 
 func(${0,module}$, null, @{{object}}, '__call__', ${0, classmethod}$, null, 'args', 'kwargs', null, $newext, true);
 func(${0,module}$, null, @{{tuple}}, '__call__', ${0, classmethod}$, null, 'args', 'kwargs', null, $newext, true);
@@ -939,35 +939,35 @@ var B$__init__ = func(${0,module}$, null, @{{object}}, '__init__', ${0, function
 
 @{{staticmethod}} = type(${0,module}$, 'staticmethod', [@{{object}}], {}, []);
 func(${0,module}$, null, @{{staticmethod}}, '__init__', ${0, function}$, ['self', 'function'], null, null, null, function($self, $function) {
-    $self['im_func'] = $function;
+    $self{^im_func^} = $function;
     return ${0,None}$;
 });
 func(${0,module}$, null, @{{staticmethod}}, '__str__', ${0, function}$, ['self'], null, null, null, function($self) {
-    if ($self['$inst'] === true) {
-        return B$str("<staticmethod object of " + $self['im_func_']['__name__'] + ">");
+    if ($self{^$inst^} === true) {
+        return B$str("<staticmethod object of " + $self{^im_func_^}{^__name__^} + ">");
     }
     return B$str("<type staticmethod >");
 });
 func(${0,module}$, null, @{{staticmethod}}, '__repr__', ${0, function}$, ['self'], null, null, null, function($self) {
-    if ($self['$inst'] === true) {
-        return B$str("<staticmethod object of " + $self['im_func_']['__name__'] + ">");
+    if ($self{^$inst^} === true) {
+        return B$str("<staticmethod object of " + $self{^im_func_^}{^__name__^} + ">");
     }
     return B$str("<type staticmethod >");
 });
 
 func(${0,module}$, null, @{{classmethod}}, '__init__', ${0, function}$, ['self', 'function'], null, null, null, function($self, $function) {
-    $self['im_func'] = $function;
+    $self{^im_func^} = $function;
     return ${0,None}$;
 });
 func(${0,module}$, null, @{{classmethod}}, '__str__', ${0, function}$, ['self'], null, null, null, function($self) {
-    if ($self['$inst'] === true) {
-        return B$str("<classmethod object of " + $self['im_func_']['__name__'] + ">");
+    if ($self{^$inst^} === true) {
+        return B$str("<classmethod object of " + $self{^im_func_^}{^__name__^} + ">");
     }
     return B$str("<type classmethod >");
 });
 func(${0,module}$, null, @{{classmethod}}, '__repr__', ${0, function}$, ['self'], null, null, null, function($self) {
-    if ($self['$inst'] === true) {
-        return B$str("<classmethod object of " + $self['im_func_']['__name__'] + ">");
+    if ($self{^$inst^} === true) {
+        return B$str("<classmethod object of " + $self{^im_func_^}{^__name__^} + ">");
     }
     return B$str("<type classmethod >");
 });
@@ -975,35 +975,35 @@ func(${0,module}$, null, @{{classmethod}}, '__repr__', ${0, function}$, ['self']
 @{{instancemethod}} = type(${0,module}$, 'instancemethod', [@{{object}}], {}, []);
 func(${0,module}$, null, @{{instancemethod}}, '__new__', ${0, jsmethod}$, ['cls', 'function', 'instance', 'class'], null, null, null, function($cls, $function, $instance, $class) {
 ${1, __new__, instance, $cls}$
-    instance['im_func'] = $function;
-    instance['im_self'] = $instance;
-    instance['im_class'] = $class;
+    instance{^im_func^} = $function;
+    instance{^im_self^} = $instance;
+    instance{^im_class^} = $class;
     return instance;
 });
 func(${0,module}$, null, @{{instancemethod}}, '__init__', ${0, function}$, ['self', 'function', 'instance', 'class'], null, null, null, function($self, $function, $instance, $class) {
     return null;
 });
 func(${0,module}$, null, @{{instancemethod}}, '__str__', ${0, function}$, ['self'], null, null, null, function($self) {
-    if ($self['$inst'] === true) {
-        if ($self['im_self'] === null) {
-            return B$str("<unbound method " + $self['im_class']['__name__'] + "." + $self['im_func']['__name__'] + ">");
+    if ($self{^$inst^} === true) {
+        if ($self{^im_self^} === null) {
+            return B$str("<unbound method " + $self{^im_class^}{^__name__^} + "." + $self{^im_func^}{^__name__^} + ">");
         }
-        if ($self['im_self']['$inst'] === true) {
-            return B$str("<bound method " + $self['im_class']['__name__'] + "." + $self['im_func']['__name__'] + ">");
+        if ($self{^im_self^}{^$inst^} === true) {
+            return B$str("<bound method " + $self{^im_class^}{^__name__^} + "." + $self{^im_func^}{^__name__^} + ">");
         }
-        return B$str("<bound method type." + $self['im_func']['__name__'] + "of <" + $self['im_class']['__name__'] + ">>");
+        return B$str("<bound method type." + $self{^im_func^}{^__name__^} + "of <" + $self{^im_class^}{^__name__^} + ">>");
     }
     return B$str("<instance method>");
 });
 func(${0,module}$, null, @{{instancemethod}}, '__repr__', ${0, function}$, ['self'], null, null, null, function($self) {
-    if ($self['$inst'] === true) {
-        if ($self['im_self'] === null) {
-            return B$str("<unbound method " + $self['im_class']['__name__'] + "." + $self['im_func']['__name__'] + ">");
+    if ($self{^$inst^} === true) {
+        if ($self{^im_self^} === null) {
+            return B$str("<unbound method " + $self{^im_class^}{^__name__^} + "." + $self{^im_func^}{^__name__^} + ">");
         }
-        if ($self['im_self']['$inst'] === true) {
-            return B$str("<bound method " + $self['im_class']['__name__'] + "." + $self['im_func']['__name__'] + ">");
+        if ($self{^im_self^}{^$inst^} === true) {
+            return B$str("<bound method " + $self{^im_class^}{^__name__^} + "." + $self{^im_func^}{^__name__^} + ">");
         }
-        return B$str("<bound method type." + $self['im_func']['__name__'] + "of <" + $self['im_class']['__name__'] + ">>");
+        return B$str("<bound method type." + $self{^im_func^}{^__name__^} + "of <" + $self{^im_class^}{^__name__^} + ">>");
     }
     return B$str("<instance method>");
 });
@@ -1013,12 +1013,12 @@ func(${0,module}$, null, @{{object}}, '__setattr__', ${0, function}$, ['self', '
     if (typeof $name != 'string') {
         @{{raise}}($new(@{{TypeError}}, B$str("attribute name must be string")));
     }
-    if ($self['$inst'] !== true) {
+    if ($self{^$inst^} !== true) {
         @{{raise}}($new(@{{TypeError}}, B$str("can't apply this __setattr__ to type object")));
     }
-    if ($self['__class__']['__slots__'] != "undefined") {
-        if (typeof $self['__class__'][$name] != "undefined") {
-            @{{raise}}($new(@{{AttributeError}}, B$str("'" + $self['__class__']['__name__'] + "' object has no attribute '" + $name + "'")));
+    if ($self{^__class__^}{^__slots__^} != "undefined") {
+        if (typeof $self{^__class__^}[$name] != "undefined") {
+            @{{raise}}($new(@{{AttributeError}}, B$str("'" + $self{^__class__^}{^__name__^} + "' object has no attribute '" + $name + "'")));
         }
     }
     // TODO: check for __set__ on $self[$name]
@@ -1028,32 +1028,32 @@ func(${0,module}$, null, @{{object}}, '__setattr__', ${0, function}$, ['self', '
 func(${0,module}$, null, @{{object}}, '__getattribute__', ${0, function}$, ['self', 'name'], null, null, null, function($self, $name) {
     var v, mro$, name = $name.valueOf();
 ${1, attr_args_validate, $self, $name}$
-    mro$ = $self['__class__']['__mro__'];
+    mro$ = $self{^__class__^}{^__mro__^};
     for (var mro_i$ = 0; mro_i$ < mro$.length; mro_i$++) {
         if (typeof mro$[mro_i$][name] != "undefined") {
             v = mro$[mro_i$][name]
             break;
         }
-        if (typeof mro$[mro_i$]['$dict'][name] != "undefined") {
-            v = mro$[mro_i$]['$dict'][name];
+        if (typeof mro$[mro_i$]{^$dict^}[name] != "undefined") {
+            v = mro$[mro_i$]{^$dict^}[name];
             break;
         }
     }
     if (typeof v == "undefined") {
-        return @{{raise}}($new(@{{AttributeError}}, B$str("'" + $self['__class__']['__name__'] + "' object has no attribute '" + name + "'")));
+        return @{{raise}}($new(@{{AttributeError}}, B$str("'" + $self{^__class__^}{^__name__^} + "' object has no attribute '" + name + "'")));
     }
 ${1, bind_method, v, v, $self, $self}$
     return v;
 });
 func(${0,module}$, null, @{{object}}, '__delattr__', ${0, function}$, ['self', 'name'], null, null, null, function($self, $name) {
     if (typeof $name != 'string') {
-        if ($name['__class__'] === @{{str}}) {
+        if ($name{^__class__^} === @{{str}}) {
             $name = $name.__s;
         } else {
             @{{raise}}($new(@{{TypeError}}, B$str("attribute name must be string")));
         }
     }
-    if ($self['$inst'] !== true) {
+    if ($self{^$inst^} !== true) {
         @{{raise}}($new(@{{TypeError}}, B$str("can't apply this __delattr__ to type object")));
     }
     // TODO: check for __delete__ on $self[$name]
@@ -1064,38 +1064,38 @@ func(${0,module}$, null, @{{object}}, '__delattr__', ${0, function}$, ['self', '
 });
 func(${0,module}$, null, @{{object}}, '__str__', ${0, function}$, ['self'], null, null, null, function($self) {
     var s;
-    if ($self['$inst'] === true) {
+    if ($self{^$inst^} === true) {
         s = "instance of ";
-        if (typeof self['__class__']['$dict'] != "undefined") {
-            return B$str(s + self['__class__']['$dict']['__name__']);
+        if (typeof self{^__class__^}{^$dict^} != "undefined") {
+            return B$str(s + self{^__class__^}{^$dict^}{^__name__^});
         }
-    } else if ($self['$inst'] === false) {
+    } else if ($self{^$inst^} === false) {
         s = "class ";
     } else {
         s = "javascript " + typeof self + " ";
     }
-    if ($self['__module__']) {
-        s += self['__module__'] + ".";
+    if ($self{^__module__^}) {
+        s += self{^__module__^} + ".";
     }
-    if (typeof self['__name__'] != "undefined") {
-        return B$str(s + self['__name__']);
+    if (typeof self{^__name__^} != "undefined") {
+        return B$str(s + self{^__name__^});
     }
     return B$str(s + "<unknown>");
 });
 func(${0,module}$, null, @{{object}}, '__repr__', ${0, function}$, ['self'], null, null, null, function($self) {
     var s;
-    if ($self['$inst'] === true) {
+    if ($self{^$inst^} === true) {
         s = "<instance of ";
-    } else if ($self['$inst'] === false) {
+    } else if ($self{^$inst^} === false) {
         s = "<class ";
     } else {
         s = "<javascript " + typeof self + " ";
     }
-    if ($self['__module__']) {
-        s += self['__module__'] + ".";
+    if ($self{^__module__^}) {
+        s += self{^__module__^} + ".";
     }
-    if (typeof self['__name__'] != "undefined") {
-        return B$str(s + self['__name__'] + ">");
+    if (typeof self{^__name__^} != "undefined") {
+        return B$str(s + self{^__name__^} + ">");
     }
     return B$str(s + "<unknown>>");
 });
@@ -1134,8 +1134,8 @@ class NoneType(object):
         return "None"
 JS("""
 @{{__doc__}} = @{{None}} = $new(@{{NoneType}});
-@{{None}}['valueOf'] = function() {return null;};
-@{{None}}['toString'] = function() {return 'None';};
+@{{None}}{^valueOf^} = function() {return null;};
+@{{None}}{^toString^} = function() {return 'None';};
 init_short_names$(true);
 
 
@@ -1143,22 +1143,22 @@ init_short_names$(true);
 // Complete the module type
 func(${0,module}$, null, @{{module}}, '__init__', ${0, function}$, ['self', 'name'], null, null, [[]], function($self, $name) {
     if (typeof $name == 'string') {
-        $self['__name__'] = typeofB$str($name);
+        $self{^__name__^} = typeofB$str($name);
     } else {
-        $self['__name__'] = $name;
+        $self{^__name__^} = $name;
     }
-    $self['__doc__'] = ${0,None}$;
-    $self['$module_init'] = function($name) {};
-    $self['__class__'] = @{{module}};
+    $self{^__doc__^} = ${0,None}$;
+    $self{^$module_init^} = function($name) {};
+    $self{^__class__^} = @{{module}};
     return ${0,None}$;
 });
 
 // Complete the dictproxy type
 func(${0,module}$, null, @{{dictproxy}}, '__new__', ${0, jsmethod}$, ['cls', 'obj'], null, null, null, function($cls, $obj) {
 ${1, __new__, instance, @{{dictproxy}}}$
-    instance['__object'] = $obj;
-    instance['valueOf'] = function() {return this.__object;};
-    instance['toString'] = function() {return this.__object.toString();};
+    instance{^__object^} = $obj;
+    instance{^valueOf^} = function() {return this.__object;};
+    instance{^toString^} = function() {return this.__object.toString();};
     return instance;
 });
 func(${0,module}$, null, @{{dictproxy}}, '__init__', ${0, function}$, ['self', 'iterable'], null, null, [[]], function($self, $obj) {
@@ -1171,14 +1171,14 @@ func(${0,module}$, null, @{{dictproxy}}, '__init__', ${0, function}$, ['self', '
 @{{dict}} = type(${0,module}$, 'dict', [@{{object}}], {}, []);
 func(${0,module}$, null, @{{dict}}, '__new__', ${0, jsmethod}$, ['cls', 'iterable'], null, 'kwargs', [[]], function ($cls, $iterable, $kwargs) {
 ${1, __new__, instance, $cls}$
-    instance['__object'] = {};
-    instance['__object_hash'] = {};
-    instance['__object_head'] = null;
-    instance['__object_tail'] = null;
-    instance['_length'] = 0;
-    instance['valueOf'] = function() {return this.__object;};
-    instance['getObject'] = function() {return this.__object;}; // backwards compatability TODO: remove this method
-    instance['toString'] = function() {return this.__object.toString();};
+    instance{^__object^} = {};
+    instance{^__object_hash^} = {};
+    instance{^__object_head^} = null;
+    instance{^__object_tail^} = null;
+    instance{^_length^} = 0;
+    instance{^valueOf^} = function() {return this.__object;};
+    instance{^getObject^} = function() {return this.__object;}; // backwards compatability TODO: remove this method
+    instance{^toString^} = function() {return this.__object.toString();};
     return instance;
 });
 func(${0,module}$, null, @{{dict}}, '__init__', ${0, function}$, ['self', 'iterable'], null, 'kwargs', [[]], function ($self, $iterable, $kwargs) {
@@ -1197,7 +1197,7 @@ func(${0,module}$, null, @{{dict}}, '__init__', ${0, function}$, ['self', 'itera
                     tail = node;
                     objH[h] = node;
                     obj[h] = v;
-                    $self['_length']++;
+                    $self{^_length^}++;
                 } else {
                     if (typeof k == "undefined") {
                         @{{raise}}($new(@{{TypeError}}, B$str("Invalid iterable (key is undefined)")));
@@ -1217,7 +1217,7 @@ func(${0,module}$, null, @{{dict}}, '__init__', ${0, function}$, ['self', 'itera
                 tail = node;
                 objH[h] = node;
                 obj[h] = v;
-                $self['_length']++;
+                $self{^_length^}++;
             } else {
                 if (typeof k == "undefined") {
                     @{{raise}}($new(@{{TypeError}}, B$str("Invalid iterable (key is undefined)")));
@@ -1225,7 +1225,7 @@ func(${0,module}$, null, @{{dict}}, '__init__', ${0, function}$, ['self', 'itera
                 @{{raise}}($new(@{{TypeError}}, B$str("Invalid iterable (value for '" + k + "' is undefined)")));
             }
         }
-    } else if (typeof $iterable['$inst'] == "undefined") {
+    } else if (typeof $iterable{^$inst^} == "undefined") {
         for (k in $iterable) {
             v = $iterable[k];
             if (typeof k != "undefined" && typeof v != "undefined") {
@@ -1234,7 +1234,7 @@ func(${0,module}$, null, @{{dict}}, '__init__', ${0, function}$, ['self', 'itera
                 tail = node;
                 objH[h] = node;
                 obj[h] = v;
-                $self['_length']++;
+                $self{^_length^}++;
             } else {
                 if (typeof k == "undefined") {
                     @{{raise}}($new(@{{TypeError}}, B$str("Invalid iterable (key is undefined)")));
@@ -1255,10 +1255,10 @@ func(${0,module}$, null, @{{dict}}, '__init__', ${0, function}$, ['self', 'itera
             }
             k = @{{getitem}}(i, @{{int_zero}});
             v = @{{getitem}}(i, @{{int_one}});
-            @{{dict}}['$dict']['__setitem__']($self, k, v);
+            @{{dict}}{^$dict^}{^__setitem__^}($self, k, v);
         }
     }
-    if (typeof $kwargs != "undefined" && $kwargs !== null && $kwargs['_length'] > 0) {
+    if (typeof $kwargs != "undefined" && $kwargs !== null && $kwargs{^_length^} > 0) {
         $iterable = $kwargs;
         for (h in $iterable.__object_hash) {
             k = $iterable.__object_hash[h].key;
@@ -1268,7 +1268,7 @@ func(${0,module}$, null, @{{dict}}, '__init__', ${0, function}$, ['self', 'itera
                 tail = node;
                 objH[h] = node;
                 obj[h] = v;
-                $self['_length']++;
+                $self{^_length^}++;
             } else {
                 if (typeof k == "undefined") {
                     @{{raise}}($new(@{{TypeError}}, B$str("Invalid iterable (key is undefined)")));
@@ -1289,7 +1289,7 @@ func(${0,module}$, null, @{{dict}}, 'clear', ${0, function}$, ['self'], null, nu
     $self.__object_hash = {};
     $self.__object_head = null;
     $self.__object_tail = null;
-    $self['_length'] = 0;
+    $self{^_length^} = 0;
     return ${0,None}$;
 });
 func(${0,module}$, null, @{{dict}}, 'copy', ${0, function}$, ['self'], null, null, null, function ($self) {
@@ -1311,7 +1311,7 @@ func(${0,module}$, null, @{{dict}}, '__setitem__', ${0, function}$, ['self', 'ke
             $self.__object_tail.next = node;
             $self.__object_tail = node;
         }
-        $self['_length']++;
+        $self{^_length^}++;
         $self.__object_hash[h] = $self.__object_tail;
     }
     $self.__object[h] = $value;
@@ -1342,7 +1342,7 @@ func(${0,module}$, null, @{{dict}}, '__delitem__', ${0, function}$, ['self', 'ke
         node.prev.next = node.next;
         node.next.prev = node.prev;
     }
-    $self['_length']--;
+    $self{^_length^}--;
     delete $self.__object_hash[h];
     delete $self.__object[h];
     delete node;
@@ -1351,7 +1351,7 @@ func(${0,module}$, null, @{{dict}}, '__delitem__', ${0, function}$, ['self', 'ke
 func(${0,module}$, null, @{{dict}}, 'setdefault', ${0, function}$, ['self', 'key', 'value'], null, null, [${0,None}$], function ($self, $key, $value) {
     var h = @{{hash}}($key);
     if (typeof $self.__object_hash[h] == "undefined") {
-        @{{dict}}['$dict']['__setitem__']($self, $key, $value);
+        @{{dict}}{^$dict^}{^__setitem__^}($self, $key, $value);
         return $value;
     }
     return $self.__object[h];
@@ -1372,16 +1372,16 @@ func(${0,module}$, null, @{{dict}}, 'pop', ${0, function}$, ['self', 'key', 'val
         return $value;
     }
     $value = $self.__object[h];
-    @{{dict}}['$dict']['__delitem__']($self, $key);
+    @{{dict}}{^$dict^}{^__delitem__^}($self, $key);
     return $value;
 });
 func(${0,module}$, null, @{{dict}}, 'popitem', ${0, function}$, ['self'], null, null, [null], function ($self) {
     var k, v, h, node;
-    if ($self['_length'] == 0) {
+    if ($self{^_length^} == 0) {
         @{{raise}}($new(@{{KeyError}}, B$str("popitem(): dictionary is empty")));
     }
     node = $self.__object_tail;
-    k = node['key'];
+    k = node{^key^};
     h = @{{hash}}(k);
     v = $self.__object[h];
     $self.__object_tail = node.prev;
@@ -1390,20 +1390,20 @@ func(${0,module}$, null, @{{dict}}, 'popitem', ${0, function}$, ['self'], null, 
     } else {
         $self.__object_tail.next = null;
     }
-    $self['_length']--;
+    $self{^_length^}--;
     delete $self.__object[h];
     delete $self.__object_hash[h];
     delete node;
     return $new(@{{tuple}}, [k, v]);
 });
 func(${0,module}$, null, @{{dict}}, '__nonzero__', ${0, function}$, ['self'], null, null, null, function ($self) {
-    if ($self['_length'] == 0) {
+    if ($self{^_length^} == 0) {
         return @{{False}};
     }
     return @{{True}};
 });
 func(${0,module}$, null, @{{dict}}, '__len__', ${0, function}$, ['self'], null, null, null, function ($self) {
-    return $new(@{{int}}, $self['_length']);
+    return $new(@{{int}}, $self{^_length^});
 });
 func(${0,module}$, null, @{{dict}}, '__contains__', ${0, function}$, ['self', 'key'], null, null, null, function ($self, $key) {
     return typeof $self.__object_hash[@{{hash}}($key)] == "undefined" ? @{{False}} : @{{True}};
@@ -1417,7 +1417,7 @@ func(${0,module}$, null, @{{dict}}, 'keys', ${0, function}$, ['self'], null, nul
         objH = $self.__object_hash;
     i = 0;
     for (var h in objH) {
-        __array[i] = objH[h]['key'];
+        __array[i] = objH[h]{^key^};
         i ++;
     }
     return keys;
@@ -1433,7 +1433,7 @@ func(${0,module}$, null, @{{dict}}, 'fromkeys', ${0, staticmethod}$, ['iterable'
         if (k === @{{StopIter}}) {
             break;
         }
-        @{{dict}}['$dict']['__setitem__'](d, k, $v);
+        @{{dict}}{^$dict^}{^__setitem__^}(d, k, $v);
     }
     return d;
 });
@@ -1454,7 +1454,7 @@ func(${0,module}$, null, @{{dict}}, 'items', ${0, function}$, ['self'], null, nu
         objH = $self.__object_hash;
     i = 0;
     for (var h in obj) {
-        __array[i++] = $new(@{{tuple}}, [objH[h]['key'], obj[h]]);
+        __array[i++] = $new(@{{tuple}}, [objH[h]{^key^}, obj[h]]);
     }
     return items;
 });
@@ -1471,8 +1471,8 @@ func(${0,module}$, null, @{{dict}}, 'iteritems', ${0, function}$, ['self'], null
     return $new(@{{dictionary-itemiterator}}, $self);
 });
 func(${0,module}$, null, @{{dict}}, '__cmp__', ${0, function}$, ['self', 'y'], null, null, null, function ($self, $y) {
-    if ($self['$inst'] === true) {
-        if ($self['__class__']['__mro__'][$self['__class__']['__mro__'].length -2] === @{{dict}}) {
+    if ($self{^$inst^} === true) {
+        if ($self{^__class__^}{^__mro__^}[$self{^__class__^}{^__mro__^}.length -2] === @{{dict}}) {
             var self_sKeys = new Array(),
                 other_sKeys = new Array(),
                 selfLen = 0,
@@ -1498,11 +1498,11 @@ func(${0,module}$, null, @{{dict}}, '__cmp__', ${0, function}$, ['self', 'y'], n
             var c, sKey, self_k, other_k;
             for (var idx = 0; idx < selfLen; idx++) {
                 sKey = self_sKeys[idx];
-                self_k = selfObjH[sKey]['key'];
+                self_k = selfObjH[sKey]{^key^};
                 if (typeof otherObjH[sKey] == 'undefined') {
                     return @{{int_minus_one}};
                 }
-                other_k = otherObjH[sKey]['key'];
+                other_k = otherObjH[sKey]{^key^};
                 c = @{{cmp}}(self_k, other_k);
                 if (c.__v != 0) {
                     return c;
@@ -1519,12 +1519,12 @@ func(${0,module}$, null, @{{dict}}, '__cmp__', ${0, function}$, ['self', 'y'], n
 });
 
 func(${0,module}$, null, @{{dict}}, '__str__', ${0, function}$, ['self'], null, null, null, function ($self) {
-    if ($self['$inst'] === false) {
+    if ($self{^$inst^} === false) {
         return B$str("<type '%s'>" % $self.__name__);
-    } else if ($self['$inst'] === true) {
-        var key, value, s = "", obj = $self['__object'], objH = $self['__object_hash'];
+    } else if ($self{^$inst^} === true) {
+        var key, value, s = "", obj = $self{^__object^}, objH = $self{^__object_hash^};
         for (var h in objH) {
-            key = objH[h]['key'];
+            key = objH[h]{^key^};
             value = obj[h];
             s += ", " + @{{repr}}(key) + ": " + @{{repr}}(value);
         }
@@ -1533,11 +1533,11 @@ func(${0,module}$, null, @{{dict}}, '__str__', ${0, function}$, ['self'], null, 
     return B$str("" + $self);
 });
 func(${0,module}$, null, @{{dict}}, '__repr__', ${0, function}$, ['self'], null, null, null, function ($self) {
-    if (typeof $self['$inst'] == 'boolean') {
+    if (typeof $self{^$inst^} == 'boolean') {
         var key, value, i,
             s = "",
-            obj = $self['__object'],
-            objH = $self['__object_hash'],
+            obj = $self{^__object^},
+            objH = $self{^__object_hash^},
             hashes = [];
         i = 0;
         for (var h in objH) {
@@ -1546,7 +1546,7 @@ func(${0,module}$, null, @{{dict}}, '__repr__', ${0, function}$, ['self'], null,
         hashes.sort();
         for (i = 0 ; i < hashes.length; i++ ) {
             h = hashes[i];
-            key = objH[h]['key'];
+            key = objH[h]{^key^};
             value = obj[h];
             s += ", " + @{{repr}}(key) + ": " + @{{repr}}(value);
         }
@@ -1556,17 +1556,17 @@ func(${0,module}$, null, @{{dict}}, '__repr__', ${0, function}$, ['self'], null,
 });
 
 // shortcut to dict.__setitem__ (used in setattr)
-var dict$setitem = @{{dict}}['$dict']['__setitem__'];
-var dict$delitem = @{{dict}}['$dict']['__delitem__'];
+var dict$setitem = @{{dict}}{^$dict^}{^__setitem__^};
+var dict$delitem = @{{dict}}{^$dict^}{^__delitem__^};
 
 
 // Complete the tuple type
 // class tuple
 func(${0,module}$, null, @{{tuple}}, '__new__', ${0, jsmethod}$, ['cls', 'iterable'], null, null, [[]], function ($cls, $iterable) {
 ${1, __new__, instance, $cls}$
-    instance['__array'] = [];
-    instance['valueOf'] = function() {return this.__array;};
-    instance['toString'] = function() {return this['__class__']['$dict']['__str__'](this).valueOf();};
+    instance{^__array^} = [];
+    instance{^valueOf^} = function() {return this.__array;};
+    instance{^toString^} = function() {return this{^__class__^}{^$dict^}{^__str__^}(this).valueOf();};
     return instance;
 });
 func(${0,module}$, null, @{{tuple}}, '__init__', ${0, function}$, ['self', 'iterable'], null, null, [[]], function ($self, $iterable) {
@@ -1581,7 +1581,7 @@ func(${0,module}$, null, @{{tuple}}, '__init__', ${0, function}$, ['self', 'iter
     }
     iter = @{{_getattr}}($iterable, '__iter__');
     if (typeof iter != "undefined") {
-        switch($iterable['__class__']) {
+        switch($iterable{^__class__^}) {
             case @{{tuple}}:
             case @{{list}}:
             case @{{tupleiterator}}:
@@ -1653,10 +1653,10 @@ func(${0,module}$, null, @{{tuple}}, '__getitem__', ${0, function}$, ['self', 'i
         }
         return $self.__array[index];
     }
-    if ($index['__class__'] === @{{slice}}) {
-        var start = $index['$dict']['start'].valueOf(),
-            stop = $index['$dict']['stop'].valueOf(),
-            step = $index['$dict']['step'].valueOf(),
+    if ($index{^__class__^} === @{{slice}}) {
+        var start = $index{^$dict^}{^start^}.valueOf(),
+            stop = $index{^$dict^}{^stop^}.valueOf(),
+            step = $index{^$dict^}{^step^}.valueOf(),
             __array = [];
         if (start === null) start = 0;
         if (stop === null || stop > $self.__array.length) stop = $self.__array.length;
@@ -1664,7 +1664,7 @@ func(${0,module}$, null, @{{tuple}}, '__getitem__', ${0, function}$, ['self', 'i
         for (; start < stop; start += step) {
             __array.push($self.__array[start]);
         }
-        return $new($self['__class__'], __array);
+        return $new($self{^__class__^}, __array);
     }
     @{{raise}}($new(@{{TypeError}}, B$str(_typeof($self) + " indices must be integers, not " + typeof $index)));
 });
@@ -1698,7 +1698,7 @@ func(${0,module}$, null, @{{tuple}}, 'count', ${0, function}$, ['self', 'value']
 });
 // lazy... implement __cmp__ in stead of __eq__ and friends
 func(${0,module}$, null, @{{tuple}}, '__cmp__', ${0, function}$, ['self', 'y'], null, null, null, function ($self, $y) {
-    if ($y['__class__'] !== @{{tuple}}) {
+    if ($y{^__class__^} !== @{{tuple}}) {
         if (@{{isinstance}}($y, @{{tuple}}) !== @{{True}}) {
             return @{{int_one}};
         }
@@ -1718,7 +1718,7 @@ func(${0,module}$, null, @{{tuple}}, '__cmp__', ${0, function}$, ['self', 'y'], 
     return @{{int_zero}};
 });
 func(${0,module}$, null, @{{tuple}}, '__add__', ${0, function}$, ['self', 'value'], null, null, null, function ($self, $value) {
-    if ($value['__class__'] !== @{{tuple}}) {
+    if ($value{^__class__^} !== @{{tuple}}) {
         return @{{raise}}($new(@{{TypeError}}, B$str("can only concatenate tuple (not '" + _typeof($value) + "') to tuple")));
     }
     return B$tuple($self.__array.slice(0).concat($value.__array));
@@ -1733,18 +1733,18 @@ init_short_names$(true);
 
 @{{tupleiterator}} = type(${0,module}$, 'tupleiterator', [@{{object}}], {}, []);
 func(${0,module}$, null, @{{tupleiterator}}, '__init__', ${0, function}$, ['self', 'iterable'], null, null, null, function ($self, $iterable) {
-    $self['index'] = 0;
-    $self['__array'] = $iterable.__array;
+    $self{^index^} = 0;
+    $self{^__array^} = $iterable.__array;
     return ${0,None}$;
 });
 func(${0,module}$, null, @{{tupleiterator}}, '__iter__', ${0, function}$, ['self'], null, null, null, function ($self) {
     return $self;
 });
 func(${0,module}$, null, @{{tupleiterator}}, '__length_hint__', ${0, function}$, ['self'], null, null, null, function ($self) {
-    return $new(@{{int}}, $self.__array.length - $self['index']);
+    return $new(@{{int}}, $self.__array.length - $self{^index^});
 });
 func(${0,module}$, null, @{{tupleiterator}}, 'next', ${0, function}$, ['self'], null, null, null, function ($self) {
-    if ($self['index'] >= $self.__array.length) {
+    if ($self{^index^} >= $self.__array.length) {
         return @{{raise}}(@{{StopIteration}});
     }
     return $self.__array[$self.index++];
@@ -1752,21 +1752,21 @@ func(${0,module}$, null, @{{tupleiterator}}, 'next', ${0, function}$, ['self'], 
 
 @{{listiterator}} = type(${0,module}$, 'listiterator', [@{{object}}], {}, []);
 func(${0,module}$, null, @{{listiterator}}, '__init__', ${0, function}$, ['self', 'iterable'], null, null, null, function ($self, $iterable) {
-    $self['index'] = 0;
-    $self['__array'] = $iterable.__array;
+    $self{^index^} = 0;
+    $self{^__array^} = $iterable.__array;
     return ${0,None}$;
 });
 func(${0,module}$, null, @{{listiterator}}, '__iter__', ${0, function}$, ['self'], null, null, null, function ($self) {
     return $self;
 });
 func(${0,module}$, null, @{{listiterator}}, '__length_hint__', ${0, function}$, ['self'], null, null, null, function ($self) {
-    if ($self['index'] >= $self.__array.length) {
+    if ($self{^index^} >= $self.__array.length) {
         return @{{int_zero}};
     }
-    return $new(@{{int}}, $self.__array.length - $self['index']);
+    return $new(@{{int}}, $self.__array.length - $self{^index^});
 });
 func(${0,module}$, null, @{{listiterator}}, 'next', ${0, function}$, ['self'], null, null, null, function ($self) {
-    if ($self['index'] >= $self.__array.length) {
+    if ($self{^index^} >= $self.__array.length) {
         return @{{raise}}(@{{StopIteration}});
     }
     return $self.__array[$self.index++];
@@ -1775,22 +1775,22 @@ func(${0,module}$, null, @{{listiterator}}, 'next', ${0, function}$, ['self'], n
 
 @{{listreverseiterator}} = type(${0,module}$, 'listreverseiterator', [@{{object}}], {}, []);
 func(${0,module}$, null, @{{listreverseiterator}}, '__init__', ${0, function}$, ['self', 'iterable'], null, null, null, function ($self, $iterable) {
-    $self['__array'] = $iterable.__array;
-    $self['index'] = $iterable.__array.length;
+    $self{^__array^} = $iterable.__array;
+    $self{^index^} = $iterable.__array.length;
     return ${0,None}$;
 });
 func(${0,module}$, null, @{{listreverseiterator}}, '__iter__', ${0, function}$, ['self'], null, null, null, function ($self) {
     return $self;
 });
 func(${0,module}$, null, @{{listreverseiterator}}, '__length_hint__', ${0, function}$, ['self'], null, null, null, function ($self) {
-    if ($self['index'] > $self.__array.length ||
-        $self['index']  <= 1) {
+    if ($self{^index^} > $self.__array.length ||
+        $self{^index^}  <= 1) {
         return @{{int_zero}};
     }
-    return $new(@{{int}}, $self['index']);
+    return $new(@{{int}}, $self{^index^});
 });
 func(${0,module}$, null, @{{listreverseiterator}}, 'next', ${0, function}$, ['self'], null, null, null, function ($self) {
-    if ($self['index'] < 1) {
+    if ($self{^index^} < 1) {
         return @{{raise}}(@{{StopIteration}});
     }
     return $self.__array[--$self.index];
@@ -1798,34 +1798,34 @@ func(${0,module}$, null, @{{listreverseiterator}}, 'next', ${0, function}$, ['se
 
 @{{dictionary-keyiterator}} = type(${0,module}$, 'dictionary-keyiterator', [@{{object}}], {}, []);
 func(${0,module}$, null, @{{dictionary-keyiterator}}, '__init__', ${0, function}$, ['self', 'iterable'], null, null, null, function ($self, $iterable) {
-    $self['index'] = 0;
-    $self['iterable'] = $iterable;
-    $self['node'] = $iterable.__object_head;
-    $self['_length'] = $iterable._length;
+    $self{^index^} = 0;
+    $self{^iterable^} = $iterable;
+    $self{^node^} = $iterable.__object_head;
+    $self{^_length^} = $iterable._length;
     return ${0,None}$;
 });
 func(${0,module}$, null, @{{dictionary-keyiterator}}, '__iter__', ${0, function}$, ['self'], null, null, null, function ($self) {
     return $self;
 });
 func(${0,module}$, null, @{{dictionary-keyiterator}}, '__length_hint__', ${0, function}$, ['self'], null, null, null, function ($self) {
-    if ($self._length != $self['iterable']._length ) {
+    if ($self._length != $self{^iterable^}._length ) {
         @{{raise}}($new(@{{RuntimeError}}, B$str("dictionary changed size during iteration")));
     }
-    if ($self['index'] >= $self._length) {
+    if ($self{^index^} >= $self._length) {
         return @{{int_zero}};
     }
-    return $new(@{{int}}, $self._length - $self['index']);
+    return $new(@{{int}}, $self._length - $self{^index^});
 });
 func(${0,module}$, null, @{{dictionary-keyiterator}}, 'next', ${0, function}$, ['self'], null, null, null, function ($self) {
     var key;
-    if ($self._length == $self['iterable']._length ) {
-        if ($self['node'] === null) {
+    if ($self._length == $self{^iterable^}._length ) {
+        if ($self{^node^} === null) {
             return @{{raise}}(@{{StopIteration}});
         }
-        if ($self['index'] < $self._length) {
-            $self['index']++;
-            key = $self['node']['key'];
-            $self['node'] = $self['node'].next;
+        if ($self{^index^} < $self._length) {
+            $self{^index^}++;
+            key = $self{^node^}{^key^};
+            $self{^node^} = $self{^node^}.next;
             return key;
         }
     }
@@ -1834,34 +1834,34 @@ func(${0,module}$, null, @{{dictionary-keyiterator}}, 'next', ${0, function}$, [
 
 @{{dictionary-valueiterator}} = type(${0,module}$, 'dictionary-valueiterator', [@{{object}}], {}, []);
 func(${0,module}$, null, @{{dictionary-valueiterator}}, '__init__', ${0, function}$, ['self', 'iterable'], null, null, null, function ($self, $iterable) {
-    $self['index'] = 0;
-    $self['iterable'] = $iterable;
-    $self['node'] = $iterable.__object_head;
-    $self['_length'] = $iterable._length;
+    $self{^index^} = 0;
+    $self{^iterable^} = $iterable;
+    $self{^node^} = $iterable.__object_head;
+    $self{^_length^} = $iterable._length;
     return ${0,None}$;
 });
 func(${0,module}$, null, @{{dictionary-valueiterator}}, '__iter__', ${0, function}$, ['self'], null, null, null, function ($self) {
     return $self;
 });
 func(${0,module}$, null, @{{dictionary-valueiterator}}, '__length_hint__', ${0, function}$, ['self'], null, null, null, function ($self) {
-    if ($self._length != $self['iterable']._length ) {
+    if ($self._length != $self{^iterable^}._length ) {
         @{{raise}}($new(@{{RuntimeError}}, B$str("dictionary changed size during iteration")));
     }
-    if ($self['index'] >= $self._length) {
+    if ($self{^index^} >= $self._length) {
         return @{{int_zero}};
     }
-    return $new(@{{int}}, $self._length - $self['index']);
+    return $new(@{{int}}, $self._length - $self{^index^});
 });
 func(${0,module}$, null, @{{dictionary-valueiterator}}, 'next', ${0, function}$, ['self'], null, null, null, function ($self) {
     var value;
-    if ($self._length == $self['iterable']._length ) {
-        if ($self['node'] === null) {
+    if ($self._length == $self{^iterable^}._length ) {
+        if ($self{^node^} === null) {
             return @{{raise}}(@{{StopIteration}});
         }
-        if ($self['index'] < $self._length) {
-            $self['index']++;
-            value = $self['iterable']['__object'][@{{hash}}($self['node']['key'])];
-            $self['node'] = $self['node'].next;
+        if ($self{^index^} < $self._length) {
+            $self{^index^}++;
+            value = $self{^iterable^}{^__object^}[@{{hash}}($self{^node^}{^key^})];
+            $self{^node^} = $self{^node^}.next;
             return value;
         }
     }
@@ -1870,35 +1870,35 @@ func(${0,module}$, null, @{{dictionary-valueiterator}}, 'next', ${0, function}$,
 
 @{{dictionary-itemiterator}} = type(${0,module}$, 'dictionary-itemiterator', [@{{object}}], {}, []);
 func(${0,module}$, null, @{{dictionary-itemiterator}}, '__init__', ${0, function}$, ['self', 'iterable'], null, null, null, function ($self, $iterable) {
-    $self['index'] = 0;
-    $self['iterable'] = $iterable;
-    $self['node'] = $iterable.__object_head;
-    $self['_length'] = $iterable._length;
+    $self{^index^} = 0;
+    $self{^iterable^} = $iterable;
+    $self{^node^} = $iterable.__object_head;
+    $self{^_length^} = $iterable._length;
     return ${0,None}$;
 });
 func(${0,module}$, null, @{{dictionary-itemiterator}}, '__iter__', ${0, function}$, ['self'], null, null, null, function ($self) {
     return $self;
 });
 func(${0,module}$, null, @{{dictionary-itemiterator}}, '__length_hint__', ${0, function}$, ['self'], null, null, null, function ($self) {
-    if ($self._length != $self['iterable']._length ) {
+    if ($self._length != $self{^iterable^}._length ) {
         @{{raise}}($new(@{{RuntimeError}}, B$str("dictionary changed size during iteration")));
     }
-    if ($self['index'] >= $self._length) {
+    if ($self{^index^} >= $self._length) {
         return @{{int_zero}};
     }
-    return $new(@{{int}}, $self._length - $self['index']);
+    return $new(@{{int}}, $self._length - $self{^index^});
 });
 func(${0,module}$, null, @{{dictionary-itemiterator}}, 'next', ${0, function}$, ['self'], null, null, null, function ($self) {
     var key, value;
-    if ($self._length == $self['iterable']._length ) {
-        if ($self['node'] === null) {
+    if ($self._length == $self{^iterable^}._length ) {
+        if ($self{^node^} === null) {
             return @{{raise}}(@{{StopIteration}});
         }
-        if ($self['index'] < $self._length) {
-            $self['index']++;
-            key = $self['node']['key'];
-            value = $self['iterable']['__object'][@{{hash}}(key)];
-            $self['node'] = $self['node'].next;
+        if ($self{^index^} < $self._length) {
+            $self{^index^}++;
+            key = $self{^node^}{^key^};
+            value = $self{^iterable^}{^__object^}[@{{hash}}(key)];
+            $self{^node^} = $self{^node^}.next;
             return B$tuple([key, value]);
         }
     }
@@ -1915,14 +1915,14 @@ func(${0,module}$, null, @{{str}}, '__new__', ${0, jsmethod}$, ['cls', 'value'],
         } else {
             @{{raise}}($new(@{{TypeError}}, B$str("str: value is undefined")));
         }
-    } else if (value['__class__'] === cls) {
+    } else if (value{^__class__^} === cls) {
         return value;
     }
     var v = value.valueOf();
 ${1, __new__, new_str, cls}$
-    new_str['__s'] = v;
-    new_str['valueOf'] = function() {return this.__s;};
-    new_str['toString'] = function() {return this.__s.toString();};
+    new_str{^__s^} = v;
+    new_str{^valueOf^} = function() {return this.__s;};
+    new_str{^toString^} = function() {return this.__s.toString();};
     if (typeof value == 'string') {
         return new_str;
     }
@@ -1935,30 +1935,30 @@ ${1, __new__, new_str, cls}$
     var mro$;
 ${2, getattribute, mro$, v, value, '__str__'}$
     if (typeof v == "undefined") {
-        new_str['__s'] = String(value);
+        new_str{^__s^} = String(value);
         return new_str;
     }
-    if (v['__class__'] === cls) {
+    if (v{^__class__^} === cls) {
         return v;
     }
-    if (typeof v['__class__'] != "undefined") {
+    if (typeof v{^__class__^} != "undefined") {
         v = @{{fcall}}(this, null, v, value, value);
-        if (v['__class__'] === @{{str}}) {
+        if (v{^__class__^} === @{{str}}) {
             return v;
         }
         if (typeof v == 'string') {
-            new_str['__s'] = v;
+            new_str{^__s^} = v;
         } else {
             @{{raise}}($new(@{{TypeError}}, B$str("__str__ returned non-string")));
         }
     } else if (typeof v == 'function') {
-        if (typeof v['__name__'] != "undefined") {
-            new_str['__s'] = "<function " + v['__name__'] + ">";
+        if (typeof v{^__name__^} != "undefined") {
+            new_str{^__s^} = "<function " + v{^__name__^} + ">";
         } else {
-            new_str['__s'] = "<javascript function " + v['name'] + ">";
+            new_str{^__s^} = "<javascript function " + v{^name^} + ">";
         }
     } else {
-        new_str['__s'] = "<javascript " + typeof v + ">";
+        new_str{^__s^} = "<javascript " + typeof v + ">";
     }
     return new_str;
 });
@@ -2011,7 +2011,7 @@ func(${0,module}$, null, @{{str}}, 'rfind', ${0, function}$, ['self', 'sub', 'st
 });
 
 func(${0,module}$, null, @{{str}}, 'index', ${0, function}$, ['self', 'sub', 'start', 'end'], null, null, [${0,None}$, ${0,None}$], function($self, $sub, $start, $end) {
-    var i = @{{str}}['$dict']['find']($self, $sub, $start, $end);
+    var i = @{{str}}{^$dict^}{^find^}($self, $sub, $start, $end);
     if (i.__v < 0) {
         @{{raise}}($new(@{{ValueError}}, B$str("substring not found")));
     }
@@ -2019,7 +2019,7 @@ func(${0,module}$, null, @{{str}}, 'index', ${0, function}$, ['self', 'sub', 'st
 });
 
 func(${0,module}$, null, @{{str}}, 'rindex', ${0, function}$, ['self', 'sub', 'start', 'end'], null, null, [${0,None}$, ${0,None}$], function($self, $sub, $start, $end) {
-    var i = @{{str}}['$dict']['rfind']($self, $sub, $start, $end);
+    var i = @{{str}}{^$dict^}{^rfind^}($self, $sub, $start, $end);
     if (i.__v < 0) {
         @{{raise}}($new(@{{ValueError}}, B$str("substring not found")));
     }
@@ -2027,7 +2027,7 @@ func(${0,module}$, null, @{{str}}, 'rindex', ${0, function}$, ['self', 'sub', 's
 });
 
 func(${0,module}$, null, @{{str}}, 'partition', ${0, function}$, ['self', 'sep'], null, null, null, function($self, $sep) {
-    var i = @{{str}}['$dict']['find']($self, $sep, ${0,None}$, ${0,None}$);
+    var i = @{{str}}{^$dict^}{^find^}($self, $sep, ${0,None}$, ${0,None}$);
     if (i.__v < 0) {
         return B$tuple([$self, @{{empty_str}}, @{{empty_str}}]);
     }
@@ -2036,7 +2036,7 @@ func(${0,module}$, null, @{{str}}, 'partition', ${0, function}$, ['self', 'sep']
 });
 
 func(${0,module}$, null, @{{str}}, 'rpartition', ${0, function}$, ['self', 'sep'], null, null, null, function($self, $sep) {
-    var i = @{{str}}['$dict']['rfind']($self, $sep, ${0,None}$, ${0,None}$);
+    var i = @{{str}}{^$dict^}{^rfind^}($self, $sep, ${0,None}$, ${0,None}$);
     if (i.__v < 0) {
         return B$tuple([@{{empty_str}}, @{{empty_str}}, $self]);
     }
