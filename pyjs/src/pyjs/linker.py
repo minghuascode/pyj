@@ -42,6 +42,7 @@ translator_opts = [ 'debug',
         'inline_code', 
         'operator_funcs ', 
         'number_classes', 
+        'long_type', 
         'list_imports',
         'translator',
     ]

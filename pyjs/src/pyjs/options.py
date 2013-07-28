@@ -18,6 +18,7 @@ all_compile_options = dict(
     number_classes=False,
     create_locals=False,
     stupid_mode=False,
+    long_type=True,
     translator='proto',
 )
 
@@ -209,6 +210,16 @@ def add_compile_options(parser):
                       help = "Create locals",
                      )
 
+    parser.add_option("--long-type",
+                      dest = "long_type",
+                      action="store_true",
+                      help = "Enables long type (shortens code)",
+                     )
+    parser.add_option("--no-long-type",
+                      dest = "long_type",
+                      action="store_false",
+                      help = "Disables long type (shortens code)",
+                     )
     parser.add_option("--no-stupid-mode",
                       dest = "stupid_mode",
                       action="store_false",

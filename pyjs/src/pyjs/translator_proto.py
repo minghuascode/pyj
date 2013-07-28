@@ -1023,6 +1023,20 @@ class Translator(object):
             txt = _n(txt)
         output = output or self.output
         assert(isinstance(newline, bool))
+        if txt and not self.long_type:
+            res = []
+            skip = False
+            for l in txt.split('\n'):
+                if l.startswith('//@ENDLONG'):
+                    skip = True
+                    continue
+                if skip:
+                    continue
+                if l.startswith('//@BEGINLONG'):
+                    skip = True
+                    continue
+                res.append(l)
+            txt = '\n'.join(res)
         if newline:
             if txt is None:
                 print >> self.output

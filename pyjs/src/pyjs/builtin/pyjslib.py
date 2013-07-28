@@ -2302,6 +2302,7 @@ var $radix_regex = [
 #  - Include/longobject.h
 #  - Objects/longobject.c
 JS("""
+//@BEGINLONG
 (function(){
 
     var $log2 = Math.log(2);
@@ -3943,6 +3944,7 @@ JS("""
         $pow_temp_c = new $long(0),
         $pow_temp_z = new $long(0);
 })();
+//@ENDLONG
 """)
 
 
