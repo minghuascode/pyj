@@ -22,7 +22,7 @@ class HTMLLinkPanel(HTMLPanel):
                 parent.removeChild(el)
             hl.setParent(None)
 
-    def replaceLinks(self, tagname="a", use_page_href=True):
+    def replaceLinks(self, tagname="a", use_page_href=True, ajaxify=False):
         """ replaces <tag href="#pagename">sometext</tag> with:
             Hyperlink("sometext", "pagename").  Hyperlinks use
             the History module so the notification will come
@@ -45,6 +45,8 @@ class HTMLLinkPanel(HTMLPanel):
             html = DOM.getInnerHTML(el)
             parent = DOM.getParent(el)
             index = DOM.getChildIndex(parent, el)
+            if ajaxify:
+                token = '!%s' % token
             hl = Hyperlink(TargetHistoryToken=token,
                            HTML=html,
                            Element=DOM.createSpan())
