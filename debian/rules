@@ -58,7 +58,7 @@ override_dh_install:
 
 override_dh_installdocs:
 	# use symlinks for the doc dirs of packages that depend on pyjamas-ui
-	dh_installdocs -ppyjamas-ui -ppyjamas-pyjs -ppyjamas-desktop -ppyjamas-doc
+	dh_installdocs -ppyjamas-ui -ppyjamas-pyjs -ppyjamas-doc
 	for p in pyjamas pyjamas-canvas pyjamas-gchart pyjamas-gmap; do \
 		install -d debian/$$p/usr/share/doc ; \
 		ln -s pyjamas-ui debian/$$p/usr/share/doc/$$p ; \
