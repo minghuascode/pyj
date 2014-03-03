@@ -7,5 +7,5 @@ Abstract: This documentation gives an introduction
 Section: Programming/Python
 
 Format: HTML
-Index: /usr/share/doc/pyjamas-doc/index.html
-Files: /usr/share/doc/pyjamas-doc/*.html
+Index: /usr/share/doc/pyjamas-doc/pyjs_site/public/index.html
+Files: /usr/share/doc/pyjamas-doc/pyjs_site/public/*.html
