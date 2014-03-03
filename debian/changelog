@@ -1,3 +1,11 @@
+pyjamas (0.8~hands.3) unstable; urgency=low
+
+  * update homepage reference to new site
+  * let's try pointing the docs at some files that exist
+  * pacify lintian
+
+ -- Philip Hands <phil@hands.com>  Mon, 03 Mar 2014 09:58:10 +0000
+
 pyjamas (0.8~hands.2) unstable; urgency=low
 
   * drop the pyjamas-desktop package (at lkcl's recommendation)
