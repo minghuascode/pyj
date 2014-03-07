@@ -84,8 +84,9 @@ if __name__ == '__main__':
     """)
 
     setup(name = "Pyjamas",
-        version = "0.8.1",
-        description = "Pyjamas Widget API for Web applications, in Python",
+        version = open('VERSION', 'rt').read(),
+        description = \
+         "Pyjamas Widget API and Javascript compiler for Web apps, in Python",
         long_description = open('README', 'rt').read(),
         url = "http://pyj.be",
         author = "The Pyjamas Project",
