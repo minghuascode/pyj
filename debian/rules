@@ -1,0 +1,62 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# this is apparently for ubuntu weirdness.
+-include /usr/share/python/python.mk
+ifeq (,$(py_sitename))
+  py_sitename = site-packages
+  py_libdir = /usr/lib/python$(subst python,,$(1))/site-packages
+  py_sitename_sh = $(py_sitename)
+  py_libdir_sh = $(py_libdir)
+endif
+
+%:
+	dh $@
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -fr tmp # remove examples
+	python run_bootstrap_first_then_setup.py clean
+
+override_dh_auto_build:
+	python bootstrap.py /usr/share/pyshared /usr/share/pyjamas .
+	python run_bootstrap_first_then_setup.py build
+
+override_dh_auto_install:
+	# install the pyjs package into debian/pyjamas (which also
+	# includes building pyjd, which we do NOT install in pyjs)
+	python run_bootstrap_first_then_setup.py install \
+	                  $(py_setup_install_args) --root=debian/tmp
+
+	# exceptions: these get created as their own package,
+	# everything else gets shoved into pyjamas-pyjs
+
+	# examples byeeeeee!
+	rm -fr debian/tmp/usr/share/pyjamas/examples
+
+	# canvas
+	mv debian/tmp/usr/share/pyjamas/library/pyjamas/Canvas \
+       debian/pyjamas-canvas/usr/share/pyjamas/library/pyjamas
+
+	# chart
+	mv debian/tmp/usr/share/pyjamas/library/pyjamas/chart  \
+		debian/pyjamas-gchart/usr/share/pyjamas/library/pyjamas
+
+	# ui
+	mv debian/tmp/usr/share/pyjamas/library/pyjamas/ui \
+		debian/pyjamas-ui/usr/share/pyjamas/library/pyjamas
+
+override_dh_pysupport:
+	dh_pysupport
+	dh_pysupport -ppyjamas-ui /usr/share/pyjamas
+
+override_dh_installdocs:
+	# use symlinks for the doc dirs of packages that depend on pyjamas-ui
+	dh_installdocs -ppyjamas-ui -ppyjamas-pyjs -ppyjamas-desktop -ppyjamas-doc
+	for p in pyjamas pyjamas-canvas pyjamas-gchart; do \
+		install -d debian/$$p/usr/share/doc ; \
+		ln -s pyjamas-ui debian/$$p/usr/share/doc/$$p ; \
+	done

@@ -1,0 +1,14 @@
+pyjamas (0.7~pre2-1) UNRELEASED; urgency=low
+
+  * new upstream version
+  * take over mainainership from Luke, to let him concentrate on upstream
+  * patch version to "debian"
+  * add  pyjamas-gmap package
+
+ -- Philip Hands <phil@hands.com>  Sun, 18 Oct 2009 08:00:48 +0100
+
+pyjamas (0.7~svn2052-1) unstable; urgency=low
+
+  * Initial release (Closes: #501744)
+
+ -- Luke Kenneth Casson Leighton <lkcl@lkcl.net>  Sat, 17 Oct 2009 16:37:22 +0100
