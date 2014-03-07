@@ -1,3 +1,9 @@
+pyjamas (0.8~hands.4) unstable; urgency=low
+
+  * nudge the version
+
+ -- Philip Hands <phil@hands.com>  Fri, 07 Mar 2014 17:25:05 +0000
+
 pyjamas (0.8~hands.3) unstable; urgency=low
 
   * update homepage reference to new site
