@@ -525,6 +525,7 @@ def build_script():
 
     parser.add_option(
         "--compile-inplace", dest="compile_inplace",
+        default=False,
         action="store_true",
         help="Store js compiled files in the same place as the python source"
         )
