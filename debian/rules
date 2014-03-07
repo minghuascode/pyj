@@ -19,16 +19,16 @@ endif
 override_dh_auto_clean:
 	dh_auto_clean
 	rm -fr tmp # remove examples
-	python run_bootstrap_first_then_setup.py clean
+	VERSION=debian python run_bootstrap_first_then_setup.py clean
 
 override_dh_auto_build:
 	python bootstrap.py /usr/share/pyshared /usr/share/pyjamas .
-	python run_bootstrap_first_then_setup.py build
+	VERSION=debian python run_bootstrap_first_then_setup.py build
 
 override_dh_auto_install:
 	# install the pyjs package into debian/pyjamas (which also
 	# includes building pyjd, which we do NOT install in pyjs)
-	python run_bootstrap_first_then_setup.py install \
+	VERSION=debian python run_bootstrap_first_then_setup.py install \
 	                  $(py_setup_install_args) --root=debian/tmp
 
 	# exceptions: these get created as their own package,
