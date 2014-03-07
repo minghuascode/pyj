@@ -41,7 +41,7 @@ def get_files(d):
         if fname == "PureMVC_Python_1_0":
             continue
         if fname[-4:] == ".pyc": # ehmm.. no.
-            continue 
+            continue
         if os.path.isdir(p):
             get_dir(p)
         else:
