@@ -1,9 +1,12 @@
-# Copyright (C) 2009 Luke Kenneth Casson Leighton <lkcl@lkcl.net>
+# Copyright (C) 2009, 2014 Luke Kenneth Casson Leighton <lkcl@lkcl.net>
 # See LICENSE for details.
 
 from distutils.core import setup
 
+import os
 import sys
+
+version = os.environ.get('VERSION', open('VERSION', 'rt').read().strip())
 
 keyw = """\
 pyjamas
@@ -20,7 +23,7 @@ if __name__ == '__main__':
     """
 
     setup(name = "Pyjamas Desktop",
-        version = "0.8.1",
+        version = version,
         description = "Pyjamas Widget API for Web applications, in Python",
         long_description = open('README', 'rt').read(),
         url = "http://pyj.be",

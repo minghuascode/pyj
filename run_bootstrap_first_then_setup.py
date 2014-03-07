@@ -1,5 +1,5 @@
 # Copyright (C) 2007-2008 The PyAMF Project.
-# Copyright (C) 2009 Luke Kenneth Casson Leighton <lkcl@lkcl.net>
+# Copyright (C) 2009, 2014 Luke Kenneth Casson Leighton <lkcl@lkcl.net>
 # See LICENSE for details.
 
 import glob
@@ -7,6 +7,8 @@ from distutils.core import setup , run_setup
 
 import sys
 import os
+
+version = os.environ.get('VERSION', open('VERSION', 'rt').read().strip())
 
 keyw = """\
 Pyjamas, GUI, Compiler, AJAX, Widget Set
@@ -85,7 +87,7 @@ if __name__ == '__main__':
     """)
 
     setup(name = "Pyjamas",
-        version = open('VERSION', 'rt').read(),
+        version = version,
         description = \
          "Pyjamas Widget API and Javascript compiler for Web apps, in Python",
         long_description = open('README', 'rt').read(),
