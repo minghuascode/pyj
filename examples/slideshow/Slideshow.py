@@ -63,7 +63,7 @@ class Slideshow:
 
         History.addHistoryListener(self)
         RootPanel().add(self.panel)
-        RootPanel().add(self.b)
+        #RootPanel().add(self.b)
 
         self.loadSinks()
 
