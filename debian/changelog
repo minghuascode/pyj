@@ -1,29 +1,11 @@
-pyjamas (0.8~hands.4) unstable; urgency=low
+pyjamas (0.8) UNRELEASED; urgency=low
 
-  * nudge the version
-
- -- Philip Hands <phil@hands.com>  Fri, 07 Mar 2014 17:25:05 +0000
-
-pyjamas (0.8~hands.3) unstable; urgency=low
-
-  * update homepage reference to new site
-  * let's try pointing the docs at some files that exist
-  * pacify lintian
-
- -- Philip Hands <phil@hands.com>  Mon, 03 Mar 2014 09:58:10 +0000
-
-pyjamas (0.8~hands.2) unstable; urgency=low
-
-  * drop the pyjamas-desktop package (at lkcl's recommendation)
-
- -- Philip Hands <phil@hands.com>  Sun, 02 Mar 2014 14:26:53 +0000
-
-pyjamas (0.8~hands.1) unstable; urgency=low
-
-  * new upstream version
+  * new version
+  * switch to native package, as we're going to maintain this in the upstream tree
   * drop python-hulahop dependency (closes: #710033)
+  * drop the pyjamas-desktop package
 
- -- Philip Hands <phil@hands.com>  Fri, 13 Aug 2010 17:29:26 +0100
+ -- Philip Hands <phil@hands.com>  Fri, 07 Mar 2014 20:41:13 +0000
 
 pyjamas (0.7~+pre2-1) unstable; urgency=low
 
