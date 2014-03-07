@@ -22,7 +22,7 @@ override_dh_auto_clean:
 	VERSION=debian python run_bootstrap_first_then_setup.py clean
 
 override_dh_auto_build:
-	python bootstrap.py /usr/share/pyshared /usr/share/pyjamas .
+	VERSION=debian python bootstrap.py /usr/share/pyshared /usr/share/pyjamas .
 	VERSION=debian python run_bootstrap_first_then_setup.py build
 
 override_dh_auto_install:
