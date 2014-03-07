@@ -66,6 +66,7 @@ get_dir("examples")
 get_dir(os.path.join("pyjs", "src", "pyjs", "builtin"))
 get_dir(os.path.join("pyjs", "src", "pyjs", "lib"))
 get_dir(os.path.join("pyjs", "src", "pyjs", "boilerplate"))
+get_dir(os.path.join("pgen"))
 
 #from pprint import pprint
 #pprint(data_files)
@@ -92,7 +93,8 @@ if __name__ == '__main__':
         author = "The Pyjamas Project",
         author_email = "lkcl@lkcl.net",
         keywords = keyw,
-        packages=["pyjs", "pyjs.jsonrpc",
+        packages=["pyjs", "pyjs.lib_trans",
+                "pyjs.jsonrpc",
                 "pyjs.jsonrpc.cgihandler",
                 "pyjs.jsonrpc.mongrel2",
                 "pyjs.jsonrpc.django",
@@ -105,6 +107,8 @@ if __name__ == '__main__':
                 "pyjs.lib_trans.pyparser",
                 "pyjd"],
         package_dir = {'pyjs': os.path.join('pyjs', 'src', 'pyjs'),
+                       'pyjs.lib_trans':
+                            os.path.join('pyjs', 'src', 'pyjs', 'lib_trans'),
                        'pyjs.jsonrpc': os.path.join('pyjs', 'jsonrpc'),
                        'pyjs.jsonrpc.cgihandler':
                                 os.path.join('pyjs', 'jsonrpc', 'cgihandler'),
