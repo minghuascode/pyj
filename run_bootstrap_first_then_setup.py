@@ -104,11 +104,16 @@ if __name__ == '__main__':
                 "pyjs.jsonrpc.cherrypy",
                 "pyjs.lib_trans",
                 "pyjs.lib_trans.pycompiler",
-                "pyjs.lib_trans.pyparser",
-                "pyjd"],
+                "pyjs.lib_trans.pyparser"],
         package_dir = {'pyjs': os.path.join('pyjs', 'src', 'pyjs'),
                        'pyjs.lib_trans':
                             os.path.join('pyjs', 'src', 'pyjs', 'lib_trans'),
+                       'pyjs.lib_trans.pycompiler':
+                            os.path.join('pyjs', 'src', 'pyjs',
+                                         'lib_trans', 'pycompiler'),
+                       'pyjs.lib_trans.pyparser':
+                            os.path.join('pyjs', 'src', 'pyjs',
+                                         'lib_trans', 'pyparser'),
                        'pyjs.jsonrpc': os.path.join('pyjs', 'jsonrpc'),
                        'pyjs.jsonrpc.cgihandler':
                                 os.path.join('pyjs', 'jsonrpc', 'cgihandler'),
@@ -124,7 +129,7 @@ if __name__ == '__main__':
                                 os.path.join('pyjs', 'jsonrpc', 'webpy'),
                        'pyjs.jsonrpc.web2py':
                                 os.path.join('pyjs', 'jsonrpc', 'web2py'),
-                       'pyjd': 'pyjd'},
+                       },
         data_files = data_files,
         license = "Apache Software License",
         platforms = ["any"],
