@@ -132,9 +132,6 @@ class Slide(Sink):
         
     def onProgress(self, event):
         self.vp.clear()
-        self.vp.add(HTML("Progress: %s" % self.name))
-        self.vp.add(HTML("%s" % str(event.loaded)))
-        self.vp.add(HTML("%s" % str(event.total)))
         
 def init(name, desc):
     return SinkInfo(name, desc, Slide)
