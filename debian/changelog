@@ -1,4 +1,11 @@
-pyjamas (0.7~pre2-1) UNRELEASED; urgency=low
+pyjamas (0.8~hands.1) unstable; urgency=low
+
+  * new upstream version
+  * drop python-hulahop dependency (closes: #710033)
+
+ -- Philip Hands <phil@hands.com>  Fri, 13 Aug 2010 17:29:26 +0100
+
+pyjamas (0.7~+pre2-1) unstable; urgency=low
 
   * new upstream version
   * take over mainainership from Luke, to let him concentrate on upstream

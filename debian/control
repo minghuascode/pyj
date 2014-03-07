@@ -71,7 +71,7 @@ Description: Pyjamas Python-to-Javascript compiler
 
 Package: pyjamas-desktop
 Architecture: all
-Depends: ${python:Depends}, ${misc:Depends}, python-hulahop
+Depends: ${python:Depends}, ${misc:Depends}
 Recommends: pyjamas-ui
 Description: Python web widget toolkit (Desktop version)
  Pyjamas Desktop is the desktop version of Pyjamas, the
