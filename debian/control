@@ -125,7 +125,8 @@ Description: Pyjamas Python port of GWT GChart Charting and Graph Widget Library
  .
  This package contains a port of GChart: http://code.google.com/p/gchart to
  Pyjamas.  Written in pure Python, it can be used to create graphs, bar charts
- and pie charts in either a user's web browser (compiled to javascript).
+ and pie charts in either a user's web browser (compiled to javascript) or
+ as a desktop application.
  .
  An online demo is here:
  http://pyjs.org/examples/gcharttestapp/output/GChartTestApp.html
