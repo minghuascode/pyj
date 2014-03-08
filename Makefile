@@ -1,4 +1,4 @@
-VERSION=0.8.1~+alpha1
+VERSION=0.8.1
 
 help:
 	@echo

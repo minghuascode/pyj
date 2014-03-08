@@ -1,11 +1,11 @@
-pyjamas (0.8) UNRELEASED; urgency=low
+pyjamas (0.8.1) unstable; urgency=low
 
   * new version
   * switch to native package, as we're going to maintain this in the upstream tree
   * drop python-hulahop dependency (closes: #710033)
   * drop the pyjamas-desktop package
 
- -- Philip Hands <phil@hands.com>  Fri, 07 Mar 2014 20:41:13 +0000
+ -- lkcl <lkcl@lkcl.net>  Sat, 08 Mar 2014 15:46:25 +0000
 
 pyjamas (0.7~+pre2-1) unstable; urgency=low
 
