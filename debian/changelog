@@ -1,7 +1,8 @@
 pyjamas (0.8.1) unstable; urgency=low
 
   * new version
-  * switch to native package, as we're going to maintain this in the upstream tree
+  * switch to native package, as we're going to maintain this in the
+    upstream tree
   * drop python-hulahop dependency (closes: #710033)
   * drop the pyjamas-desktop package
 
